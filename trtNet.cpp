@@ -25,11 +25,99 @@ using namespace nvcaffeparser1;
     } while (0)
 
 
-namespace mtcnn_trtnet {
+namespace trtnet {
+
+    //
+    // TrtGooglenet stuffs
+    //
+
+    TrtGooglenet::TrtGooglenet()
+    {
+        for (int i = 0; i < 2; i++) {
+            _gpu_buffers[i] = nullptr;
+        }
+    }
+
+    void TrtGooglenet::initEngine(std::string filePath)
+    {
+        _gieModelStream = new IHostMemoryFromFile(filePath);
+        _runtime = createInferRuntime(_gLogger);
+        assert(_runtime != nullptr);
+        _engine = _runtime->deserializeCudaEngine(
+            _gieModelStream->data(),
+            _gieModelStream->size(),
+            nullptr);
+        assert(_engine != nullptr);
+        assert(_engine->getNbBindings() == 2);
+        assert(_engine->bindingIsInput(0) == true);   // data
+        assert(_engine->bindingIsInput(1) == false);  // prob
+        _context = _engine->createExecutionContext();
+        assert(_context != nullptr);
+        _gieModelStream->destroy();
+        CHECK(cudaStreamCreate(&_stream));
+    }
+
+    void TrtGooglenet::initEngine(std::string filePath, int dataDims[3], int probDims[3])
+    {
+        initEngine(filePath);
+#if NV_TENSORRT_MAJOR == 3
+        DimsCHW d;
+        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(0));
+        my_assert(d.nbDims == 3, "bad nbDims for 'data'");
+        my_assert(d.c() == dataDims[0] && d.h() == dataDims[1] && d.w() == dataDims[2], "bad dims for 'data'");
+        _blob_sizes[0] = d.c() * d.h() * d.w();
+        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(1));
+        my_assert(d.nbDims == 3, "bad nbDims for 'prob'");
+        my_assert(d.c() == prob1Dims[0] && d.h() == prob1Dims[1] && d.w() == prob1Dims[2], "bad dims for 'prob'");
+        _blob_sizes[1] = d.c() * d.h() * d.w();
+#else   // NV_TENSORRT_MAJOR >= 4
+        Dims3 d;
+        d = static_cast<Dims3&&>(_engine->getBindingDimensions(0));
+        my_assert(d.nbDims == 3, "bad nbDims for 'data'");
+        my_assert(d.d[0] == dataDims[0] && d.d[1] == dataDims[1] && d.d[2] == dataDims[2], "bad dims for 'data'");
+        _blob_sizes[0] = d.d[0] * d.d[1] * d.d[2];
+        d = static_cast<Dims3&&>(_engine->getBindingDimensions(1));
+        my_assert(d.nbDims == 3, "bad nbDims for 'prob'");
+        my_assert(d.d[0] == prob1Dims[0] && d.d[1] == prob1Dims[1] && d.d[2] == prob1Dims[2], "bad dims for 'prob'");
+        _blob_sizes[1] = d.d[0] * d.d[1] * d.d[2];
+#endif  // NV_TENSORRT_MAJOR
+
+        for (int i = 0; i < 2; i++) {
+            CHECK(cudaMalloc(&_gpu_buffers[i], _blob_sizes[i] * sizeof(float)));
+        }
+    }
+
+    void TrtGooglenet::forward(float *imgs, float *prob)
+    {
+        CHECK(cudaMemcpyAsync(_gpu_buffers[0],
+                              imgs,
+                              _blob_sizes[0] * sizeof(float),
+                              cudaMemcpyHostToDevice,
+                              _stream));
+        _context->enqueue(1, _gpu_buffers, _stream, nullptr);
+        CHECK(cudaMemcpyAsync(probs,
+                              _gpu_buffers[1],
+                              _blob_sizes[1] * sizeof(float),
+                              cudaMemcpyDeviceToHost,
+                              _stream));
+        cudaStreamSynchronize(_stream);
+    }
+
+    void TrtGooglenet::destroy()
+    {
+        cudaStreamDestroy(_stream);
+        _context->destroy();
+        _engine->destroy();
+        _runtime->destroy();
+    }
+
+    //
+    // TrtMtcnnDet stuffs
+    //
 
     TrtMtcnnDet::TrtMtcnnDet()
     {
-        for (int i = 0; i < MAX_BINDINGS; i++) {
+        for (int i = 0; i < 3; i++) {
             _gpu_buffers[i] = nullptr;
         }
     }
@@ -94,7 +182,7 @@ namespace mtcnn_trtnet {
         if (value == _batchsize || _engine == nullptr)
             return;  // do nothing
         _batchsize = value;
-        for (int i = 0; i < MAX_BINDINGS; i++) {
+        for (int i = 0; i < 3; i++) {
             if (_gpu_buffers[i] != nullptr) {
                 CHECK(cudaFree(_gpu_buffers[i]));
                 _gpu_buffers[i] = nullptr;
@@ -141,4 +229,4 @@ namespace mtcnn_trtnet {
         _runtime->destroy();
     }
 
-}  // namespace mtcnn_trtnet
+}  // namespace trtnet

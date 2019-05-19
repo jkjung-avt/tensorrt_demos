@@ -12,12 +12,10 @@
 #include "NvInfer.h"
 #include "NvCaffeParser.h"
 
-#define MAX_BINDINGS 3
-
 using namespace nvinfer1;
 using namespace nvcaffeparser1;
 
-namespace mtcnn_trtnet {
+namespace trtnet {
 
     class Logger : public ILogger
     {
@@ -48,6 +46,28 @@ namespace mtcnn_trtnet {
             std::size_t _s;
     };
 
+    class TrtGooglenet
+    {
+        public:
+            TrtGooglenet();
+            // init from engine file
+            void initEngine(std::string filePath, int dataDims[3], int probDims[3]);
+            void forward(float *imgs, float *prob);
+            void destroy();
+
+        private:
+            Logger _gLogger;
+            IHostMemory *_gieModelStream{nullptr};
+            IRuntime *_runtime;
+            ICudaEngine *_engine;
+            IExecutionContext *_context;
+            cudaStream_t _stream;
+            void *_gpu_buffers[2];
+            int _blob_sizes[2];
+
+            void initEngine(std::string filePath);
+    };
+
     class TrtMtcnnDet
     {
         public:
@@ -66,14 +86,13 @@ namespace mtcnn_trtnet {
             ICudaEngine *_engine;
             IExecutionContext *_context;
             cudaStream_t _stream;
-            void *_gpu_buffers[MAX_BINDINGS];
-            int _blob_sizes[MAX_BINDINGS];
-            int _inputIdx;  // index to the input binding
+            void *_gpu_buffers[3];
+            int _blob_sizes[3];
             int _batchsize = 0;
 
             void initEngine(std::string filePath);
     };
 
-}  // namespace mtcnn_trtnet
+}  // namespace trtnet
 
 #endif  // __TRTNET_H__
