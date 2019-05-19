@@ -99,7 +99,7 @@ void caffeToTRTModel(const std::string& deployFile,             // name for caff
     if (useFp16) {
 #if NV_TENSORRT_MAJOR == 3
         builder->setHalf2Mode(true);
-#else   // NV_TENSORRT_MAJOR == 4
+#else   // NV_TENSORRT_MAJOR >= 4
         builder->setFp16Mode(true);
 #endif  // NV_TENSORRT_MAJOR
     }
@@ -161,7 +161,7 @@ void verify_engine(std::string det_name)
         std::cout << bi << ": " << engine->getBindingName(bi) << ", "
                   << dim.c() << "x" << dim.h() << "x" << dim.w()
                   << std::endl;
-#else   // NV_TENSORRT_MAJOR == 4
+#else   // NV_TENSORRT_MAJOR >= 4
         Dims3 dim = static_cast<Dims3&&>(engine->getBindingDimensions(bi));
         if (engine->bindingIsInput(bi) == true) {
             std::cout << "  Input  ";
