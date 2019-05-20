@@ -4,6 +4,7 @@ Examples demonstrating how to optimize caffe models with TensorRT and run infere
 
 Related blog posts:
 
+* [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
 * To be updated...
 
 Table of contents
