@@ -3,6 +3,7 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 
+import numpy
 
 library_dirs = [
     '/usr/local/cuda/lib64',
@@ -20,7 +21,10 @@ libraries = [
 ]
 
 include_dirs = [
-    '-I/usr/local/lib/python3.6/dist-packages/numpy/core/include',
+    # in case the following numpy include path does not work, you
+    # could replace it manually with, say,
+    # '-I/usr/local/lib/python3.6/dist-packages/numpy/core/include',
+    numpy.__path__[0] + '/core/include',
     '-I/usr/local/cuda/include',
     '-I/usr/local/include',
 ]
