@@ -1,4 +1,13 @@
-model/*.engine
+googlenet/*.engine
+googlenet/chobj
+googlenet/dchobj
+googlenet/create_engine
+
+mtcnn/*.engine
+mtcnn/chobj
+mtcnn/dchobj
+mtcnn/create_engines
+
 pytrt.cpp
 build
 pytrt.*.so
