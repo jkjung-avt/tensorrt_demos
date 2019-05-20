@@ -30,7 +30,7 @@ cdef class PyTrtGooglenet:
         if not np_imgs.flags['C_CONTIGUOUS']:
             np_imgs = np.ascontiguousarray(np_imgs)
         np_prob = np.ascontiguousarray(
-            np.zeros((self.batch_size,) + self.prob_dims, dtype=np.float32)
+            np.zeros((1,) + self.prob_dims, dtype=np.float32)
         )
         cdef float[:,:,:,::1] v_imgs = np_imgs
         cdef float[:,:,:,::1] v_prob = np_prob

@@ -78,7 +78,7 @@ namespace trtnet {
         _blob_sizes[0] = d.d[0] * d.d[1] * d.d[2];
         d = static_cast<Dims3&&>(_engine->getBindingDimensions(1));
         my_assert(d.nbDims == 3, "bad nbDims for 'prob'");
-        my_assert(d.d[0] == prob1Dims[0] && d.d[1] == prob1Dims[1] && d.d[2] == prob1Dims[2], "bad dims for 'prob'");
+        my_assert(d.d[0] == probDims[0] && d.d[1] == probDims[1] && d.d[2] == probDims[2], "bad dims for 'prob'");
         _blob_sizes[1] = d.d[0] * d.d[1] * d.d[2];
 #endif  // NV_TENSORRT_MAJOR
 
@@ -95,7 +95,7 @@ namespace trtnet {
                               cudaMemcpyHostToDevice,
                               _stream));
         _context->enqueue(1, _gpu_buffers, _stream, nullptr);
-        CHECK(cudaMemcpyAsync(probs,
+        CHECK(cudaMemcpyAsync(prob,
                               _gpu_buffers[1],
                               _blob_sizes[1] * sizeof(float),
                               cudaMemcpyDeviceToHost,
