@@ -24,7 +24,7 @@ include_dirs = [
     # in case the following numpy include path does not work, you
     # could replace it manually with, say,
     # '-I/usr/local/lib/python3.6/dist-packages/numpy/core/include',
-    numpy.__path__[0] + '/core/include',
+    '-I' + numpy.__path__[0] + '/core/include',
     '-I/usr/local/cuda/include',
     '-I/usr/local/include',
 ]
