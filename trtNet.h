@@ -64,6 +64,8 @@ namespace trtnet {
             cudaStream_t _stream;
             void *_gpu_buffers[2];
             int _blob_sizes[2];
+	        int _binding_data;
+	        int _binding_prob;
 
             void initEngine(std::string filePath);
     };
@@ -86,8 +88,12 @@ namespace trtnet {
             ICudaEngine *_engine;
             IExecutionContext *_context;
             cudaStream_t _stream;
-            void *_gpu_buffers[3];
-            int _blob_sizes[3];
+            void *_gpu_buffers[4];
+            int _blob_sizes[4];
+            int _num_bindings = 0;
+	        int _binding_data;
+	        int _binding_prob1;
+	        int _binding_boxes;
             int _batchsize = 0;
 
             void initEngine(std::string filePath);
