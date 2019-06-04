@@ -9,7 +9,9 @@ using namespace nvcaffeparser1;
     do {                                                        \
         auto ret = status;                                      \
         if (ret != 0) {                                         \
-            std::cout << "Cuda failure: " << ret << std::endl;  \
+            std::cerr << "Cuda failure in file '" << __FILE__   \
+		              << "' line " << __LINE__                  \
+                      << ": " << ret << std::endl;              \
             abort();                                            \
         }                                                       \
     } while (0)
@@ -42,17 +44,19 @@ namespace trtnet {
     {
         _gieModelStream = new IHostMemoryFromFile(filePath);
         _runtime = createInferRuntime(_gLogger);
-        assert(_runtime != nullptr);
+        my_assert(_runtime != nullptr, "_runtime is null");
         _engine = _runtime->deserializeCudaEngine(
             _gieModelStream->data(),
             _gieModelStream->size(),
             nullptr);
-        assert(_engine != nullptr);
-        assert(_engine->getNbBindings() == 2);
-        assert(_engine->bindingIsInput(0) == true);   // data
-        assert(_engine->bindingIsInput(1) == false);  // prob
+        my_assert(_engine != nullptr, "_enginer is null");
+        my_assert(_engine->getNbBindings() == 2, "wrong number of bindings");
+	    _binding_data = _engine->getBindingIndex("data");
+        my_assert(_engine->bindingIsInput(_binding_data) == true, "bad type of binding 'data'");
+	    _binding_prob = _engine->getBindingIndex("prob");
+        my_assert(_engine->bindingIsInput(_binding_prob) == false, "bad type of binding 'prob'");
         _context = _engine->createExecutionContext();
-        assert(_context != nullptr);
+        my_assert(_context != nullptr, "_context is null");
         _gieModelStream->destroy();
         CHECK(cudaStreamCreate(&_stream));
     }
@@ -62,24 +66,24 @@ namespace trtnet {
         initEngine(filePath);
 #if NV_TENSORRT_MAJOR == 3
         DimsCHW d;
-        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(0));
+        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(_binding_data));
         my_assert(d.nbDims == 3, "bad nbDims for 'data'");
         my_assert(d.c() == dataDims[0] && d.h() == dataDims[1] && d.w() == dataDims[2], "bad dims for 'data'");
-        _blob_sizes[0] = d.c() * d.h() * d.w();
-        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(1));
+        _blob_sizes[_binding_data] = d.c() * d.h() * d.w();
+        d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(_binding_prob));
         my_assert(d.nbDims == 3, "bad nbDims for 'prob'");
         my_assert(d.c() == prob1Dims[0] && d.h() == prob1Dims[1] && d.w() == prob1Dims[2], "bad dims for 'prob'");
-        _blob_sizes[1] = d.c() * d.h() * d.w();
+        _blob_sizes[_binding_prob] = d.c() * d.h() * d.w();
 #else   // NV_TENSORRT_MAJOR >= 4
         Dims3 d;
-        d = static_cast<Dims3&&>(_engine->getBindingDimensions(0));
+        d = static_cast<Dims3&&>(_engine->getBindingDimensions(_binding_data));
         my_assert(d.nbDims == 3, "bad nbDims for 'data'");
         my_assert(d.d[0] == dataDims[0] && d.d[1] == dataDims[1] && d.d[2] == dataDims[2], "bad dims for 'data'");
-        _blob_sizes[0] = d.d[0] * d.d[1] * d.d[2];
-        d = static_cast<Dims3&&>(_engine->getBindingDimensions(1));
+        _blob_sizes[_binding_data] = d.d[0] * d.d[1] * d.d[2];
+        d = static_cast<Dims3&&>(_engine->getBindingDimensions(_binding_prob));
         my_assert(d.nbDims == 3, "bad nbDims for 'prob'");
         my_assert(d.d[0] == probDims[0] && d.d[1] == probDims[1] && d.d[2] == probDims[2], "bad dims for 'prob'");
-        _blob_sizes[1] = d.d[0] * d.d[1] * d.d[2];
+        _blob_sizes[_binding_prob] = d.d[0] * d.d[1] * d.d[2];
 #endif  // NV_TENSORRT_MAJOR
 
         for (int i = 0; i < 2; i++) {
@@ -89,15 +93,15 @@ namespace trtnet {
 
     void TrtGooglenet::forward(float *imgs, float *prob)
     {
-        CHECK(cudaMemcpyAsync(_gpu_buffers[0],
+        CHECK(cudaMemcpyAsync(_gpu_buffers[_binding_data],
                               imgs,
-                              _blob_sizes[0] * sizeof(float),
+                              _blob_sizes[_binding_data] * sizeof(float),
                               cudaMemcpyHostToDevice,
                               _stream));
         _context->enqueue(1, _gpu_buffers, _stream, nullptr);
         CHECK(cudaMemcpyAsync(prob,
-                              _gpu_buffers[1],
-                              _blob_sizes[1] * sizeof(float),
+                              _gpu_buffers[_binding_prob],
+                              _blob_sizes[_binding_prob] * sizeof(float),
                               cudaMemcpyDeviceToHost,
                               _stream));
         cudaStreamSynchronize(_stream);
