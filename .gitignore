@@ -1,3 +1,6 @@
+__pycache__
+*.pyc
+
 googlenet/*.engine
 googlenet/chobj
 googlenet/dchobj
