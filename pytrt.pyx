@@ -14,7 +14,8 @@ cdef class PyTrtGooglenet:
     def __cinit__(PyTrtGooglenet self):
         self.c_trtnet = NULL
 
-    def __init__(PyTrtGooglenet self, str engine_path, tuple shape0, tuple shape1):
+    def __init__(PyTrtGooglenet self,
+                 str engine_path, tuple shape0, tuple shape1):
         assert len(shape0) == 3 and len(shape1) == 3
         self.c_trtnet = new TrtGooglenet()
         self.data_dims = shape0
@@ -24,7 +25,8 @@ cdef class PyTrtGooglenet:
         cdef string c_str = engine_path.encode('UTF-8')
         self.c_trtnet.initEngine(c_str, &v0[0], &v1[0])
 
-    def forward(PyTrtGooglenet self, np.ndarray[np.float32_t, ndim=4] np_imgs not None):
+    def forward(PyTrtGooglenet self,
+                np.ndarray[np.float32_t, ndim=4] np_imgs not None):
         """Do a forward() computation on the input batch of imgs."""
         assert(np_imgs.shape[0] == 1)  # only accept batch_size = 1
         if not np_imgs.flags['C_CONTIGUOUS']:
@@ -44,23 +46,34 @@ cdef class PyTrtGooglenet:
 cdef class PyTrtMtcnn:
     cdef TrtMtcnnDet *c_trtnet
     cdef int batch_size
-    cdef tuple data_dims, prob1_dims, boxes_dims
+    cdef int num_bindings
+    cdef tuple data_dims, prob1_dims, boxes_dims, marks_dims
 
     def __cinit__(PyTrtMtcnn self):
         self.c_trtnet = NULL
 
-    def __init__(PyTrtMtcnn self, str engine_path, tuple shape0, tuple shape1, tuple shape2):
+    def __init__(PyTrtMtcnn self,
+                 str engine_path,
+                 tuple shape0, tuple shape1, tuple shape2, tuple shape3=None):
         assert len(shape0) == 3 and len(shape1) == 3 and len(shape2) == 3
+        if shape3:
+            assert len(shape3) == 3
         self.c_trtnet = new TrtMtcnnDet()
         self.batch_size = 0
         self.data_dims  = shape0
         self.prob1_dims = shape1
         self.boxes_dims = shape2
+        self.marks_dims = shape3
+        self.num_bindings = 4 if shape3 else 3
         cdef int[:] v0 = np.array(shape0, dtype=np.intc)
         cdef int[:] v1 = np.array(shape1, dtype=np.intc)
         cdef int[:] v2 = np.array(shape2, dtype=np.intc)
         cdef string c_str = engine_path.encode('UTF-8')
-        self.c_trtnet.initEngine(c_str, &v0[0], &v1[0], &v2[0])
+        if self.num_bindings == 3:
+            self.c_trtnet.initEngine(c_str, &v0[0], &v1[0], &v2[0])
+        else:  # self.num_bindings == 4
+            cdef int[:] v3 = np.array(shape3, dtype=np.intc)
+            self.c_trtnet.initEngine(c_str, &v0[0], &v1[0], &v2[0], &v3[0])
 
     def set_batchsize(PyTrtMtcnn self, int batch_size):
         self.c_trtnet.setBatchSize(batch_size)
