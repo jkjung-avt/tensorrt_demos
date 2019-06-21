@@ -60,11 +60,11 @@ Step-by-step:
    $ make
    ```
 
-4. Run the `camera_trt_googlenet.py` demo program.  You could use `--help` option to display help messages.  In short, use `--usb` for USB webcam or `rtsp` for RTSP video input.
+4. Run the `trt_googlenet.py` demo program.  You could use `--help` option to display help messages.  In short, use `--usb` for USB webcam or `rtsp` for RTSP video input.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos
-   $ python3 camera_trt_googlenet.py --usb --vid 0 --width 1280 --height 720
+   $ python3 trt_googlenet.py --usb --vid 0 --width 1280 --height 720
    ```
 
    Here's a screenshot of the demo.
