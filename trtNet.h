@@ -96,10 +96,10 @@ namespace trtnet {
 	        int _binding_data;
 	        int _binding_prob1;
 	        int _binding_boxes;
-	        int _binding_makrs;
+	        int _binding_marks;
             int _batchsize = 0;
 
-            void _initEngine(std::string filePath, std::string dataName, std::string prob1Name, std::string boxesName, std::string marksName);
+            void _initEngine(std::string filePath, const char *dataName, const char *prob1Name, const char *boxesName, const char *marksName);
             void _setBlobSizes(int dataDims[3], int prob1Dims[3], int boxesDims[3]);
     };
 

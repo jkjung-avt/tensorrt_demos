@@ -17,5 +17,6 @@ cdef extern from 'trtNet.h' namespace 'trtnet':
         void initDet3(string, int *, int *, int *, int *)
         void setBatchSize(int)
         int  getBatchSize()
-        void forward(float *, float *, float *, float *, float *)
+        void forward(float *, float *, float *)
+        void forward(float *, float *, float *, float *)
         void destroy()

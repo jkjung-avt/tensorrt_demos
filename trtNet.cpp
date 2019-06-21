@@ -63,7 +63,7 @@ namespace trtnet {
 
     void TrtGooglenet::initEngine(std::string filePath, int dataDims[3], int probDims[3])
     {
-        initEngine(filePath);
+        _initEngine(filePath);
 #if NV_TENSORRT_MAJOR == 3
         DimsCHW d;
         d = static_cast<DimsCHW&&>(_engine->getBindingDimensions(_binding_data));
@@ -134,7 +134,7 @@ namespace trtnet {
         }
     }
 
-    void TrtMtcnnDet::_initEngine(std::string filePath, std::string dataName, std::string prob1Name, std::string boxesName, std::string marksName="unspecified")
+    void TrtMtcnnDet::_initEngine(std::string filePath, const char *dataName, const char *prob1Name, const char *boxesName, const char *marksName="unspecified")
     {
         _gieModelStream = new IHostMemoryFromFile(filePath);
         _runtime = createInferRuntime(_gLogger);
@@ -148,12 +148,12 @@ namespace trtnet {
 	    _binding_data = _engine->getBindingIndex(dataName);
         my_assert(_engine->bindingIsInput(_binding_data) == true, "bad type of binding 'data'");
 	    _binding_prob1 = _engine->getBindingIndex(prob1Name);
-        my_assert(_engine->bindingIsOutput(_binding_prob1) == false, "bad type of binding 'prob1'");
+        my_assert(_engine->bindingIsInput(_binding_prob1) == false, "bad type of binding 'prob1'");
 	    _binding_boxes = _engine->getBindingIndex(boxesName);
-        my_assert(_engine->bindingIsOutput(_binding_boxes) == false, "bad type of binding 'boxes'");
+        my_assert(_engine->bindingIsInput(_binding_boxes) == false, "bad type of binding 'boxes'");
         if (_num_bindings == 4) {
 	        _binding_marks = _engine->getBindingIndex(marksName);
-            my_assert(_engine->bindingIsOutput(_binding_marks) == false, "bad type of binding 'marks'");
+            my_assert(_engine->bindingIsInput(_binding_marks) == false, "bad type of binding 'marks'");
         }
         _context = _engine->createExecutionContext();
         my_assert(_context != nullptr, "_context is null");
@@ -201,22 +201,22 @@ namespace trtnet {
     void TrtMtcnnDet::initDet1(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3])
     {
         _num_bindings = 3;
-        initEngine(filePath, "data", "prob1", "conv4-2");
-        _setBlobSizes(dataDims, prob1Dims, boxesDims)
+        _initEngine(filePath, "data", "prob1", "conv4-2");
+        _setBlobSizes(dataDims, prob1Dims, boxesDims);
     }
 
     void TrtMtcnnDet::initDet2(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3])
     {
         _num_bindings = 3;
-        initEngine(filePath, "data", "prob1", "conv5-2");
-        _setBlobSizes(dataDims, prob1Dims, boxesDims)
+        _initEngine(filePath, "data", "prob1", "conv5-2");
+        _setBlobSizes(dataDims, prob1Dims, boxesDims);
     }
 
     void TrtMtcnnDet::initDet3(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3], int marksDims[3])
     {
         _num_bindings = 4;
-        initEngine(filePath, "data", "prob1", "conv6-2", "conv6-3");
-        _setBlobSizes(dataDims, prob1Dims, boxesDims)
+        _initEngine(filePath, "data", "prob1", "conv6-2", "conv6-3");
+        _setBlobSizes(dataDims, prob1Dims, boxesDims);
 
 #if NV_TENSORRT_MAJOR == 3
         DimsCHW d;
@@ -276,12 +276,12 @@ namespace trtnet {
                               cudaMemcpyDeviceToHost,
                               _stream));
         if (_num_bindings == 4) {
-            my_assert(marks != nullptr, "pointer 'marks' is null")
+            my_assert(marks != nullptr, "pointer 'marks' is null");
             CHECK(cudaMemcpyAsync(marks,
                                   _gpu_buffers[_binding_marks],
                                   _batchsize * _blob_sizes[_binding_marks] * sizeof(float),
-                              cudaMemcpyDeviceToHost,
-                              _stream));
+                                  cudaMemcpyDeviceToHost,
+                                  _stream));
         }
         cudaStreamSynchronize(_stream);
     }
