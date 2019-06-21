@@ -4,7 +4,8 @@ layer
    name: "data"
    type: "Input"
    top:  "data"
-   input_param{shape:{dim:1 dim:3 dim:12 dim:12}}
+   # 1080 * 12 / 20 = 648, 1920 * 12 / 20 = 1152
+   input_param{shape:{dim:1 dim:3 dim:648 dim:1152}}
 }
 
 layer {
