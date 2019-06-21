@@ -1,0 +1,457 @@
+name: "ONet"
+input: "data"
+input_dim: 1
+input_dim: 3
+input_dim: 48
+input_dim: 48
+##################################
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 3
+    stride: 1
+     weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu1_1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1_1"
+}
+
+layer {
+	name: "scale1_1"
+	bottom: "conv1"
+	top: "conv1_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "ReLU1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+layer {
+	name: "scale1_2"
+	bottom: "conv1_2"
+	top: "conv1_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "eltwise-sum1"
+  type: "Eltwise"
+  bottom: "conv1_1"
+  bottom: "conv1_2"
+  top: "conv1_3"
+  eltwise_param { operation: SUM }
+}
+
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1_3"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 3
+    stride: 1
+     weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2"
+  top: "conv2_1"
+}
+layer {
+	name: "scale2_1"
+	bottom: "conv2"
+	top: "conv2_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "ReLU2_2"
+  type: "ReLU"
+  bottom: "conv2_2"
+  top: "conv2_2"
+}
+layer {
+	name: "scale2_2"
+	bottom: "conv2_2"
+	top: "conv2_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "eltwise-sum2"
+  type: "Eltwise"
+  bottom: "conv2_1"
+  bottom: "conv2_2"
+  top: "conv2_3"
+  eltwise_param { operation: SUM }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2_3"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+
+layer {
+  name: "conv3"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  convolution_param {
+	num_output: 64
+	kernel_size: 3
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3"
+  top: "conv3_1"
+}
+layer {
+	name: "scale3_1"
+	bottom: "conv3"
+	top: "conv3_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "ReLU3_2"
+  type: "ReLU"
+  bottom: "conv3_2"
+  top: "conv3_2"
+}
+layer {
+	name: "scale3_2"
+	bottom: "conv3_2"
+	top: "conv3_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "eltwise-sum3"
+  type: "Eltwise"
+  bottom: "conv3_1"
+  bottom: "conv3_2"
+  top: "conv3_3"
+  eltwise_param { operation: SUM }
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3_3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv4"
+  type: "Convolution"
+  bottom: "pool3"
+  top: "conv4"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  convolution_param {
+	num_output: 128
+	kernel_size: 2
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu4"
+  type: "ReLU"
+  bottom: "conv4"
+  top: "conv4_1"
+}
+
+layer {
+	name: "scale4_1"
+	bottom: "conv4"
+	top: "conv4_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "ReLU4_2"
+  type: "ReLU"
+  bottom: "conv4_2"
+  top: "conv4_2"
+}
+layer {
+	name: "scale4_2"
+	bottom: "conv4_2"
+	top: "conv4_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "eltwise-sum4"
+  type: "Eltwise"
+  bottom: "conv4_1"
+  bottom: "conv4_2"
+  top: "conv4_3"
+  eltwise_param { operation: SUM }
+}
+
+layer {
+  name: "conv5"
+  type: "InnerProduct"
+  bottom: "conv4_3"
+  top: "conv5"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  inner_product_param {
+	#kernel_size: 3
+	num_output: 256
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "relu5_1"
+  type: "ReLU"
+  bottom: "conv5"
+  top: "conv5_1"
+}
+
+layer {
+	name: "scale5_1"
+	bottom: "conv5"
+	top: "conv5_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "ReLU5_2"
+  type: "ReLU"
+  bottom: "conv5_2"
+  top: "conv5_2"
+}
+layer {
+	name: "scale5_2"
+	bottom: "conv5_2"
+	top: "conv5_2"
+	type: "Scale"
+	scale_param {
+		axis: 1
+		bias_term:false
+	}
+}
+layer {
+  name: "eltwise-sum5"
+  type: "Eltwise"
+  bottom: "conv5_1"
+  bottom: "conv5_2"
+  top: "conv5_3"
+  eltwise_param { operation: SUM }
+}
+
+layer {
+  name: "conv6-1"
+  type: "InnerProduct"
+  bottom: "conv5_3"
+  top: "conv6-1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  inner_product_param {
+    #kernel_size: 1
+	num_output: 2
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "conv6-2"
+  type: "InnerProduct"
+  bottom: "conv5_3"
+  top: "conv6-2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  inner_product_param {
+  	#kernel_size: 1
+	num_output: 4
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "conv6-3"
+  type: "InnerProduct"
+  bottom: "conv5_3"
+  top: "conv6-3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 1
+  }
+  inner_product_param {
+  	#kernel_size: 1
+	num_output: 10
+    weight_filler {
+      type: "xavier"
+	}
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "prob1"
+  type: "Softmax"
+  bottom: "conv6-1"
+  top: "prob1"
+}

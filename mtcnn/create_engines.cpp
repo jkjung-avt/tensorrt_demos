@@ -184,8 +184,8 @@ int main(int argc, char** argv)
 
     std::cout << "Building det1.engine (PNet), maxBatchSize = 1"
               << std::endl;
-    caffeToTRTModel("det1.prototxt",
-                    "det1.caffemodel",
+    caffeToTRTModel("det1_relu.prototxt",
+                    "det1_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv4-2" },
                     1,  // batch size
                     trtModelStream);
@@ -194,8 +194,8 @@ int main(int argc, char** argv)
 
     std::cout << "Building det2.engine (RNet), maxBatchSize = 1024"
               << std::endl;
-    caffeToTRTModel("det2.prototxt",
-                    "det2.caffemodel",
+    caffeToTRTModel("det2_relu.prototxt",
+                    "det2_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv5-2" },
                     1024,  // batch size
                     trtModelStream);
@@ -204,8 +204,8 @@ int main(int argc, char** argv)
 
     std::cout << "Building det3.engine (ONet), maxBatchSize = 256"
               << std::endl;
-    caffeToTRTModel("det3.prototxt",
-                    "det3.caffemodel",
+    caffeToTRTModel("det3_relu.prototxt",
+                    "det3_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv6-2", "conv6-3" },
                     256,  // batch size
                     trtModelStream);
