@@ -8,12 +8,12 @@ This script demonstrates how to do real-time image classification
 import sys
 import timeit
 import argparse
-import threading
 
 import numpy as np
 import cv2
-from pytrt import PyTrtGooglenet
 from utils.camera import add_camera_args, Camera
+from utils.display import open_window, show_help_text, set_display
+from pytrt import PyTrtGooglenet
 
 
 PIXEL_MEANS = np.array([[[104., 117., 123.]]], dtype=np.float32)
@@ -33,21 +33,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
     parser.add_argument('--crop', dest='crop_center',
-                        help='crop center square of image for Caffe '
+                        help='crop center square of image for '
                              'inferencing [False]',
                         action='store_true')
     args = parser.parse_args()
     return args
-
-
-def open_window(width, height):
-    """Open the display window."""
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(WINDOW_NAME, width, height)
-    cv2.moveWindow(WINDOW_NAME, 0, 0)
-    cv2.setWindowTitle(WINDOW_NAME,
-                       'Camera TensorRT GoogLeNet Classification Demo '
-                       'for Jetson Nano')
 
 
 def show_top_preds(img, top_probs, top_labels):
@@ -61,24 +51,6 @@ def show_top_preds(img, top_probs, top_labels):
         cv2.putText(img, pred, (x, y), cv2.FONT_HERSHEY_PLAIN, 1.0,
                     (0, 0, 240), 1, cv2.LINE_AA)
         y += 20
-
-
-def show_help_text(img, help_text):
-    """Draw help text on image."""
-    cv2.putText(img, help_text, (11, 20), cv2.FONT_HERSHEY_PLAIN, 1.0,
-                (32, 32, 32), 4, cv2.LINE_AA)
-    cv2.putText(img, help_text, (10, 20), cv2.FONT_HERSHEY_PLAIN, 1.0,
-                (240, 240, 240), 1, cv2.LINE_AA)
-
-
-def set_display(full_scrn):
-    """Set disply window to either full screen or normal."""
-    if full_scrn:
-        cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
-                              cv2.WINDOW_FULLSCREEN)
-    else:
-        cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
-                              cv2.WINDOW_NORMAL)
 
 
 def classify(img, net, labels, do_cropping):
@@ -130,16 +102,12 @@ def loop_and_classify(cam, net, labels, do_cropping):
             show_help = not show_help
         elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
             full_scrn = not full_scrn
-            set_display(full_scrn)
+            set_display(WINDOW_NAME, full_scrn)
 
 
 def main():
     args = parse_args()
-    print('Called with args:')
-    print(args)
-
     labels = np.loadtxt('googlenet/synset_words.txt', str, delimiter='\t')
-
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
@@ -149,7 +117,8 @@ def main():
     net = PyTrtGooglenet(DEPLOY_ENGINE, ENGINE_SHAPE0, ENGINE_SHAPE1)
 
     cam.start()
-    open_window(args.image_width, args.image_height)
+    open_window(WINDOW_NAME, args.image_width, args.image_height,
+                'Camera TensorRT GoogLeNet Demo for Jetson Nano')
     loop_and_classify(cam, net, labels, args.crop_center)
 
     cam.stop()
