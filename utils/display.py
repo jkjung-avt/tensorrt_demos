@@ -10,7 +10,6 @@ def open_window(window_name, width, height, title):
     """Open the display window."""
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_name, width, height)
-    cv2.moveWindow(window_name, 0, 0)
     cv2.setWindowTitle(window_name, title)
 
 
