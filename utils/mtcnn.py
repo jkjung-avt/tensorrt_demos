@@ -117,10 +117,10 @@ def generate_pnet_bboxes(conf, reg, scale, t):
         cooresponding scores: [[x1, y1, x2, y2, score], ...]
 
     # Notes
-        Top left corner coordinates of each grid is (x*4, y*4),
-        or (x*4/scale, y*4/scale) in the original image.
-        Bottom right corner coordinates is (x*4+12-1, y*4+12-1),
-        or ((x*4+12-1)/scale, (y*4+12-1)/scale) in the original
+        Top left corner coordinates of each grid is (x*2, y*2),
+        or (x*2/scale, y*2/scale) in the original image.
+        Bottom right corner coordinates is (x*2+12-1, y*2+12-1),
+        or ((x*2+12-1)/scale, (y*2+12-1)/scale) in the original
         image.
     """
     conf = conf.T  # swap H and W dimensions
@@ -133,13 +133,13 @@ def generate_pnet_bboxes(conf, reg, scale, t):
         return np.zeros((0, 5), np.float32)
 
     score = np.array(conf[x, y]).reshape(-1, 1)  # Nx1
-    reg = np.array([dx1[x, y] * 12, dy1[x, y] * 12,
-                    dx2[x, y] * 12, dy2[x, y] * 12]).T  # Nx4
-    topleft = np.array([x, y], dtype=np.float32).T * 4  # Nx2
+    reg = np.array([dx1[x, y] * 12., dy1[x, y] * 12.,
+                    dx2[x, y] * 12., dy2[x, y] * 12.]).T  # Nx4
+    topleft = np.array([x, y], dtype=np.float32).T * 2.   # Nx2
     bottomright = topleft + np.array([11., 11.], dtype=np.float32)  # Nx2
     boxes = (np.concatenate((topleft, bottomright), axis=1) + reg) / scale
     # filter bboxes which are too small
-    boxes = np.concatenate((boxes, score), axis=1)  # Nx5
+    boxes = np.concatenate((boxes, score), axis=1)        # Nx5
     boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12, :]
     boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12, :]
     return boxes
@@ -194,8 +194,8 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
     boxes = boxes[conf >= t, :]
     reg_boxes = reg_boxes[conf >= t, :]
     reg_marks = reg_marks[conf >= t, :]
-    xx = boxes[:, 0]
-    yy = boxes[:, 1]
+    xx = boxes[:, 0].reshape(-1, 1)
+    yy = boxes[:, 1].reshape(-1, 1)
     ww = (boxes[:, 2]-boxes[:, 0]+1).reshape(-1, 1)  # x2 - x1 + 1
     hh = (boxes[:, 3]-boxes[:, 1]+1).reshape(-1, 1)  # y2 - y1 + 1
     boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg_boxes
@@ -245,10 +245,10 @@ class TrtPNet(object):
     """
     def __init__(self, engine, batch_size=1,
                  data_shape=(3, 648, 1152),
-                 prob1_shape=(2, 160, 286),
-                 boxes_shape=(4, 160, 286)):
+                 prob1_shape=(2, 319, 571),
+                 boxes_shape=(4, 319, 571)):
         self.data_shape = data_shape
-        self.trtnet = pytrt.PyTrtNet(
+        self.trtnet = pytrt.PyTrtMtcnn(
             engine, data_shape, prob1_shape, boxes_shape)
         self.trtnet.set_batchsize(batch_size)
 
@@ -264,7 +264,7 @@ class TrtPNet(object):
             cooresponding scores: [[x1, y1, x2, y2, score], ...]
         """
         factor_count = 0
-        total_boxes = np.zeros((0, 5), np.float32)
+        total_boxes = np.zeros((0, 5), dtype=np.float32)
         img_h, img_w, _ = img.shape
         minl = min(img_h, img_w)
         img = img.astype(np.float32) - PIXEL_MEAN
@@ -282,14 +282,14 @@ class TrtPNet(object):
         for scale in scales:
             hs = int(np.ceil(img_h*scale))
             ws = int(np.ceil(img_w*scale))
-            im_data = np.zeros((648, 1152, 3))
-            im_data[hs, ws, :] = cv2.resize(img, (ws, hs))
-            im_data = im_data.transpose((2, 0, 1))
+            im_data = np.zeros((1, 3, 648, 1152), dtype=np.float32)
+            im_data[0, :, :hs, :ws] = \
+                cv2.resize(img, (ws, hs)).transpose((2, 0, 1))
             out = self.trtnet.forward(im_data)
-            ho = (hs - 12) // 4 + 1
-            wo = (ws - 12) // 4 + 1
-            pp = out['prob1'][:, 1, :ho, :wo]
-            cc = out['boxes'][:, :, :ho, :wo]
+            ho = (hs - 12) // 2 + 1
+            wo = (ws - 12) // 2 + 1
+            pp = out['prob1'][0, 1, :ho, :wo]
+            cc = out['boxes'][0, :, :ho, :wo]
             boxes = generate_pnet_bboxes(pp, cc, scale, threshold)
             if boxes.shape[0] > 0:
                 pick = nms(boxes, 0.5, 'Union')
@@ -381,7 +381,7 @@ class TrtONet(object):
                  boxes_shape=(4, 1, 1),
                  marks_shape=(10, 1, 1)):
         self.data_shape = data_shape
-        self.trtnet = pytrt.PyTrtNet(
+        self.trtnet = pytrt.PyTrtMtcnn(
             engine, data_shape, prob1_shape, boxes_shape, marks_shape)
 
     def detect(self, img, boxes, max_batch=128, threshold=0.7):
@@ -399,7 +399,8 @@ class TrtONet(object):
             landmarks
         """
         if boxes.shape[0] == 0:
-            return np.zeros((0, 5), np.float32), np.zeros((0, 10), np.float32)
+            return (np.zeros((0, 5), dtype=np.float32),
+                    np.zeros((0, 10), dtype=np.float32))
         boxes = boxes[:max_batch]  # assuming boxes are sorted by score
         img_h, img_w, _ = img.shape
         boxes = convert_to_1x1(boxes)
@@ -448,8 +449,10 @@ class TrtMtcnn(object):
         if img_h / img_w != 9 / 16:
             img = pad_16x9(img)
         dets = self.pnet.detect(img)
-        dets = self.rnet.detect(img, dets)
-        dets, landmarks = self.onet.detect(img, dets)
+        ######
+        landmarks = np.zeros((dets.shape[0], 10), dtype=np.float32)
+        #dets = self.rnet.detect(img, dets)
+        #dets, landmarks = self.onet.detect(img, dets)
         if img_h / img_w != 9 / 16:
             dets = clip_dets(dets, img_w, img_h)
         return dets, landmarks

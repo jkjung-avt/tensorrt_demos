@@ -86,7 +86,35 @@ cdef class PyTrtMtcnn:
         self.c_trtnet.setBatchSize(batch_size)
         self.batch_size = batch_size
 
-    def forward(PyTrtMtcnn self, np.ndarray[np.float32_t, ndim=4] np_imgs not None):
+    def _forward_3(PyTrtMtcnn self,
+                   np.ndarray[np.float32_t, ndim=4] np_imgs  not None,
+                   np.ndarray[np.float32_t, ndim=4] np_prob1 not None,
+                   np.ndarray[np.float32_t, ndim=4] np_boxes not None):
+        cdef float[:,:,:,::1] v_imgs  = np_imgs
+        cdef float[:,:,:,::1] v_probs = np_prob1
+        cdef float[:,:,:,::1] v_boxes = np_boxes
+        self.c_trtnet.forward(&v_imgs[0][0][0][0],
+                              &v_probs[0][0][0][0],
+                              &v_boxes[0][0][0][0])
+        return { 'prob1': np_prob1, 'boxes': np_boxes }
+
+    def _forward_4(PyTrtMtcnn self,
+                   np.ndarray[np.float32_t, ndim=4] np_imgs  not None,
+                   np.ndarray[np.float32_t, ndim=4] np_prob1 not None,
+                   np.ndarray[np.float32_t, ndim=4] np_boxes not None,
+                   np.ndarray[np.float32_t, ndim=4] np_marks not None):
+        cdef float[:,:,:,::1] v_imgs  = np_imgs
+        cdef float[:,:,:,::1] v_probs = np_prob1
+        cdef float[:,:,:,::1] v_boxes = np_boxes
+        cdef float[:,:,:,::1] v_marks = np_marks
+        self.c_trtnet.forward(&v_imgs[0][0][0][0],
+                              &v_probs[0][0][0][0],
+                              &v_boxes[0][0][0][0],
+                              &v_marks[0][0][0][0])
+        return { 'prob1': np_prob1, 'boxes': np_boxes, 'landmarks': np_marks }
+
+    def forward(PyTrtMtcnn self,
+                np.ndarray[np.float32_t, ndim=4] np_imgs not None):
         """Do a forward() computation on the input batch of imgs."""
         assert(np_imgs.shape[0] == self.batch_size)
         if not np_imgs.flags['C_CONTIGUOUS']:
@@ -100,21 +128,10 @@ cdef class PyTrtMtcnn:
         np_marks = np.ascontiguousarray(
             np.zeros((self.batch_size,) + self.marks_dims, dtype=np.float32)
         )
-        cdef float[:,:,:,::1] v_imgs  = np_imgs
-        cdef float[:,:,:,::1] v_probs = np_prob1
-        cdef float[:,:,:,::1] v_boxes = np_boxes
-        cdef float[:,:,:,::1] v_marks = np_marks
         if self.num_bindings == 3:
-            self.c_trtnet.forward(&v_imgs[0][0][0][0],
-                                  &v_probs[0][0][0][0],
-                                  &v_boxes[0][0][0][0])
-            return { 'prob1': np_prob1, 'boxes': np_boxes }
+            return self._forward_3(np_imgs, np_prob1, np_boxes)
         else:  # self.num_bindings == 4
-            self.c_trtnet.forward(&v_imgs[0][0][0][0],
-                                  &v_probs[0][0][0][0],
-                                  &v_boxes[0][0][0][0],
-                                  &v_marks[0][0][0][0])
-            return { 'prob1': np_prob1, 'boxes': np_boxes, 'landmarks': np_marks }
+            return self._forward_4(np_imgs, np_prob1, np_boxes, np_marks)
 
     def destroy(PyTrtMtcnn self):
         self.c_trtnet.destroy()
