@@ -5,11 +5,12 @@ Cython wrapped TensorRT optimized MTCNN engine.
 """
 
 import sys
+import time
 import argparse
 
 import cv2
 from utils.camera import add_camera_args, Camera
-from utils.display import open_window, show_help_text, set_display
+from utils.display import open_window, set_display
 from utils.mtcnn import TrtMtcnn
 
 
@@ -37,11 +38,20 @@ def show_faces(img, boxes, landmarks):
             cv2.circle(img, (int(ll[j]), int(ll[j+5])), 2, BBOX_COLOR)
 
 
+def show_fps(img, fps):
+    """Draw fps number at top-left corner of the image."""
+    font = cv2.FONT_HERSHEY_PLAIN
+    line = cv2.LINE_AA
+    fps_text = 'FPS: {:.1f}'.format(fps)
+    cv2.putText(img, fps_text, (11, 20), font, 1.0, (32, 32, 32), 4, line)
+    cv2.putText(img, fps_text, (10, 20), font, 1.0, (240, 240, 240), 1, line)
+    return img
+
+
 def loop_and_detect(cam, mtcnn):
     """Continuously capture images from camera and do face detection."""
-    show_help = True
-    full_scrn = False
-    help_text = '"Esc" to Quit, "H" for Help, "F" to Toggle Fullscreen'
+    fps = 0.0
+    tic = time.time()
     while True:
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
@@ -50,14 +60,16 @@ def loop_and_detect(cam, mtcnn):
             dets, landmarks = mtcnn.detect(img)
             print('{} faces found'.format(len(dets)))
             show_faces(img, dets, landmarks)
-            if show_help:
-                show_help_text(img, help_text)
+            show_fps(img, fps)
             cv2.imshow(WINDOW_NAME, img)
+            toc = time.time()
+            curr_fps = 1.0 / (toc - tic)
+            # calculate an exponentially decaying average of fps number
+            fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
+            tic = toc
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
             break
-        elif key == ord('H') or key == ord('h'):  # Toggle help message
-            show_help = not show_help
         elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
             full_scrn = not full_scrn
             set_display(WINDOW_NAME, full_scrn)
