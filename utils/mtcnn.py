@@ -132,16 +132,16 @@ def generate_pnet_bboxes(conf, reg, scale, t):
     if len(x) == 0:
         return np.zeros((0, 5), np.float32)
 
-    score = np.array(conf[x, y]).reshape(-1, 1)  # Nx1
-    reg = np.array([dx1[x, y] * 12., dy1[x, y] * 12.,
-                    dx2[x, y] * 12., dy2[x, y] * 12.]).T  # Nx4
-    topleft = np.array([x, y], dtype=np.float32).T * 2.   # Nx2
+    score = np.array(conf[x, y]).reshape(-1, 1)          # Nx1
+    reg = np.array([dx1[x, y], dy1[x, y],
+                    dx2[x, y], dy2[x, y]]).T * 12.       # Nx4
+    topleft = np.array([x, y], dtype=np.float32).T * 2.  # Nx2
     bottomright = topleft + np.array([11., 11.], dtype=np.float32)  # Nx2
     boxes = (np.concatenate((topleft, bottomright), axis=1) + reg) / scale
     # filter bboxes which are too small
-    boxes = np.concatenate((boxes, score), axis=1)        # Nx5
-    boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12, :]
-    boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12, :]
+    boxes = np.concatenate((boxes, score), axis=1)       # Nx5
+    boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12., :]
+    boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12., :]
     return boxes
 
 
