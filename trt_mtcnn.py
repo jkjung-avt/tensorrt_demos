@@ -50,6 +50,7 @@ def show_fps(img, fps):
 
 def loop_and_detect(cam, mtcnn):
     """Continuously capture images from camera and do face detection."""
+    full_scrn = False
     fps = 0.0
     tic = time.time()
     while True:
