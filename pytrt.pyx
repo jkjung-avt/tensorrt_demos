@@ -1,6 +1,5 @@
 import cython
 
-import sys
 import numpy as np
 cimport numpy as np
 from libcpp.string cimport string
@@ -29,7 +28,7 @@ cdef class PyTrtGooglenet:
     def forward(PyTrtGooglenet self,
                 np.ndarray[np.float32_t, ndim=4] np_imgs not None):
         """Do a forward() computation on the input batch of imgs."""
-        assert(np_imgs.shape[0] == 1)  # only accept batch_size = 1
+        assert np_imgs.shape[0] == 1  # only accept batch_size = 1
         if not np_imgs.flags['C_CONTIGUOUS']:
             np_imgs = np.ascontiguousarray(np_imgs)
         np_prob = np.ascontiguousarray(
@@ -56,12 +55,10 @@ cdef class PyTrtMtcnn:
     def __init__(PyTrtMtcnn self,
                  str engine_path,
                  tuple shape0, tuple shape1, tuple shape2, tuple shape3=None):
-        assert len(shape0) == 3 and len(shape1) == 3 and len(shape2) == 3
         self.num_bindings = 4 if shape3 else 3
-        if shape3:
-            assert len(shape3) == 3
-        else:
-            shape3 = (0, 0, 0)  # dummy
+        assert len(shape0) == 3 and len(shape1) == 3 and len(shape2) == 3
+        if shape3: assert len(shape3) == 3
+        else: shape3 = (0, 0, 0)  # set to a dummy shape
         self.c_trtnet = new TrtMtcnnDet()
         self.batch_size = 0
         self.data_dims  = shape0
@@ -80,7 +77,7 @@ cdef class PyTrtMtcnn:
         elif 'det3' in engine_path:
             self.c_trtnet.initDet3(c_str, &v0[0], &v1[0], &v2[0], &v3[0])
         else:
-            sys.exit('engine is neither of det1, det2 or det3!')
+            raise ValueError('engine is neither of det1, det2 or det3!')
 
     def set_batchsize(PyTrtMtcnn self, int batch_size):
         self.c_trtnet.setBatchSize(batch_size)
