@@ -14,7 +14,7 @@ def convert_to_1x1(boxes):
     """Convert detection boxes to 1:1 sizes
 
     # Arguments
-        boxes: numpy array, shape (n,5)
+        boxes: numpy array, shape (n,5), dtype=float32
 
     # Returns
         boxes_1x1
@@ -27,10 +27,11 @@ def convert_to_1x1(boxes):
     boxes_1x1[:, 1] = boxes[:, 1] + hh * 0.5 - mm * 0.5
     boxes_1x1[:, 2] = boxes_1x1[:, 0] + mm - 1.
     boxes_1x1[:, 3] = boxes_1x1[:, 1] + mm - 1.
+    boxes_1x1[:, 0:4] = np.fix(boxes_1x1[:, 0:4])
     return boxes_1x1
 
 
-def crop_img_with_padding(img, box, padding=128):
+def crop_img_with_padding(img, box, padding=0):
     """Crop a box from image, with out-of-boundary pixels padded
 
     # Arguments
@@ -134,7 +135,7 @@ def generate_pnet_bboxes(conf, reg, scale, t):
 
     score = np.array(conf[x, y]).reshape(-1, 1)          # Nx1
     reg = np.array([dx1[x, y], dy1[x, y],
-                    dx2[x, y], dy2[x, y]]).T * 12.       # Nx4
+                    dx2[x, y], dy2[x, y]]).T * 11.       # Nx4 (*12.?)
     topleft = np.array([x, y], dtype=np.float32).T * 2.  # Nx2
     bottomright = topleft + np.array([11., 11.], dtype=np.float32)  # Nx2
     boxes = (np.concatenate((topleft, bottomright), axis=1) + reg) / scale
@@ -166,9 +167,6 @@ def generate_rnet_bboxes(conf, reg, pboxes, t):
     ww = (boxes[:, 2]-boxes[:, 0]+1).reshape(-1, 1)  # x2 - x1 + 1
     hh = (boxes[:, 3]-boxes[:, 1]+1).reshape(-1, 1)  # y2 - y1 + 1
     boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg
-    # filter bboxes which are too small
-    boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12, :]
-    boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12, :]
     return boxes
 
 
@@ -201,7 +199,6 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
     boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg_boxes
     marks = np.concatenate((xx, xx, xx, xx, xx, yy, yy, yy, yy, yy), axis=1)
     marks += np.concatenate((ww, ww, ww, ww, ww, hh, hh, hh, hh, hh), axis=1) * reg_marks
-    # TODO: filter detections which are too small?
     return boxes, marks
 
 
@@ -247,6 +244,8 @@ class TrtPNet(object):
                  data_shape=(3, 648, 1152),
                  prob1_shape=(2, 319, 571),
                  boxes_shape=(4, 319, 571)):
+        if batch_size != 1:
+            raise ValueError('Bad batch_size: %d' % batch_size)
         self.data_shape = data_shape
         self.trtnet = pytrt.PyTrtMtcnn(
             engine, data_shape, prob1_shape, boxes_shape)
@@ -256,7 +255,7 @@ class TrtPNet(object):
         """Detect faces using PNet
 
         # Arguments
-            img: input image as a BGR numpy array
+            img: input image as a RGB numpy array
             threshold: confidence threshold
 
         # Returns
@@ -267,7 +266,7 @@ class TrtPNet(object):
         total_boxes = np.zeros((0, 5), dtype=np.float32)
         img_h, img_w, _ = img.shape
         minl = min(img_h, img_w)
-        img = img.astype(np.float32) - PIXEL_MEAN
+        img = (img.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
         m = 12.0 / minsize
         minl *= m
 
@@ -324,11 +323,11 @@ class TrtRNet(object):
         self.trtnet = pytrt.PyTrtMtcnn(
             engine, data_shape, prob1_shape, boxes_shape)
 
-    def detect(self, img, boxes, max_batch=512, threshold=0.6):
+    def detect(self, img, boxes, max_batch=1024, threshold=0.6):
         """Detect faces using RNet
 
         # Arguments
-            img: input image as a BGR numpy array
+            img: input image as a RGB numpy array
             boxes: detection results by PNet, a numpy array [:, 0:5]
                    of [x1, y1, x2, y2, score]'s
             max_batch: only process these many top boxes from PNet
@@ -338,18 +337,19 @@ class TrtRNet(object):
             A numpy array of bounding box coordinates and the
             cooresponding scores: [[x1, y1, x2, y2, score], ...]
         """
+        if max_batch > 1024:
+            raise ValueError('Bad max_batch: %d' % max_batch)
         boxes = boxes[:max_batch]  # assuming boxes are sorted by score
         if boxes.shape[0] == 0:
             return boxes
         img_h, img_w, _ = img.shape
         boxes = convert_to_1x1(boxes)
-        boxes[:, 0:4] = np.fix(boxes[:, 0:4])
         crops = np.zeros((boxes.shape[0], 24, 24, 3), dtype=np.uint8)
         for i, det in enumerate(boxes):
             cropped_im = crop_img_with_padding(img, det)
             crops[i, ...] = cv2.resize(cropped_im, (24, 24))
         crops = crops.transpose((0, 3, 1, 2))  # NHWC -> NCHW
-        crops = crops.astype(np.float32) - PIXEL_MEAN
+        crops = (crops.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
 
         self.trtnet.set_batchsize(crops.shape[0])
         out = self.trtnet.forward(crops)
@@ -384,11 +384,11 @@ class TrtONet(object):
         self.trtnet = pytrt.PyTrtMtcnn(
             engine, data_shape, prob1_shape, boxes_shape, marks_shape)
 
-    def detect(self, img, boxes, max_batch=128, threshold=0.7):
+    def detect(self, img, boxes, max_batch=128, threshold=0.6):
         """Detect faces using ONet
 
         # Arguments
-            img: input image as a BGR numpy array
+            img: input image as a RGB numpy array
             boxes: detection results by RNet, a numpy array [:, 0:5]
                    of [x1, y1, x2, y2, score]'s
             max_batch: only process these many top boxes from RNet
@@ -398,19 +398,20 @@ class TrtONet(object):
             dets: boxes and conf scores
             landmarks
         """
+        if max_batch > 128:
+            raise ValueError('Bad max_batch: %d' % max_batch)
         if boxes.shape[0] == 0:
             return (np.zeros((0, 5), dtype=np.float32),
                     np.zeros((0, 10), dtype=np.float32))
         boxes = boxes[:max_batch]  # assuming boxes are sorted by score
         img_h, img_w, _ = img.shape
         boxes = convert_to_1x1(boxes)
-        boxes[:, 0:4] = np.fix(boxes[:, 0:4])
         crops = np.zeros((boxes.shape[0], 48, 48, 3), dtype=np.uint8)
         for i, det in enumerate(boxes):
             cropped_im = crop_img_with_padding(img, det)
             crops[i, ...] = cv2.resize(cropped_im, (48, 48))
         crops = crops.transpose((0, 3, 1, 2))  # NHWC -> NCHW
-        crops = crops.astype(np.float32) - PIXEL_MEAN
+        crops = (crops.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
 
         self.trtnet.set_batchsize(crops.shape[0])
         out = self.trtnet.forward(crops)
@@ -419,10 +420,11 @@ class TrtONet(object):
         cc = out['boxes'][:, :, 0, 0]
         mm = out['landmarks'][:, :, 0, 0]
         boxes, landmarks = generate_onet_outputs(pp, cc, mm, boxes, threshold)
-        pick = nms(boxes, 0.7, 'Min')
-        dets = clip_dets(boxes[pick, :], img_w, img_h)
-        # TODO: also clip landmarks?
-        return dets, landmarks[pick, :]
+        #pick = nms(boxes, 0.7, 'Min')
+        #return (clip_dets(boxes[pick, :], img_w, img_h),
+        #        np.fix(landmarks[pick, :]))
+        return (clip_dets(boxes, img_w, img_h),
+                np.fix(landmarks))
 
     def destroy(self):
         self.trtnet.destroy()
@@ -444,15 +446,17 @@ class TrtMtcnn(object):
 
     def detect(self, img):
         assert img is not None
+        # MTCNN model was trained with 'MATLAB' image so its channel
+        # order is RGB instead of BGR.
+        img = img[:,:,::-1]  # BGR -> RGB
         img_h, img_w, _ = img.shape
         # call pad_16x9() and clip_dets() for non 16:9 input images
         if img_h / img_w != 9 / 16:
             img = pad_16x9(img)
-        dets = self.pnet.detect(img)
-        ######
+        dets = self.pnet.detect(img, threshold=0.6)
+        dets = self.rnet.detect(img, dets, threshold=0.6)
+        ###dets, landmarks = self.onet.detect(img, dets, threshold=0.2)
         landmarks = np.zeros((dets.shape[0], 10), dtype=np.float32)
-        #dets = self.rnet.detect(img, dets)
-        #dets, landmarks = self.onet.detect(img, dets)
         if img_h / img_w != 9 / 16:
             dets = clip_dets(dets, img_w, img_h)
         return dets, landmarks
