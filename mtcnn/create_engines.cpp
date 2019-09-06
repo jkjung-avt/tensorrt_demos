@@ -192,12 +192,12 @@ int main(int argc, char** argv)
     giestream_to_file(trtModelStream, "det1.engine");
     trtModelStream->destroy();
 
-    std::cout << "Building det2.engine (RNet), maxBatchSize = 512"
+    std::cout << "Building det2.engine (RNet), maxBatchSize = 1024"
               << std::endl;
     caffeToTRTModel("det2_relu.prototxt",
                     "det2_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv5-2" },
-                    512,  // batch size
+                    1024,  // batch size
                     trtModelStream);
     giestream_to_file(trtModelStream, "det2.engine");
     trtModelStream->destroy();
