@@ -240,18 +240,14 @@ class TrtPNet(object):
     # Arguments
         engine: path to the TensorRT engine file
     """
-    def __init__(self, engine, batch_size=1,
-                 data_shape=(3, 648, 1152),
-                 prob1_shape=(2, 319, 571),
-                 boxes_shape=(4, 319, 571)):
-        if batch_size != 1:
-            raise ValueError('Bad batch_size: %d' % batch_size)
-        self.data_shape = data_shape
-        self.trtnet = pytrt.PyTrtMtcnn(
-            engine, data_shape, prob1_shape, boxes_shape)
-        self.trtnet.set_batchsize(batch_size)
+    def __init__(self, engine):
+        self.trtnet = pytrt.PyTrtMtcnn(engine,
+                                       (3, 324, 576),
+                                       (2, 157, 283),
+                                       (4, 157, 283))
+        self.trtnet.set_batchsize(1)
 
-    def detect(self, img, minsize=20, factor=0.709, threshold=0.6):
+    def detect(self, img, minsize=40, factor=0.709, threshold=0.7):
         """Detect faces using PNet
 
         # Arguments
@@ -281,7 +277,7 @@ class TrtPNet(object):
         for scale in scales:
             hs = int(np.ceil(img_h*scale))
             ws = int(np.ceil(img_w*scale))
-            im_data = np.zeros((1, 3, 648, 1152), dtype=np.float32)
+            im_data = np.zeros((1, 3, 324, 576), dtype=np.float32)
             im_data[0, :, :hs, :ws] = \
                 cv2.resize(img, (ws, hs)).transpose((2, 0, 1))
             out = self.trtnet.forward(im_data)
@@ -315,15 +311,13 @@ class TrtRNet(object):
         engine: path to the TensorRT engine (det2) file
     """
 
-    def __init__(self, engine,
-                 data_shape=(3, 24, 24),
-                 prob1_shape=(2, 1, 1),
-                 boxes_shape=(4, 1, 1)):
-        self.data_shape = data_shape
-        self.trtnet = pytrt.PyTrtMtcnn(
-            engine, data_shape, prob1_shape, boxes_shape)
+    def __init__(self, engine):
+        self.trtnet = pytrt.PyTrtMtcnn(engine,
+                                       (3, 24, 24),
+                                       (2, 1, 1),
+                                       (4, 1, 1))
 
-    def detect(self, img, boxes, max_batch=1024, threshold=0.6):
+    def detect(self, img, boxes, max_batch=1024, threshold=0.7):
         """Detect faces using RNet
 
         # Arguments
@@ -347,7 +341,8 @@ class TrtRNet(object):
         crops = np.zeros((boxes.shape[0], 24, 24, 3), dtype=np.uint8)
         for i, det in enumerate(boxes):
             cropped_im = crop_img_with_padding(img, det)
-            crops[i, ...] = cv2.resize(cropped_im, (24, 24))
+            # NOTE: H and W dimensions need to be transposed for RNet!
+            crops[i, ...] = cv2.transpose(cv2.resize(cropped_im, (24, 24)))
         crops = crops.transpose((0, 3, 1, 2))  # NHWC -> NCHW
         crops = (crops.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
 
@@ -375,16 +370,14 @@ class TrtONet(object):
         engine: path to the TensorRT engine (det3) file
     """
 
-    def __init__(self, engine,
-                 data_shape=(3, 48, 48),
-                 prob1_shape=(2, 1, 1),
-                 boxes_shape=(4, 1, 1),
-                 marks_shape=(10, 1, 1)):
-        self.data_shape = data_shape
-        self.trtnet = pytrt.PyTrtMtcnn(
-            engine, data_shape, prob1_shape, boxes_shape, marks_shape)
+    def __init__(self, engine):
+        self.trtnet = pytrt.PyTrtMtcnn(engine,
+                                       (3, 48, 48),
+                                       (2, 1, 1),
+                                       (4, 1, 1),
+                                       (10, 1, 1))
 
-    def detect(self, img, boxes, max_batch=128, threshold=0.6):
+    def detect(self, img, boxes, max_batch=128, threshold=0.7):
         """Detect faces using ONet
 
         # Arguments
@@ -409,7 +402,8 @@ class TrtONet(object):
         crops = np.zeros((boxes.shape[0], 48, 48, 3), dtype=np.uint8)
         for i, det in enumerate(boxes):
             cropped_im = crop_img_with_padding(img, det)
-            crops[i, ...] = cv2.resize(cropped_im, (48, 48))
+            # NOTE: H and W dimensions need to be transposed for RNet!
+            crops[i, ...] = cv2.transpose(cv2.resize(cropped_im, (48, 48)))
         crops = crops.transpose((0, 3, 1, 2))  # NHWC -> NCHW
         crops = (crops.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
 
@@ -420,11 +414,9 @@ class TrtONet(object):
         cc = out['boxes'][:, :, 0, 0]
         mm = out['landmarks'][:, :, 0, 0]
         boxes, landmarks = generate_onet_outputs(pp, cc, mm, boxes, threshold)
-        #pick = nms(boxes, 0.7, 'Min')
-        #return (clip_dets(boxes[pick, :], img_w, img_h),
-        #        np.fix(landmarks[pick, :]))
-        return (clip_dets(boxes, img_w, img_h),
-                np.fix(landmarks))
+        pick = nms(boxes, 0.7, 'Min')
+        return (clip_dets(boxes[pick, :], img_w, img_h),
+                np.fix(landmarks[pick, :]))
 
     def destroy(self):
         self.trtnet.destroy()
@@ -453,10 +445,9 @@ class TrtMtcnn(object):
         # call pad_16x9() and clip_dets() for non 16:9 input images
         if img_h / img_w != 9 / 16:
             img = pad_16x9(img)
-        dets = self.pnet.detect(img, threshold=0.6)
-        dets = self.rnet.detect(img, dets, threshold=0.6)
-        ###dets, landmarks = self.onet.detect(img, dets, threshold=0.2)
-        landmarks = np.zeros((dets.shape[0], 10), dtype=np.float32)
+        dets = self.pnet.detect(img)
+        dets = self.rnet.detect(img, dets)
+        dets, landmarks = self.onet.detect(img, dets)
         if img_h / img_w != 9 / 16:
             dets = clip_dets(dets, img_w, img_h)
         return dets, landmarks
