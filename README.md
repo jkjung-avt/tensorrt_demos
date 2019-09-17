@@ -10,15 +10,23 @@ Related blog posts:
 Table of contents
 -----------------
 
+* [Blog posts](#blog)
 * [Prerequisite](#prerequisite)
 * [Demo #1: googlenet](#googlenet)
 * [Demo #2: mtcnn](#mtcnn)
+
+<a name="blog"></a>
+Blog posts related to this repository
+-------------------------------------
+
+* [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
+* Running TensorRT Optimized MTCNN (Face Detector) on Jetson Nano (to be updated...)
 
 <a name="prerequisite"></a>
 Prerequisite
 ------------
 
-The code in this repository was tested on a Jetson Nano DevKit running the "jetson-nano-sd-r32.1-2019-03-18.zip” image (JetPack-4.2).  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
+The code in this repository was tested on a Jetson Nano DevKit.  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
 More specifically, the target Jetson Nano system should have TensorRT libraries installed.  For example, TensorRT v5.0.6 was present on the tested system.
 
@@ -60,7 +68,7 @@ Step-by-step:
    $ make
    ```
 
-4. Run the `trt_googlenet.py` demo program.  You could use `--help` option to display help messages.  In short, use `--usb` for USB webcam or `rtsp` for RTSP video input.
+4. Run the `trt_googlenet.py` demo program.  For example, run the demo with a USB webcam as the input.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos
@@ -71,8 +79,38 @@ Step-by-step:
 
    ![A Picture of a Golden Retriever](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/golden_retriever.png)
 
+5. The demo program supports a number of different image inputs.  You could do `python3 trt_googlenet.py --help` to read the help messages.  Or more specifically, the following inputs could be specified:
+
+   * `--file --filename test_video.mp4`: a video file, e.g. mp4 or ts.
+   * `--image --filename test_image.jpg`: an image file, e.g. jpg or png.
+   * `--usb --vid 0`: USB webcam (/dev/video0).
+   * `--rtsp --uri rtsp://admin:123456@192.168.1.1/live/sdp`: RTSP source, e.g. an IP cam.
+
 <a name="mtcnn"></a>
 Demo #2: mtcnn
 --------------
 
-To be updated...
+Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, follow these steps:
+
+1. Build the TensorRT engines from the trained MTCNN model.  (Refer to `mtcnn/README.md` for more information about the prototxt and caffemodel files.)
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/googlenet
+   $ make
+   $ ./create_engines
+   ```
+
+2. Build the Cython code if it has not been done yet.  Refer to step 3 in Demo #1.
+
+3. Run the `trt_mtcnn.py` demo program.  For example, I just grabbed from the internet a poster of The Avengers for testing.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_mtcnn.py --image --filename ${HOME}/Pictures/avengers.jpg
+   ```
+
+   Here's the result.
+
+   ![Avengers faces detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/avengers.png)
+
+4. The `trt_mtcnn.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
