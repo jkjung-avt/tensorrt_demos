@@ -319,7 +319,7 @@ class TrtRNet(object):
                                        (2, 1, 1),
                                        (4, 1, 1))
 
-    def detect(self, img, boxes, max_batch=1024, threshold=0.7):
+    def detect(self, img, boxes, max_batch=256, threshold=0.7):
         """Detect faces using RNet
 
         # Arguments
@@ -333,7 +333,7 @@ class TrtRNet(object):
             A numpy array of bounding box coordinates and the
             cooresponding scores: [[x1, y1, x2, y2, score], ...]
         """
-        if max_batch > 1024:
+        if max_batch > 256:
             raise ValueError('Bad max_batch: %d' % max_batch)
         boxes = boxes[:max_batch]  # assuming boxes are sorted by score
         if boxes.shape[0] == 0:
@@ -379,7 +379,7 @@ class TrtONet(object):
                                        (4, 1, 1),
                                        (10, 1, 1))
 
-    def detect(self, img, boxes, max_batch=128, threshold=0.7):
+    def detect(self, img, boxes, max_batch=64, threshold=0.7):
         """Detect faces using ONet
 
         # Arguments
@@ -393,7 +393,7 @@ class TrtONet(object):
             dets: boxes and conf scores
             landmarks
         """
-        if max_batch > 128:
+        if max_batch > 64:
             raise ValueError('Bad max_batch: %d' % max_batch)
         if boxes.shape[0] == 0:
             return (np.zeros((0, 5), dtype=np.float32),
