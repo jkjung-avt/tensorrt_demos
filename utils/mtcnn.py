@@ -194,15 +194,13 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
     reg_marks = reg_marks[conf >= t, :]
     xx = boxes[:, 0].reshape(-1, 1)
     yy = boxes[:, 1].reshape(-1, 1)
-    ww = (boxes[:, 2]-boxes[:, 0]+1).reshape(-1, 1)  # x2 - x1 + 1
-    hh = (boxes[:, 3]-boxes[:, 1]+1).reshape(-1, 1)  # y2 - y1 + 1
-    boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg_boxes
-    xx = boxes[:, 0].reshape(-1, 1)
-    yy = boxes[:, 1].reshape(-1, 1)
     ww = (boxes[:, 2]-boxes[:, 0]).reshape(-1, 1)
     hh = (boxes[:, 3]-boxes[:, 1]).reshape(-1, 1)
     marks = np.concatenate((xx, xx, xx, xx, xx, yy, yy, yy, yy, yy), axis=1)
     marks += np.concatenate((ww, ww, ww, ww, ww, hh, hh, hh, hh, hh), axis=1) * reg_marks
+    ww = ww + 1
+    hh = hh + 1
+    boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg_boxes
     return boxes, marks
 
 
