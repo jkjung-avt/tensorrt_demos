@@ -67,7 +67,7 @@ namespace trtnet {
 	        int _binding_data;
 	        int _binding_prob;
 
-            void initEngine(std::string filePath);
+            void _initEngine(std::string filePath);
     };
 
     class TrtMtcnnDet
@@ -75,10 +75,12 @@ namespace trtnet {
         public:
             TrtMtcnnDet();
             // init from engine file
-            void initEngine(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3]);
+            void initDet1(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3]);
+            void initDet2(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3]);
+            void initDet3(std::string filePath, int dataDims[3], int prob1Dims[3], int boxesDims[3], int marksDims[3]);
             void setBatchSize(int value);
-            int getBatchSize();
-            void forward(float *imgs, float *probs, float *boxes);
+            int  getBatchSize();
+            void forward(float *imgs, float *probs, float *boxes, float *);
             void destroy();
 
         private:
@@ -94,9 +96,11 @@ namespace trtnet {
 	        int _binding_data;
 	        int _binding_prob1;
 	        int _binding_boxes;
+	        int _binding_marks;
             int _batchsize = 0;
 
-            void initEngine(std::string filePath);
+            void _initEngine(std::string filePath, const char *dataName, const char *prob1Name, const char *boxesName, const char *marksName);
+            void _setBlobSizes(int dataDims[3], int prob1Dims[3], int boxesDims[3]);
     };
 
 }  // namespace trtnet

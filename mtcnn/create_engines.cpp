@@ -131,7 +131,7 @@ void file_to_giestream(const std::string filename, IHostMemory *&trtModelStream)
     trtModelStream = new IHostMemoryFromFile(filename);
 }
 
-void verify_engine(std::string det_name)
+void verify_engine(std::string det_name, int num_bindings)
 {
     std::stringstream ss;
     ss << det_name << ".engine";
@@ -147,10 +147,10 @@ void verify_engine(std::string det_name)
         nullptr);
     assert(engine != nullptr);
 
-    assert(engine->getNbBindings() == 3);
+    assert(engine->getNbBindings() == num_bindings);
     std::cout << "Bindings for " << det_name << " after deserializing:"
               << std::endl;
-    for (int bi = 0; bi < 3; bi++) {
+    for (int bi = 0; bi < num_bindings; bi++) {
 #if NV_TENSORRT_MAJOR == 3
         DimsCHW dim = static_cast<DimsCHW&&>(engine->getBindingDimensions(bi));
         if (engine->bindingIsInput(bi) == true) {
@@ -184,30 +184,30 @@ int main(int argc, char** argv)
 
     std::cout << "Building det1.engine (PNet), maxBatchSize = 1"
               << std::endl;
-    caffeToTRTModel("det1.prototxt",
-                    "det1.caffemodel",
+    caffeToTRTModel("det1_relu.prototxt",
+                    "det1_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv4-2" },
                     1,  // batch size
                     trtModelStream);
     giestream_to_file(trtModelStream, "det1.engine");
     trtModelStream->destroy();
 
-    std::cout << "Building det2.engine (RNet), maxBatchSize = 32"
+    std::cout << "Building det2.engine (RNet), maxBatchSize = 256"
               << std::endl;
-    caffeToTRTModel("det2.prototxt",
-                    "det2.caffemodel",
+    caffeToTRTModel("det2_relu.prototxt",
+                    "det2_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv5-2" },
-                    32,  // batch size
+                    256,  // batch size
                     trtModelStream);
     giestream_to_file(trtModelStream, "det2.engine");
     trtModelStream->destroy();
 
-    std::cout << "Building det3.engine (ONet), maxBatchSize = 16"
+    std::cout << "Building det3.engine (ONet), maxBatchSize = 64"
               << std::endl;
-    caffeToTRTModel("det3.prototxt",
-                    "det3.caffemodel",
-                    std::vector <std::string> { "prob1", "conv7-2" },
-                    16,  // batch size
+    caffeToTRTModel("det3_relu.prototxt",
+                    "det3_relu.caffemodel",
+                    std::vector <std::string> { "prob1", "conv6-2", "conv6-3" },
+                    64,  // batch size
                     trtModelStream);
     giestream_to_file(trtModelStream, "det3.engine");
     trtModelStream->destroy();
@@ -216,9 +216,9 @@ int main(int argc, char** argv)
     shutdownProtobufLibrary();
 
     std::cout << std::endl << "Verifying engines..." << std::endl;
-    verify_engine("det1");
-    verify_engine("det2");
-    verify_engine("det3");
+    verify_engine("det1", 3);
+    verify_engine("det2", 3);
+    verify_engine("det3", 4);
     std::cout << "Done." << std::endl;
     return 0;
 }

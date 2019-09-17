@@ -31,13 +31,15 @@ include_dirs = [
 
 setup(
     cmdclass={'build_ext': build_ext},
-    ext_modules=cythonize(Extension(
-        'pytrt',
-        sources=['pytrt.pyx'],
-        language='c++',
-        library_dirs=library_dirs,
-        libraries=libraries,
-        extra_compile_args=['-O3', '-std=c++11'] + include_dirs
-        )
+    ext_modules=cythonize(
+        Extension(
+            'pytrt',
+            sources=['pytrt.pyx'],
+            language='c++',
+            library_dirs=library_dirs,
+            libraries=libraries,
+            extra_compile_args=['-O3', '-std=c++11'] + include_dirs
+        ),
+        compiler_directives={'language_level': '3'}
     )
 )
