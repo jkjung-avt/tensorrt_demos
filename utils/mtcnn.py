@@ -184,7 +184,7 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
         boxes: a numpy array of box coordinates and cooresponding
                scores: [[x1, y1, x2, y2,... , score], ...]
         landmarks: a numpy array of facial landmark coordinates:
-                   [[x1, y1, x2, y2,... , x5, y5], ...]
+                   [[x1, x2, ..., x5, y1, y2, ..., y5], ...]
     """
     boxes = rboxes.copy()  # make a copy
     assert boxes.shape[0] == conf.shape[0]
@@ -197,6 +197,10 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
     ww = (boxes[:, 2]-boxes[:, 0]+1).reshape(-1, 1)  # x2 - x1 + 1
     hh = (boxes[:, 3]-boxes[:, 1]+1).reshape(-1, 1)  # y2 - y1 + 1
     boxes[:, 0:4] += np.concatenate((ww, hh, ww, hh), axis=1) * reg_boxes
+    xx = boxes[:, 0].reshape(-1, 1)
+    yy = boxes[:, 1].reshape(-1, 1)
+    ww = (boxes[:, 2]-boxes[:, 0]).reshape(-1, 1)
+    hh = (boxes[:, 3]-boxes[:, 1]).reshape(-1, 1)
     marks = np.concatenate((xx, xx, xx, xx, xx, yy, yy, yy, yy, yy), axis=1)
     marks += np.concatenate((ww, ww, ww, ww, ww, hh, hh, hh, hh, hh), axis=1) * reg_marks
     return boxes, marks
