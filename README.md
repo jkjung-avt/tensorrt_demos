@@ -1,6 +1,6 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize caffe models with TensorRT and run inferencing on Jetson Nano.
+Examples demonstrating how to optimize caffe models with TensorRT and run inferencing on Jetson Nano/TX2.
 
 Related blog posts:
 
@@ -26,9 +26,9 @@ Blog posts related to this repository
 Prerequisite
 ------------
 
-The code in this repository was tested on a Jetson Nano DevKit.  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
+The code in this repository was tested on both Jetson Nano DevKit and Jetson TX2.  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
-More specifically, the target Jetson Nano system should have TensorRT libraries installed.  For example, TensorRT v5.0.6 was present on the tested system.
+More specifically, the target Jetson Nano/TX2 system should have TensorRT libraries installed.  For example, TensorRT v5.0.6 was present on the tested Jetson Nano system.
 
 ```shell
 $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
@@ -37,7 +37,7 @@ $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
 /usr/lib/aarch64-linux-gnu/libnvinfer.so.5.0.6
 ```
 
-Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) about how opencv-3.4.6 was installed on the tested Jetson Nano DevKit.
+Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) about how to install opencv-3.4.6 on the Jetson system.
 
 <a name="googlenet"></a>
 Demo #1: googlenet
