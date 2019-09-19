@@ -204,24 +204,6 @@ def generate_onet_outputs(conf, reg_boxes, reg_marks, rboxes, t):
     return boxes, marks
 
 
-def pad_16x9(img):
-    """Pad image (with black pixels) to make it 16:9.
-
-    # Returns
-        padded_img
-    """
-    img_h, img_w, _ = img.shape
-    if img_h / img_w > 9 / 16:
-        new_h = ((img_h + 8) // 9) * 9     # make it a multiple of 9
-        new_w = (new_h // 9) * 16
-    else:
-        new_w = ((img_w + 15) // 16) * 16  # make it a multiple of 16
-        new_h = (new_w // 16) * 9
-    padded_img = np.zeros((new_h, new_w, 3), dtype=np.uint8)
-    padded_img[0:img_h, 0:img_w, :] = img
-    return padded_img
-
-
 def clip_dets(dets, img_w, img_h):
     """Round and clip detection (x1, y1, ...) values.
 
@@ -244,9 +226,9 @@ class TrtPNet(object):
     """
     def __init__(self, engine):
         self.trtnet = pytrt.PyTrtMtcnn(engine,
-                                       (3, 324, 576),
-                                       (2, 157, 283),
-                                       (4, 157, 283))
+                                       (3, 216, 384),
+                                       (2, 103, 187),
+                                       (4, 103, 187))
         self.trtnet.set_batchsize(1)
 
     def detect(self, img, minsize=40, factor=0.709, threshold=0.7):
@@ -277,9 +259,9 @@ class TrtPNet(object):
 
         # do detection at each scale
         for scale in scales:
-            hs = int(np.ceil(img_h*scale))
-            ws = int(np.ceil(img_w*scale))
-            im_data = np.zeros((1, 3, 324, 576), dtype=np.float32)
+            hs = int(np.ceil(img_h * scale))
+            ws = int(np.ceil(img_w * scale))
+            im_data = np.zeros((1, 3, 216, 384), dtype=np.float32)
             im_data[0, :, :hs, :ws] = \
                 cv2.resize(img, (ws, hs)).transpose((2, 0, 1))
             out = self.trtnet.forward(im_data)
@@ -438,18 +420,35 @@ class TrtMtcnn(object):
         self.rnet.destroy()
         self.pnet.destroy()
 
-    def detect(self, img):
-        assert img is not None
+    def _detect_1280x720(self, img):
+        """_detec_1280x720()
+
+        Assuming 'img' has been resized to less than 1280x720.
+        """
         # MTCNN model was trained with 'MATLAB' image so its channel
         # order is RGB instead of BGR.
-        img = img[:,:,::-1]  # BGR -> RGB
-        img_h, img_w, _ = img.shape
-        # call pad_16x9() and clip_dets() for non 16:9 input images
-        if img_h / img_w != 9 / 16:
-            img = pad_16x9(img)
+        img = img[:, :, ::-1]  # BGR -> RGB
         dets = self.pnet.detect(img)
         dets = self.rnet.detect(img, dets)
         dets, landmarks = self.onet.detect(img, dets)
-        if img_h / img_w != 9 / 16:
-            dets = clip_dets(dets, img_w, img_h)
+        return dets, landmarks
+
+    def detect(self, img):
+        """detect()
+
+        This function handles rescaling of the input image if it's
+        larger than 1280x720.
+        """
+        if img is None:
+            raise ValueError
+        img_h, img_w, _ = img.shape
+        scale = min(720. / img_h, 1280. / img_w)
+        if scale < 1.0:
+            new_h = int(np.ceil(img_h * scale))
+            new_w = int(np.ceil(img_w * scale))
+            img = cv2.resize(img, (new_w, new_h))
+        dets, landmarks = self._detect_1280x720(img)
+        if scale < 1.0:
+            dets[:, :-1] = np.fix(dets[:, :-1] / scale)
+            landmarks = np.fix(landmarks / scale)
         return dets, landmarks

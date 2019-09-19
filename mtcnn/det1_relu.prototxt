@@ -4,10 +4,13 @@ layer
    name: "data"
    type: "Input"
    top:  "data"
-   # Set max allowed input image size as: 1920x1080
-   #   1200 * 12 / 40 = 324
-   #   1920 * 12 / 20 = 576
-   input_param{shape:{dim:1 dim:3 dim:324 dim:576}}
+   # Set max allowed input image size as: 1280x720
+   #    720 * 12 / 40 = 216
+   #   1280 * 12 / 20 = 384
+   # Output dimensions:
+   #   (216 - 12) / 2 + 1 = 103
+   #   (384 - 12) / 2 + 1 = 187
+   input_param{shape:{dim:1 dim:3 dim:216 dim:384}}
 }
 
 layer {
