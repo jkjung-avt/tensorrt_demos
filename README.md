@@ -84,7 +84,7 @@ Step-by-step:
    * `--file --filename test_video.mp4`: a video file, e.g. mp4 or ts.
    * `--image --filename test_image.jpg`: an image file, e.g. jpg or png.
    * `--usb --vid 0`: USB webcam (/dev/video0).
-   * `--rtsp --uri rtsp://admin:123456@192.168.1.1/live/sdp`: RTSP source, e.g. an IP cam.
+   * `--rtsp --uri rtsp://admin:123456@192.168.1.1/live.sdp`: RTSP source, e.g. an IP cam.
 
 <a name="mtcnn"></a>
 Demo #2: mtcnn
@@ -92,10 +92,10 @@ Demo #2: mtcnn
 
 Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, follow these steps:
 
-1. Build the TensorRT engines from the trained MTCNN model.  (Refer to `mtcnn/README.md` for more information about the prototxt and caffemodel files.)
+1. Build the TensorRT engines from the trained MTCNN model.  (Refer to [mtcnn/README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/mtcnn/README.md) for more information about the prototxt and caffemodel files.)
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/googlenet
+   $ cd ${HOME}/project/tensorrt_demos/mtcnn
    $ make
    $ ./create_engines
    ```
