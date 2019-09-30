@@ -2,11 +2,6 @@
 
 Examples demonstrating how to optimize caffe models with TensorRT and run inferencing on Jetson Nano/TX2.
 
-Related blog posts:
-
-* [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
-* To be updated...
-
 Table of contents
 -----------------
 
@@ -20,7 +15,7 @@ Blog posts related to this repository
 -------------------------------------
 
 * [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
-* Running TensorRT Optimized MTCNN (Face Detector) on Jetson Nano (to be updated...)
+* [TensorRT MTCNN Face Detector](https://jkjung-avt.github.io/tensorrt-mtcnn/)
 
 <a name="prerequisite"></a>
 Prerequisite
