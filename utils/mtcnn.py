@@ -242,6 +242,8 @@ class TrtPNet(object):
             A numpy array of bounding box coordinates and the
             cooresponding scores: [[x1, y1, x2, y2, score], ...]
         """
+        if minsize < 40:
+            raise ValueError("TrtPNet only accepts 'minsize' >= 40")
         factor_count = 0
         total_boxes = np.zeros((0, 5), dtype=np.float32)
         img_h, img_w, _ = img.shape
@@ -420,7 +422,7 @@ class TrtMtcnn(object):
         self.rnet.destroy()
         self.pnet.destroy()
 
-    def _detect_1280x720(self, img):
+    def _detect_1280x720(self, img, minsize):
         """_detec_1280x720()
 
         Assuming 'img' has been resized to less than 1280x720.
@@ -428,12 +430,12 @@ class TrtMtcnn(object):
         # MTCNN model was trained with 'MATLAB' image so its channel
         # order is RGB instead of BGR.
         img = img[:, :, ::-1]  # BGR -> RGB
-        dets = self.pnet.detect(img)
+        dets = self.pnet.detect(img, minsize=minsize)
         dets = self.rnet.detect(img, dets)
         dets, landmarks = self.onet.detect(img, dets)
         return dets, landmarks
 
-    def detect(self, img):
+    def detect(self, img, minsize=40):
         """detect()
 
         This function handles rescaling of the input image if it's
@@ -447,7 +449,8 @@ class TrtMtcnn(object):
             new_h = int(np.ceil(img_h * scale))
             new_w = int(np.ceil(img_w * scale))
             img = cv2.resize(img, (new_w, new_h))
-        dets, landmarks = self._detect_1280x720(img)
+            minsize = max(int(np.ceil(minsize * scale)), 40)
+        dets, landmarks = self._detect_1280x720(img, minsize)
         if scale < 1.0:
             dets[:, :-1] = np.fix(dets[:, :-1] / scale)
             landmarks = np.fix(landmarks / scale)

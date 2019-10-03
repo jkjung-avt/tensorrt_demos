@@ -58,7 +58,7 @@ def loop_and_detect(cam, mtcnn):
             break
         img = cam.read()
         if img is not None:
-            dets, landmarks = mtcnn.detect(img)
+            dets, landmarks = mtcnn.detect(img, minsize=40)
             print('{} face(s) found'.format(len(dets)))
             show_faces(img, dets, landmarks)
             show_fps(img, fps)
