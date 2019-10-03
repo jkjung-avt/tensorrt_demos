@@ -25,6 +25,8 @@ def parse_args():
             'Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
+    parser.add_argument('--minsize', type=int, default=40,
+                        help='minsize (in pixels) for detection [40]')
     args = parser.parse_args()
     return args
 
@@ -48,7 +50,7 @@ def show_fps(img, fps):
     return img
 
 
-def loop_and_detect(cam, mtcnn):
+def loop_and_detect(cam, mtcnn, minsize):
     """Continuously capture images from camera and do face detection."""
     full_scrn = False
     fps = 0.0
@@ -58,7 +60,7 @@ def loop_and_detect(cam, mtcnn):
             break
         img = cam.read()
         if img is not None:
-            dets, landmarks = mtcnn.detect(img, minsize=40)
+            dets, landmarks = mtcnn.detect(img, minsize=minsize)
             print('{} face(s) found'.format(len(dets)))
             show_faces(img, dets, landmarks)
             show_fps(img, fps)
@@ -88,7 +90,7 @@ def main():
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
                 'Camera TensorRT MTCNN Demo for Jetson Nano')
-    loop_and_detect(cam, mtcnn)
+    loop_and_detect(cam, mtcnn, args.minsize)
 
     cam.stop()
     cam.release()
