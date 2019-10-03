@@ -135,7 +135,7 @@ def generate_pnet_bboxes(conf, reg, scale, t):
 
     score = np.array(conf[x, y]).reshape(-1, 1)          # Nx1
     reg = np.array([dx1[x, y], dy1[x, y],
-                    dx2[x, y], dy2[x, y]]).T * 11.       # Nx4 (*12.?)
+                    dx2[x, y], dy2[x, y]]).T * 12.       # Nx4
     topleft = np.array([x, y], dtype=np.float32).T * 2.  # Nx2
     bottomright = topleft + np.array([11., 11.], dtype=np.float32)  # Nx2
     boxes = (np.concatenate((topleft, bottomright), axis=1) + reg) / scale
@@ -229,9 +229,8 @@ class TrtPNet(object):
                                        (3, 216, 384),
                                        (2, 103, 187),
                                        (4, 103, 187))
-        self.trtnet.set_batchsize(1)
 
-    def detect(self, img, minsize=40, factor=0.709, threshold=0.7):
+    def detect(self, img, minsize=40, factor=0.68, threshold=0.7):
         """Detect faces using PNet
 
         # Arguments
@@ -244,33 +243,39 @@ class TrtPNet(object):
         """
         if minsize < 40:
             raise ValueError("TrtPNet only accepts 'minsize' >= 40")
-        factor_count = 0
-        total_boxes = np.zeros((0, 5), dtype=np.float32)
-        img_h, img_w, _ = img.shape
-        minl = min(img_h, img_w)
-        img = (img.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
         m = 12.0 / minsize
-        minl *= m
+        img_h, img_w, _ = img.shape
+        minl = min(img_h, img_w) * m
 
         # create scale pyramid
         scales = []
         while minl >= 12:
-            scales.append(m * pow(factor, factor_count))
+            scales.append(m)
+            m *= factor
             minl *= factor
-            factor_count += 1
+        if len(scales) > 8:
+            raise ValueError('Too many scales, try increasing minsize '
+                             'or decreasing factor.')
 
-        # do detection at each scale
-        for scale in scales:
-            hs = int(np.ceil(img_h * scale))
-            ws = int(np.ceil(img_w * scale))
-            im_data = np.zeros((1, 3, 216, 384), dtype=np.float32)
-            im_data[0, :, :hs, :ws] = \
+        total_boxes = np.zeros((0, 5), dtype=np.float32)
+        img = (img.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
+
+        # stack all scales together and do inferencing in 1 batch
+        im_data = np.zeros((len(scales), 3, 216, 384), dtype=np.float32)
+        for i, scale in enumerate(scales):
+            hs = int(img_h * scale)
+            ws = int(img_w * scale)
+            im_data[i, :, :hs, :ws] = \
                 cv2.resize(img, (ws, hs)).transpose((2, 0, 1))
-            out = self.trtnet.forward(im_data)
-            ho = (hs - 12) // 2 + 1
-            wo = (ws - 12) // 2 + 1
-            pp = out['prob1'][0, 1, :ho, :wo]
-            cc = out['boxes'][0, :, :ho, :wo]
+
+        self.trtnet.set_batchsize(len(scales))
+        out = self.trtnet.forward(im_data)
+
+        for i, scale in enumerate(scales):
+            ho = (int(img_h * scale) - 12) // 2 + 1
+            wo = (int(img_w * scale) - 12) // 2 + 1
+            pp = out['prob1'][i, 1, :ho, :wo]
+            cc = out['boxes'][i, :, :ho, :wo]
             boxes = generate_pnet_bboxes(pp, cc, scale, threshold)
             if boxes.shape[0] > 0:
                 pick = nms(boxes, 0.5, 'Union')
