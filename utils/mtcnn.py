@@ -221,16 +221,27 @@ def clip_dets(dets, img_w, img_h):
 class TrtPNet(object):
     """TrtPNet
 
-    # Arguments
-        engine: path to the TensorRT engine file
+    Refer to mtcnn/det1_relu.prototxt for calculation of input/output
+    dimmensions of TrtPNet, as well as input H offsets (for all scales).
+    The output H offsets are merely input offsets divided by stride (2).
     """
-    def __init__(self, engine):
-        self.trtnet = pytrt.PyTrtMtcnn(engine,
-                                       (3, 216, 384),
-                                       (2, 103, 187),
-                                       (4, 103, 187))
+    input_h_offsets  = (0, 216, 370, 478, 556, 610, 676, 696, 710)
+    output_h_offsets = (0, 108, 185, 239, 278, 305, 338, 348, 355)
+    max_n_scales = 9
 
-    def detect(self, img, minsize=40, factor=0.68, threshold=0.7):
+    def __init__(self, engine):
+        """__init__
+
+        # Arguments
+            engine: path to the TensorRT engine file
+        """
+        self.trtnet = pytrt.PyTrtMtcnn(engine,
+                                       (3, 724, 384),
+                                       (2, 357, 187),
+                                       (4, 357, 187))
+        self.trtnet.set_batchsize(1)
+
+    def detect(self, img, minsize=40, factor=0.709, threshold=0.7):
         """Detect faces using PNet
 
         # Arguments
@@ -242,7 +253,11 @@ class TrtPNet(object):
             cooresponding scores: [[x1, y1, x2, y2, score], ...]
         """
         if minsize < 40:
-            raise ValueError("TrtPNet only accepts 'minsize' >= 40")
+            raise ValueError("TrtPNet is currently designed with "
+                             "'minsize' >= 40")
+        if factor > 0.709:
+            raise ValueError("TrtPNet is currently designed with "
+                             "'factor' <= 0.709")
         m = 12.0 / minsize
         img_h, img_w, _ = img.shape
         minl = min(img_h, img_w) * m
@@ -253,29 +268,32 @@ class TrtPNet(object):
             scales.append(m)
             m *= factor
             minl *= factor
-        if len(scales) > 8:
+        if len(scales) > self.max_n_scales:  # probably won't happen...
             raise ValueError('Too many scales, try increasing minsize '
                              'or decreasing factor.')
 
         total_boxes = np.zeros((0, 5), dtype=np.float32)
         img = (img.astype(np.float32) - PIXEL_MEAN) * PIXEL_SCALE
 
-        # stack all scales together and do inferencing in 1 batch
-        im_data = np.zeros((len(scales), 3, 216, 384), dtype=np.float32)
+        # stack all scales of the input image vertically into 1 big
+        # image, and only do inferencing once
+        im_data = np.zeros((1, 3, 724, 384), dtype=np.float32)
         for i, scale in enumerate(scales):
-            hs = int(img_h * scale)
-            ws = int(img_w * scale)
-            im_data[i, :, :hs, :ws] = \
-                cv2.resize(img, (ws, hs)).transpose((2, 0, 1))
+            h_offset = self.input_h_offsets[i]
+            h = int(img_h * scale)
+            w = int(img_w * scale)
+            im_data[0, :, h_offset:(h_offset+h), :w] = \
+                cv2.resize(img, (w, h)).transpose((2, 0, 1))
 
-        self.trtnet.set_batchsize(len(scales))
         out = self.trtnet.forward(im_data)
 
+        # extract outputs of each scale from the big output blob
         for i, scale in enumerate(scales):
-            ho = (int(img_h * scale) - 12) // 2 + 1
-            wo = (int(img_w * scale) - 12) // 2 + 1
-            pp = out['prob1'][i, 1, :ho, :wo]
-            cc = out['boxes'][i, :, :ho, :wo]
+            h_offset = self.output_h_offsets[i]
+            h = (int(img_h * scale) - 12) // 2 + 1
+            w = (int(img_w * scale) - 12) // 2 + 1
+            pp = out['prob1'][0, 1, h_offset:(h_offset+h), :w]
+            cc = out['boxes'][0, :, h_offset:(h_offset+h), :w]
             boxes = generate_pnet_bboxes(pp, cc, scale, threshold)
             if boxes.shape[0] > 0:
                 pick = nms(boxes, 0.5, 'Union')

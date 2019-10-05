@@ -182,12 +182,12 @@ int main(int argc, char** argv)
 {
     IHostMemory *trtModelStream{nullptr};
 
-    std::cout << "Building det1.engine (PNet), maxBatchSize = 8"
+    std::cout << "Building det1.engine (PNet), maxBatchSize = 1"
               << std::endl;
     caffeToTRTModel("det1_relu.prototxt",
                     "det1_relu.caffemodel",
                     std::vector <std::string> { "prob1", "conv4-2" },
-                    8,  // max batch size
+                    1,  // max batch size
                     trtModelStream);
     giestream_to_file(trtModelStream, "det1.engine");
     trtModelStream->destroy();
