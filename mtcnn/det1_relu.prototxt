@@ -15,15 +15,15 @@ layer
    # H's in all scales: (scale factor = 0.709)
    #   Original: 216.0, 153.1, 108.6 77.0, 54.6, 38.7, 27.4, 19.5, 13.8, (9.8)
    #   Rounded:  216, 154, 108,  78,  54,  38,  28,  20,  14
-   #   Offsets:    0, 216, 370, 478, 556, 610, 676, 696, 710, (724)
+   #   Offsets:    0, 216, 370, 478, 556, 610, 648, 676, 696, (710)
    #
    # Input dimension of the 'stacked image': 724x384
    #
    # Output dimension: (stride=2)
-   #   (724 - 12) / 2 + 1 = 357
+   #   (710 - 12) / 2 + 1 = 350
    #   (384 - 12) / 2 + 1 = 187
    #
-   input_param{shape:{dim:1 dim:3 dim:724 dim:384}}
+   input_param{shape:{dim:1 dim:3 dim:710 dim:384}}
 }
 
 layer {

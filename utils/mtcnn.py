@@ -225,8 +225,8 @@ class TrtPNet(object):
     dimmensions of TrtPNet, as well as input H offsets (for all scales).
     The output H offsets are merely input offsets divided by stride (2).
     """
-    input_h_offsets  = (0, 216, 370, 478, 556, 610, 676, 696, 710)
-    output_h_offsets = (0, 108, 185, 239, 278, 305, 338, 348, 355)
+    input_h_offsets  = (0, 216, 370, 478, 556, 610, 648, 676, 696)
+    output_h_offsets = (0, 108, 185, 239, 278, 305, 324, 338, 348)
     max_n_scales = 9
 
     def __init__(self, engine):
@@ -236,9 +236,9 @@ class TrtPNet(object):
             engine: path to the TensorRT engine file
         """
         self.trtnet = pytrt.PyTrtMtcnn(engine,
-                                       (3, 724, 384),
-                                       (2, 357, 187),
-                                       (4, 357, 187))
+                                       (3, 710, 384),
+                                       (2, 350, 187),
+                                       (4, 350, 187))
         self.trtnet.set_batchsize(1)
 
     def detect(self, img, minsize=40, factor=0.709, threshold=0.7):
@@ -277,7 +277,7 @@ class TrtPNet(object):
 
         # stack all scales of the input image vertically into 1 big
         # image, and only do inferencing once
-        im_data = np.zeros((1, 3, 724, 384), dtype=np.float32)
+        im_data = np.zeros((1, 3, 710, 384), dtype=np.float32)
         for i, scale in enumerate(scales):
             h_offset = self.input_h_offsets[i]
             h = int(img_h * scale)
