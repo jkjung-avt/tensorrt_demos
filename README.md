@@ -16,6 +16,7 @@ Blog posts related to this repository
 
 * [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
 * [TensorRT MTCNN Face Detector](https://jkjung-avt.github.io/tensorrt-mtcnn/)
+* [Optimizing TensorRT MTCNN](https://jkjung-avt.github.io/optimize-mtcnn/)
 
 <a name="prerequisite"></a>
 Prerequisite
