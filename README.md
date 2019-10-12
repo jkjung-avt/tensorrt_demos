@@ -39,6 +39,8 @@ Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  Yo
 Demo #1: googlenet
 ------------------
 
+This demo illustrates how to convert a prototxt file and a caffemodel file into a tensorrt engine file, and to classify images with the optimized tensorrt engine.
+
 Step-by-step:
 
 1. Clone this repository.
@@ -85,6 +87,8 @@ Step-by-step:
 <a name="mtcnn"></a>
 Demo #2: mtcnn
 --------------
+
+This demo builds upon the previous example.  It converts 3 sets of prototxt and caffemodel files into 3 tensorrt engines, namely the PNet, RNet and ONet.  Then it combines the 3 engine files to implement MTCNN, a very good face detector.
 
 Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, follow these steps:
 
