@@ -139,10 +139,10 @@ def generate_pnet_bboxes(conf, reg, scale, t):
     topleft = np.array([x, y], dtype=np.float32).T * 2.  # Nx2
     bottomright = topleft + np.array([11., 11.], dtype=np.float32)  # Nx2
     boxes = (np.concatenate((topleft, bottomright), axis=1) + reg) / scale
-    # filter bboxes which are too small
     boxes = np.concatenate((boxes, score), axis=1)       # Nx5
-    boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12., :]
-    boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12., :]
+    # filter bboxes which are too small
+    #boxes = boxes[boxes[:, 2]-boxes[:, 0] >= 12., :]
+    #boxes = boxes[boxes[:, 3]-boxes[:, 1] >= 12., :]
     return boxes
 
 
