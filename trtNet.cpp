@@ -49,7 +49,7 @@ namespace trtnet {
             _gieModelStream->data(),
             _gieModelStream->size(),
             nullptr);
-        my_assert(_engine != nullptr, "_enginer is null");
+        my_assert(_engine != nullptr, "_engine is null");
         my_assert(_engine->getNbBindings() == 2, "wrong number of bindings");
 	    _binding_data = _engine->getBindingIndex("data");
         my_assert(_engine->bindingIsInput(_binding_data) == true, "bad type of binding 'data'");
@@ -143,7 +143,7 @@ namespace trtnet {
             _gieModelStream->data(),
             _gieModelStream->size(),
             nullptr);
-        my_assert(_engine != nullptr, "_enginer is null");
+        my_assert(_engine != nullptr, "_engine is null");
         my_assert(_engine->getNbBindings() == _num_bindings, "wrong number of bindings");
 	    _binding_data = _engine->getBindingIndex(dataName);
         my_assert(_engine->bindingIsInput(_binding_data) == true, "bad type of binding 'data'");
