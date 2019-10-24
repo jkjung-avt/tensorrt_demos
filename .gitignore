@@ -11,6 +11,9 @@ mtcnn/chobj
 mtcnn/dchobj
 mtcnn/create_engines
 
+ssd/*.uff
+ssd/*.bin
+
 pytrt.cpp
 build
 pytrt.*.so
