@@ -1,0 +1,11 @@
+diff -Naur a/node_manipulation.py b/node_manipulation.py
+--- a/node_manipulation.py	2019-10-24 13:17:10.203943256 +0800
++++ b/node_manipulation.py	2019-10-24 13:19:08.851943211 +0800
+@@ -39,6 +39,7 @@
+     '''
+     node.name = name or node.name
+     node.op = op or node.op or node.name
++    node.attr["dtype"].type = 1
+     for key, val in kwargs.items():
+         if isinstance(val, tf.DType):
+             node.attr[key].type = val.as_datatype_enum

@@ -33,9 +33,14 @@ python3 setup.py build
 sudo python3 setup.py install
 python3 -c "import pycuda; print('pycuda version:', pycuda.VERSION)"
 
+echo "** Patch 'graphsurgeon.py' in TensorRT"
 if head -30 ${gs_path} | tail -1 | grep -q NodeDef; then
-  echo "** Patch 'graphsurgeon.py' in TensorRT"
-  sudo patch -N -p1 -r - ${gs_path} ${patch_path} && echo "Already patched.  Continue..."
+  # This is for JetPack-4.2
+  sudo patch -N -p1 -r - ${gs_path} ${patch_path}-4.2 && echo
+fi
+if head -22 ${gs_path} | tail -1 | grep -q update_node; then
+  # This is for JetPack-4.2.2
+  sudo patch -N -p1 -r - ${gs_path} ${patch_path}-4.2.2 && echo
 fi
 
 echo "** Installation done"
