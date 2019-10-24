@@ -6,7 +6,11 @@ set -e
 
 folder=${HOME}/src
 mkdir -p $folder
-script_path=$(realpath $0)                                   
+script_path=$(realpath $0)
+boost_pylib=$(basename /usr/lib/aarch64-linux-gnu/libboost_python3-py3?.so)
+boost_pylibname=${boost_pylib%.so}
+boost_pyname=${boost_pylibname/lib/}
+gs_path=$(ls /usr/lib/python3.?/dist-packages/graphsurgeon/node_manipulation.py)
 patch_path=$(dirname $script_path)/graphsurgeon.patch
 
 echo "** Install requirements"
@@ -23,13 +27,15 @@ fi
 echo "** Build and install pycuda-2019.1.2"
 tar xzvf pycuda-2019.1.2.tar.gz
 cd pycuda-2019.1.2
-./configure.py --python-exe=/usr/bin/python3 --cuda-root=/usr/local/cuda --cudadrv-lib-dir=/usr/lib/aarch64-linux-gnu --boost-inc-dir=/usr/include --boost-lib-dir=/usr/lib/aarch64-linux-gnu --boost-python-libname=boost_python3-py36 --boost-thread-libname=boost_thread --no-use-shipped-boost
+./configure.py --python-exe=/usr/bin/python3 --cuda-root=/usr/local/cuda --cudadrv-lib-dir=/usr/lib/aarch64-linux-gnu --boost-inc-dir=/usr/include --boost-lib-dir=/usr/lib/aarch64-linux-gnu --boost-python-libname=${boost_pyname} --boost-thread-libname=boost_thread --no-use-shipped-boost
 make -j4
 python3 setup.py build
 sudo python3 setup.py install
 python3 -c "import pycuda; print('pycuda version:', pycuda.VERSION)"
 
-echo "** Patch 'graphsurgeon' in TensorRT"
-sudo patch -N -p1 -r - /usr/lib/python3.6/dist-packages/graphsurgeon/node_manipulation.py ${patch_path} && echo "Already patched.  Continue..."
+if head -30 ${gs_path} | tail -1 | grep -q NodeDef; then
+  echo "** Patch 'graphsurgeon.py' in TensorRT"
+  sudo patch -N -p1 -r - ${gs_path} ${patch_path} && echo "Already patched.  Continue..."
+fi
 
 echo "** Installation done"
