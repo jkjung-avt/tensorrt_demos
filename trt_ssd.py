@@ -12,91 +12,19 @@ import argparse
 
 import numpy as np
 import cv2
+import pycuda.autoinit  # This is needed for initializing CUDA driver
 import pycuda.driver as cuda
 import tensorrt as trt
 
+from utils.ssd_classes import get_cls_dict
 from utils.camera import add_camera_args, Camera
-from utils.display import open_window, set_display
+from utils.display import open_window, set_display, show_fps
+from utils.visualization import BBoxVisualization
 
 
 WINDOW_NAME = 'TrtSsdDemo'
-
-
-ctypes.CDLL("lib/libflattenconcat.so")
-COCO_LABELS = coco.COCO_CLASSES_LIST
-
-
-# initialize
-TRT_LOGGER = trt.Logger(trt.Logger.INFO)
-trt.init_libnvinfer_plugins(TRT_LOGGER, '')
-runtime = trt.Runtime(TRT_LOGGER)
-
-# create engine
-with open(model.TRTbin, 'rb') as f:
-    buf = f.read()
-    engine = runtime.deserialize_cuda_engine(buf)
-
-# create buffer
-host_inputs  = []
-cuda_inputs  = []
-host_outputs = []
-cuda_outputs = []
-bindings = []
-stream = cuda.Stream()
-
-for binding in engine:
-    size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
-    host_mem = cuda.pagelocked_empty(size, np.float32)
-    cuda_mem = cuda.mem_alloc(host_mem.nbytes)
-
-    bindings.append(int(cuda_mem))
-    if engine.binding_is_input(binding):
-        host_inputs.append(host_mem)
-        cuda_inputs.append(cuda_mem)
-    else:
-        host_outputs.append(host_mem)
-        cuda_outputs.append(cuda_mem)
-context = engine.create_execution_context()
-
-
-# inference
-#TODO enable video pipeline
-#TODO using pyCUDA for preprocess
-ori = cv2.imread(sys.argv[1])
-image = cv2.cvtColor(ori, cv2.COLOR_BGR2RGB)
-image = cv2.resize(image, (model.dims[2],model.dims[1]))
-image = (2.0/255.0) * image - 1.0
-image = image.transpose((2, 0, 1))
-np.copyto(host_inputs[0], image.ravel())
-
-start_time = time.time()
-cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
-context.execute_async(bindings=bindings, stream_handle=stream.handle)
-cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
-cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)
-stream.synchronize()
-print("execute times "+str(time.time()-start_time))
-
-output = host_outputs[0]
-height, width, channels = ori.shape
-for i in range(int(len(output)/model.layout)):
-    prefix = i*model.layout
-    index = int(output[prefix+0])
-    label = int(output[prefix+1])
-    conf  = output[prefix+2]
-    xmin  = int(output[prefix+3]*width)
-    ymin  = int(output[prefix+4]*height)
-    xmax  = int(output[prefix+5]*width)
-    ymax  = int(output[prefix+6]*height)
-
-    if conf > 0.7:
-        print("Detected {} with confidence {}".format(COCO_LABELS[label], "{0:.0%}".format(conf)))
-        cv2.rectangle(ori, (xmin,ymin), (xmax, ymax), (0,0,255),3)
-        cv2.putText(ori, COCO_LABELS[label],(xmin+10,ymin+10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
-
-cv2.imwrite("result.jpg", ori)
-cv2.imshow("result", ori)
-cv2.waitKey(0)
+INPUT_WH = (300, 300)
+OUTPUT_LAYOUT = 7
 
 
 def parse_args():
@@ -112,6 +40,136 @@ def parse_args():
     return args
 
 
+def preprocess(img):
+    """Preprocess an image before SSD inferencing."""
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, INPUT_WH)
+    img = img.transpose((2, 0, 1)).astype(np.float32)
+    img = (2.0/255.0) * img - 1.0
+    return img
+
+
+def postprocess(img, output, conf_th):
+    """Postprocess TRT SSD output."""
+    img_h, img_w, _ = img.shape
+    boxes, confs, clss = [], [], []
+    for prefix in range(0, len(output), OUTPUT_LAYOUT):
+        #index = int(output[prefix+0])
+        conf = float(output[prefix+2])
+        if conf < conf_th:
+            continue
+        x1 = int(output[prefix+3] * img_w)
+        y1 = int(output[prefix+4] * img_h)
+        x2 = int(output[prefix+5] * img_w)
+        y2 = int(output[prefix+6] * img_h)
+        cls = int(output[prefix+1])
+        boxes.append((x1, y1, x2, y2))
+        confs.append(conf)
+        clss.append(cls)
+    return boxes, confs, clss
+
+
+class TrtSSD(object):
+    """TrtSSD class encapsulates things needed to run TRT SSD."""
+
+    def _load_plugins(self):
+        ctypes.CDLL("ssd/libflattenconcat.so")
+        self.trt_logger = trt.Logger(trt.Logger.INFO)
+        trt.init_libnvinfer_plugins(self.trt_logger, '')
+
+    def _create_runtime_engine(self, model):
+        self.runtime = trt.Runtime(self.trt_logger)
+        TRTbin = 'ssd/TRT_ssd_mobilenet_v1_%s.bin' % model
+        with open(TRTbin, 'rb') as f:
+            buf = f.read()
+            self.engine = self.runtime.deserialize_cuda_engine(buf)
+
+    def _create_context(self):
+        for binding in self.engine:
+            size = trt.volume(self.engine.get_binding_shape(binding)) * \
+                   self.engine.max_batch_size
+            host_mem = cuda.pagelocked_empty(size, np.float32)
+            cuda_mem = cuda.mem_alloc(host_mem.nbytes)
+            self.bindings.append(int(cuda_mem))
+            if self.engine.binding_is_input(binding):
+                self.host_inputs.append(host_mem)
+                self.cuda_inputs.append(cuda_mem)
+            else:
+                self.host_outputs.append(host_mem)
+                self.cuda_outputs.append(cuda_mem)
+        self.context = self.engine.create_execution_context()
+
+    def __init__(self, model):
+        """Initialize TensorRT plugins, runtime, engine and conetxt."""
+        self.trt_loader = None
+        self._load_plugins()
+
+        self.runtime = None
+        self.engine = None
+        self._create_runtime_engine(model)
+
+        self.host_inputs = []
+        self.cuda_inputs = []
+        self.host_outputs = []
+        self.cuda_outputs = []
+        self.bindings = []
+        self.stream = cuda.Stream()
+        self.context = None
+        self._create_context()
+
+    def detect(self, img, conf_th=0.3):
+        """Detect objects in the input image."""
+        img_resized = preprocess(img)
+        np.copyto(self.host_inputs[0], img_resized.ravel())
+
+        cuda.memcpy_htod_async(
+            self.cuda_inputs[0], self.host_inputs[0], self.stream)
+        self.context.execute_async(
+            bindings=self.bindings, stream_handle=self.stream.handle)
+        cuda.memcpy_dtoh_async(
+            self.host_outputs[1], self.cuda_outputs[1], self.stream)
+        cuda.memcpy_dtoh_async(
+            self.host_outputs[0], self.cuda_outputs[0], self.stream)
+        self.stream.synchronize()
+
+        output = self.host_outputs[0]
+        return postprocess(img, output, conf_th)
+
+
+def loop_and_detect(cam, trt_ssd, conf_th, vis):
+    """Continuously capture images from camera and do object detection.
+
+    # Arguments
+      cam: the camera instance (video source).
+      trt_ssd: the TRT SSD object detector instance.
+      conf_th: confidence/score threshold for object detection.
+      vis: for visualization.
+    """
+    full_scrn = False
+    fps = 0.0
+    tic = time.time()
+    while True:
+        if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
+            break
+        img = cam.read()
+        if img is not None:
+            boxes, confs, clss = trt_ssd.detect(img, conf_th)
+            img = vis.draw_bboxes(img, boxes, confs, clss)
+            img = show_fps(img, fps)
+            cv2.imshow(WINDOW_NAME, img)
+            toc = time.time()
+            curr_fps = 1.0 / (toc - tic)
+            # calculate an exponentially decaying average of fps number
+            fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
+            tic = toc
+        key = cv2.waitKey(1)
+        if key == 27:  # ESC key: quit program
+            break
+        elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
+            full_scrn = not full_scrn
+            set_display(WINDOW_NAME, full_scrn)
+
+
 def main():
     args = parse_args()
     cam = Camera(args)
@@ -119,11 +177,14 @@ def main():
     if not cam.is_opened:
         sys.exit('Failed to open camera!')
 
+    cls_dict = get_cls_dict(args.model)
+    trt_ssd = TrtSSD(args.model)
+
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
                 'Camera TensorRT SSD Demo for Jetson Nano')
     vis = BBoxVisualization(cls_dict)
-    loop_and_detect(cam, model, vis)
+    loop_and_detect(cam, trt_ssd, conf_th=0.3, vis=vis)
 
     cam.stop()
     cam.release()
