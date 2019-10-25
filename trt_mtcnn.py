@@ -10,7 +10,7 @@ import argparse
 
 import cv2
 from utils.camera import add_camera_args, Camera
-from utils.display import open_window, set_display
+from utils.display import open_window, set_display, show_fps
 from utils.mtcnn import TrtMtcnn
 
 
@@ -38,15 +38,6 @@ def show_faces(img, boxes, landmarks):
         cv2.rectangle(img, (x1, y1), (x2, y2), BBOX_COLOR, 2)
         for j in range(5):
             cv2.circle(img, (int(ll[j]), int(ll[j+5])), 2, BBOX_COLOR, 2)
-
-
-def show_fps(img, fps):
-    """Draw fps number at top-left corner of the image."""
-    font = cv2.FONT_HERSHEY_PLAIN
-    line = cv2.LINE_AA
-    fps_text = 'FPS: {:.2f}'.format(fps)
-    cv2.putText(img, fps_text, (11, 20), font, 1.0, (32, 32, 32), 4, line)
-    cv2.putText(img, fps_text, (10, 20), font, 1.0, (240, 240, 240), 1, line)
     return img
 
 
@@ -62,8 +53,8 @@ def loop_and_detect(cam, mtcnn, minsize):
         if img is not None:
             dets, landmarks = mtcnn.detect(img, minsize=minsize)
             print('{} face(s) found'.format(len(dets)))
-            show_faces(img, dets, landmarks)
-            show_fps(img, fps)
+            img = show_faces(img, dets, landmarks)
+            img = show_fps(img, fps)
             cv2.imshow(WINDOW_NAME, img)
             toc = time.time()
             curr_fps = 1.0 / (toc - tic)
