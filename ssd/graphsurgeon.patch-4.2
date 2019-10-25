@@ -1,0 +1,12 @@
+diff --git a/node_manipulation.py b/node_manipulation.py
+index d2d012a..1ef30a0 100644
+--- a/node_manipulation.py
++++ b/node_manipulation.py
+@@ -30,6 +30,7 @@ def create_node(name, op=None, _do_suffix=False, **kwargs):
+     node = NodeDef()
+     node.name = name
+     node.op = op if op else name
++    node.attr["dtype"].type = 1
+     for key, val in kwargs.items():
+         if key == "dtype":
+             node.attr["dtype"].type = val.as_datatype_enum
