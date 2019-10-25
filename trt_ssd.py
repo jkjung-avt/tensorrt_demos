@@ -34,7 +34,7 @@ def parse_args():
             'SSD model on Jetson Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
-    parser.add_argument('--model', type=str, default='egohands',
+    parser.add_argument('--model', type=str, default='coco',
                         choices=['coco', 'egohands'])
     args = parser.parse_args()
     return args
