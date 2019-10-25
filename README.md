@@ -1,6 +1,6 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize caffe models with TensorRT and run inferencing on Jetson Nano/TX2.
+Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and run inferencing on Jetson Nano/TX2.
 
 Table of contents
 -----------------
@@ -9,6 +9,7 @@ Table of contents
 * [Prerequisite](#prerequisite)
 * [Demo #1: googlenet](#googlenet)
 * [Demo #2: mtcnn](#mtcnn)
+* [Demo #3: ssd](#ssd)
 
 <a name="blog"></a>
 Blog posts related to this repository
@@ -24,16 +25,18 @@ Prerequisite
 
 The code in this repository was tested on both Jetson Nano DevKit and Jetson TX2.  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
-More specifically, the target Jetson Nano/TX2 system should have TensorRT libraries installed.  For example, TensorRT v5.0.6 was present on the tested Jetson Nano system.
+More specifically, the target Jetson Nano/TX2 system should have TensorRT libraries installed.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on the tested Jetson Nano system.
 
 ```shell
 $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
 /usr/lib/aarch64-linux-gnu/libnvinfer.so
 /usr/lib/aarch64-linux-gnu/libnvinfer.so.5
-/usr/lib/aarch64-linux-gnu/libnvinfer.so.5.0.6
+/usr/lib/aarch64-linux-gnu/libnvinfer.so.5.1.6
 ```
 
-Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) about how to install opencv-3.4.6 on the Jetson system.
+Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) for how to install opencv-3.4.6 on the Jetson system.
+
+Lastly, if you plan to run demo #3 (ssd), you'd also need to have 'tensorflowi-1.x' installed.  You could refer to [Building TensorFlow 1.12.2 on Jetson Nano](https://jkjung-avt.github.io/build-tensorflow-1.12.2/) for how to install tensorflow-1.12.2 on the Jetson Nano/TX2.
 
 <a name="googlenet"></a>
 Demo #1: googlenet
@@ -114,3 +117,44 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
    ![Avengers faces detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/avengers.png)
 
 4. The `trt_mtcnn.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
+
+<a name="ssd"></a>
+Demo #3: ssd
+------------
+
+This demo shows how to convert trained tensorflow Single-Shot Multibox Detector (SSD) models through UFF to TensorRT engines, and to do real-time object detection with the optimized engines.
+
+NOTE: This particular demo requires TensorRT 'Python API'.  So, unlike the previous 2 demos, this one only works for TensorRT 5.x on Jetson Nano/TX2.  In other words, it only works on Jetson systems properly set up with JetPack-4.x, but **not** Jetson-3.x or earlier versions.
+
+Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, follow these steps:
+
+1. Install requirements (pycuda, etc.) and build TensorRT engines.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/ssd
+   $ ./install.sh
+   $ python3 ./build_engines.py
+   ```
+
+2. Run the `trt_ssd.py` demo program.  The demo supports 2 models: either 'coco' or 'egohands'.  For example, I tested the 'coco' model with the previous 'huskies' picture.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_ssd.py --model coco --image \
+                        --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
+   ```
+
+   Here's the result.  (Frame rate was around 22.8 fps on Jetson Nano, which is pretty good.)
+
+   ![Huskies detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/huskies.png)
+
+   I also tested the 'egohands' (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate (27~28 fps) was good.  But the detection didn't seem very accurate though :-(
+
+   ```shell
+   $ python3 trt_ssd.py --model egohands --file \
+                        --filename ${HOME}/Videos/Secret_Handshake_with_Justin_Bieber.mp4
+   ```
+
+   [![Handshake detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/handshake.png)](https://youtu.be/Fv6OSf0QNmU)
+
+3. The `trt_ssd.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
