@@ -152,7 +152,7 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 
    ```shell
    $ python3 trt_ssd.py --model egohands --file \
-                        --filename ${HOME}/Videos/Secret_Handshake_with_Justin_Bieber.mp4
+                        --filename ${HOME}/Videos/Nonverbal_Communication.mp4
    ```
 
    (Click on the image below to see the whole video clip...)
