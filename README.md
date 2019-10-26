@@ -157,6 +157,6 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 
    (Click on the image below to see the whole video clip...)
 
-   [![Handshake detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/handshake.png)](https://youtu.be/Fv6OSf0QNmU)
+   [![Hands detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/hands.png)](https://youtu.be/3ieN5BBdDF0)
 
 3. The `trt_ssd.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
