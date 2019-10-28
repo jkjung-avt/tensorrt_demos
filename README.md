@@ -133,14 +133,15 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
    ```shell
    $ cd ${HOME}/project/tensorrt_demos/ssd
    $ ./install.sh
-   $ python3 ./build_engines.py
+   $ ./build_engines.sh
    ```
 
-2. Run the `trt_ssd.py` demo program.  The demo supports 2 models: either 'coco' or 'egohands'.  For example, I tested the 'coco' model with the previous 'huskies' picture.
+2. Run the `trt_ssd.py` demo program.  The demo supports 4 models: 'ssd_mobilenet_v1_coco', 'ssd_mobilenet_v1_egohands', 'ssd_mobilenet_v2_coco', or 'ssd_mobilenet_v2_egohands'.  For example, I tested the 'ssd_mobilenet_v1_coco' model with the 'huskies' picture.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_ssd.py --model coco --image \
+   $ python3 trt_ssd.py --model ssd_mobilenet_v1_coco \
+                        --image \
                         --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
 
@@ -148,10 +149,11 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 
    ![Huskies detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/huskies.png)
 
-   I also tested the 'egohands' (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate (27~28 fps) was good.  But the detection didn't seem very accurate though :-(
+   I also tested the 'ssd_mobilenet_v1_egohands' (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate (27~28 fps) was good.  But the detection didn't seem very accurate though :-(
 
    ```shell
-   $ python3 trt_ssd.py --model egohands --file \
+   $ python3 trt_ssd.py --model ssd_mobilenet_v1_egohands \
+                        --file \
                         --filename ${HOME}/Videos/Nonverbal_Communication.mp4
    ```
 

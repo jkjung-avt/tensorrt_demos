@@ -25,6 +25,12 @@ from utils.visualization import BBoxVisualization
 WINDOW_NAME = 'TrtSsdDemo'
 INPUT_WH = (300, 300)
 OUTPUT_LAYOUT = 7
+SUPPORTED_MODELS = [
+    'ssd_mobilenet_v1_coco',
+    'ssd_mobilenet_v1_egohands',
+    'ssd_mobilenet_v2_coco',
+    'ssd_mobilenet_v2_egohands',
+]
 
 
 def parse_args():
@@ -34,8 +40,8 @@ def parse_args():
             'SSD model on Jetson Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
-    parser.add_argument('--model', type=str, default='coco',
-                        choices=['coco', 'egohands'])
+    parser.add_argument('--model', type=str, default='ssd_mobilenet_v2_coco',
+                        choices=SUPPORTED_MODELS)
     args = parser.parse_args()
     return args
 
@@ -79,7 +85,7 @@ class TrtSSD(object):
 
     def _create_runtime_engine(self, model):
         self.runtime = trt.Runtime(self.trt_logger)
-        TRTbin = 'ssd/TRT_ssd_mobilenet_v1_%s.bin' % model
+        TRTbin = f'ssd/TRT_{model}.bin'
         with open(TRTbin, 'rb') as f:
             buf = f.read()
             self.engine = self.runtime.deserialize_cuda_engine(buf)
@@ -177,7 +183,7 @@ def main():
     if not cam.is_opened:
         sys.exit('Failed to open camera!')
 
-    cls_dict = get_cls_dict(args.model)
+    cls_dict = get_cls_dict(args.model.split('_')[-1])
     trt_ssd = TrtSSD(args.model)
 
     cam.start()

@@ -12,6 +12,7 @@ mtcnn/dchobj
 mtcnn/create_engines
 
 ssd/*.uff
+ssd/*.pbtxt
 ssd/*.bin
 
 pytrt.cpp
