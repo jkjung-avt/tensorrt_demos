@@ -123,6 +123,12 @@ class TrtSSD(object):
         self.context = None
         self._create_context()
 
+    def __del__(self):
+        """Free CUDA memories."""
+        del self.stream
+        del self.cuda_outputs
+        del self.cuda_inputs
+
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
         img_resized = preprocess(img)
