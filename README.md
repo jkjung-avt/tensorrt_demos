@@ -162,3 +162,12 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
    [![Hands detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/hands.png)](https://youtu.be/3ieN5BBdDF0)
 
 3. The `trt_ssd.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
+
+4. Refer to this comment, ['#TODO enable video pipeline'](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code.  I implemented an 'async' version of ssd detection code to do just that.  When I tested 'ssd_mobilenet_v1_coco' on the same huskies image with the async demo program, frame rate improved from 22.8 to ~26.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_ssd_async.py --model ssd_mobilenet_v1_coco \
+                              --image \
+                              --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
+   ```
