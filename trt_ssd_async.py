@@ -158,31 +158,31 @@ class TrtThread(threading.Thread):
         call CUDA kernel, instead of in the main thread).
         """
         threading.Thread.__init__(self)
-        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.cam = cam
-        self.trt_ssd = TrtSSD(model)
+        self.model = model
+        self.cuda_ctx = None  # to be created when run
+        self.trt_ssd = None   # to be created when run
         self.running = False
-
-    def __del__(self):
-        """__del__
-
-        We clean up CUDA context here otherwise the program cannot
-        terminate normally.
-        """
-        self.cuda_ctx.pop()
-        del self.cuda_ctx
 
     def run(self):
         """Run until 'running' flag is set to False by main thread."""
+        print('TrtThread: loading the TRT SSD engine...')
+        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
+        self.trt_ssd = TrtSSD(self.model)
+        print('TrtThread: start running...')
         self.running = True
         while self.running:
             img = np.zeros((720, 1280, 3), dtype=np.uint8)
             boxes, confs, clss = self.trt_ssd.detect(img, 0.3)
             del img
-            print('Done with 1 dummy image')
+        del self.trt_ssd
+        self.cuda_ctx.pop()
+        del self.cuda_ctx
+        print('TrtThread: stopped...')
 
     def stop(self):
         self.running = False
+        self.join()
 
 
 def loop_and_detect(cam, trt_ssd, conf_th, vis):
