@@ -6,6 +6,8 @@ inferencing (TensorRT optimized SSD model/engine), while using
 the main thread for drawing detection results and displaying
 video.  Ideally, the 2 threads work in a pipeline fashion so
 the overall throughput (FPS) would be improved.
+
+NOTE: This is still a work in progress...
 """
 
 
@@ -84,15 +86,12 @@ class TrtSSD(object):
 
     def _load_plugins(self):
         ctypes.CDLL("ssd/libflattenconcat.so")
-        self.trt_logger = trt.Logger(trt.Logger.INFO)
         trt.init_libnvinfer_plugins(self.trt_logger, '')
 
-    def _create_runtime_engine(self, model):
-        self.runtime = trt.Runtime(self.trt_logger)
-        TRTbin = f'ssd/TRT_{model}.bin'
-        with open(TRTbin, 'rb') as f:
-            buf = f.read()
-            self.engine = self.runtime.deserialize_cuda_engine(buf)
+    def _load_engine(self):
+        TRTbin = 'ssd/TRT_%s.bin' % self.model
+        with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
+            return runtime.deserialize_cuda_engine(f.read())
 
     def _create_context(self):
         for binding in self.engine:
@@ -107,16 +106,14 @@ class TrtSSD(object):
             else:
                 self.host_outputs.append(host_mem)
                 self.cuda_outputs.append(cuda_mem)
-        self.context = self.engine.create_execution_context()
+        return self.engine.create_execution_context()
 
     def __init__(self, model):
-        """Initialize TensorRT plugins, runtime, engine and conetxt."""
-        self.trt_loader = None
+        """Initialize TensorRT plugins, engine and conetxt."""
+        self.model = model
+        self.trt_logger = trt.Logger(trt.Logger.INFO)
         self._load_plugins()
-
-        self.runtime = None
-        self.engine = None
-        self._create_runtime_engine(model)
+        self.engine = self._load_engine()
 
         self.host_inputs = []
         self.cuda_inputs = []
@@ -124,8 +121,7 @@ class TrtSSD(object):
         self.cuda_outputs = []
         self.bindings = []
         self.stream = cuda.Stream()
-        self.context = None
-        self._create_context()
+        self.context = self._create_context()
 
     def __del__(self):
         """Free CUDA memories."""
@@ -141,7 +137,9 @@ class TrtSSD(object):
         cuda.memcpy_htod_async(
             self.cuda_inputs[0], self.host_inputs[0], self.stream)
         self.context.execute_async(
-            bindings=self.bindings, stream_handle=self.stream.handle)
+            batch_size=1,
+            bindings=self.bindings,
+            stream_handle=self.stream.handle)
         cuda.memcpy_dtoh_async(
             self.host_outputs[1], self.cuda_outputs[1], self.stream)
         cuda.memcpy_dtoh_async(
