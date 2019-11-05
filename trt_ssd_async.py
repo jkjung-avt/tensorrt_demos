@@ -1,13 +1,11 @@
 """trt_ssd_async.py
 
-This is the 'async' version of trt_ssd.py implementation.  It
-creates 1 dedicated thread for fetching camera input and do
-inferencing (TensorRT optimized SSD model/engine), while using
-the main thread for drawing detection results and displaying
-video.  Ideally, the 2 threads work in a pipeline fashion so
-the overall throughput (FPS) would be improved.
-
-NOTE: This is still a work in progress...
+This is the 'async' version of trt_ssd.py implementation.  It creates
+1 dedicated child thread for fetching camera input and do inferencing
+with the TensorRT optimized SSD model/engine, while using the main
+thread for drawing detection results and displaying video.  Ideally,
+the 2 threads work in a pipeline fashion so overall throughput (FPS)
+would be improved comparing to the non-async version.
 """
 
 
@@ -37,6 +35,11 @@ SUPPORTED_MODELS = [
     'ssd_mobilenet_v2_coco',
     'ssd_mobilenet_v2_egohands',
 ]
+
+# These global variables are 'shared' between the main and child
+# threads.  The child thread writes new frame and detection result
+# into these variables, while the main thread reads from them.
+s_img, s_boxes, s_confs, s_clss = None, None, None, None
 
 
 def parse_args():
@@ -151,30 +154,53 @@ class TrtSSD(object):
 
 
 class TrtThread(threading.Thread):
-    def __init__(self, cam, model):
+    """TrtThread
+
+    This implements the child thread which continues to read images
+    from cam (input) and to do TRT engine inferencing.  The child
+    thread stores the input image and detection results into global
+    variables and uses a condition varaiable to inform main thread.
+    In other words, the TrtThread acts as the producer while the
+    main thread is the consumer.
+    """
+    def __init__(self, condition, cam, model, conf_th):
         """__init__
 
-        CUDA context is created here (NOTE: in the thread which would
-        call CUDA kernel, instead of in the main thread).
+        # Arguments
+            condition: the condition variable used to notify main
+                       thread about new frame and detection result
+            cam: the camera object for reading input image frames
+            model: a string, specifying the TRT SSD model
+            conf_th: confidence threshold for detection
         """
         threading.Thread.__init__(self)
+        self.condition = condition
         self.cam = cam
         self.model = model
+        self.conf_th = conf_th
         self.cuda_ctx = None  # to be created when run
         self.trt_ssd = None   # to be created when run
         self.running = False
 
     def run(self):
-        """Run until 'running' flag is set to False by main thread."""
+        """Run until 'running' flag is set to False by main thread.
+
+        NOTE: CUDA context is created here (NOTE: inside the thread
+        which would calls CUDA kernelis, instead of the main thread).
+        """
+        global s_img, s_boxes, s_confs, s_clss
+
         print('TrtThread: loading the TRT SSD engine...')
         self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.trt_ssd = TrtSSD(self.model)
         print('TrtThread: start running...')
         self.running = True
         while self.running:
-            img = np.zeros((720, 1280, 3), dtype=np.uint8)
-            boxes, confs, clss = self.trt_ssd.detect(img, 0.3)
-            del img
+            img = self.cam.read()
+            boxes, confs, clss = self.trt_ssd.detect(img, self.conf_th)
+            with self.condition:
+                s_img, s_boxes, s_confs, s_clss = img, boxes, confs, clss
+                self.condition.notify()
         del self.trt_ssd
         self.cuda_ctx.pop()
         del self.cuda_ctx
@@ -185,32 +211,37 @@ class TrtThread(threading.Thread):
         self.join()
 
 
-def loop_and_detect(cam, trt_ssd, conf_th, vis):
-    """Continuously capture images from camera and do object detection.
+def loop_and_display(condition, vis):
+    """Take detection results from the child thread and display.
 
     # Arguments
-      cam: the camera instance (video source).
-      trt_ssd: the TRT SSD object detector instance.
-      conf_th: confidence/score threshold for object detection.
-      vis: for visualization.
+        condition: the condition variable for synchronization with
+                   the child thread.
+        vis: for visualization.
     """
+    global s_img, s_boxes, s_confs, s_clss
+
     full_scrn = False
     fps = 0.0
     tic = time.time()
     while True:
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
-        img = cam.read()
-        if img is not None:
-            #boxes, confs, clss = trt_ssd.detect(img, conf_th)
-            #img = vis.draw_bboxes(img, boxes, confs, clss)
-            img = show_fps(img, fps)
-            cv2.imshow(WINDOW_NAME, img)
-            toc = time.time()
-            curr_fps = 1.0 / (toc - tic)
-            # calculate an exponentially decaying average of fps number
-            fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
-            tic = toc
+        with condition:
+            # Wait for the next frame and detection result.  When
+            # getting the signal from the child thread, save the
+            # references to the frame and detection result for
+            # display.
+            condition.wait()
+            img, boxes, confs, clss = s_img, s_boxes, s_confs, s_clss
+        img = vis.draw_bboxes(img, boxes, confs, clss)
+        img = show_fps(img, fps)
+        cv2.imshow(WINDOW_NAME, img)
+        toc = time.time()
+        curr_fps = 1.0 / (toc - tic)
+        # calculate an exponentially decaying average of fps number
+        fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
+        tic = toc
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
             break
@@ -228,16 +259,17 @@ def main():
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
 
-    cuda.init()
+    cuda.init()  # init pycuda driver
 
-    cam.start()
+    cam.start()  # let camera start grabbing frames
     open_window(WINDOW_NAME, args.image_width, args.image_height,
                 'Camera TensorRT SSD Demo for Jetson Nano')
     vis = BBoxVisualization(cls_dict)
-    t = TrtThread(cam, args.model)
-    t.start()
-    loop_and_detect(cam, None, conf_th=0.3, vis=vis)
-    t.stop()
+    condition = threading.Condition()
+    trt_thread = TrtThread(condition, cam, args.model, conf_th=0.3)
+    trt_thread.start()  # start the child thread
+    loop_and_display(condition, vis)
+    trt_thread.stop()   # stop the child thread
 
     cam.stop()
     cam.release()
