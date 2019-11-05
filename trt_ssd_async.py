@@ -1,7 +1,13 @@
-"""trt_ssd.py
+"""trt_ssd_async.py
 
-This script demonstrates how to do real-time object detection with
-TensorRT optimized Single-Shot Multibox Detector (SSD) engine.
+This is the 'async' version of trt_ssd.py implementation.  It
+creates 1 dedicated thread for fetching camera input and do
+inferencing (TensorRT optimized SSD model/engine), while using
+the main thread for drawing detection results and displaying
+video.  Ideally, the 2 threads work in a pipeline fashion so
+the overall throughput (FPS) would be improved.
+
+NOTE: This is still a work in progress...
 """
 
 
@@ -9,10 +15,10 @@ import sys
 import time
 import ctypes
 import argparse
+import threading
 
 import numpy as np
 import cv2
-import pycuda.autoinit  # This is needed for initializing CUDA driver
 import pycuda.driver as cuda
 import tensorrt as trt
 
@@ -22,7 +28,7 @@ from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 
 
-WINDOW_NAME = 'TrtSsdDemo'
+WINDOW_NAME = 'TrtSsdDemoAsync'
 INPUT_WH = (300, 300)
 OUTPUT_LAYOUT = 7
 SUPPORTED_MODELS = [
@@ -144,6 +150,41 @@ class TrtSSD(object):
         return postprocess(img, output, conf_th)
 
 
+class TrtThread(threading.Thread):
+    def __init__(self, cam, model):
+        """__init__
+
+        CUDA context is created here (NOTE: in the thread which would
+        call CUDA kernel, instead of in the main thread).
+        """
+        threading.Thread.__init__(self)
+        self.cam = cam
+        self.model = model
+        self.cuda_ctx = None  # to be created when run
+        self.trt_ssd = None   # to be created when run
+        self.running = False
+
+    def run(self):
+        """Run until 'running' flag is set to False by main thread."""
+        print('TrtThread: loading the TRT SSD engine...')
+        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
+        self.trt_ssd = TrtSSD(self.model)
+        print('TrtThread: start running...')
+        self.running = True
+        while self.running:
+            img = np.zeros((720, 1280, 3), dtype=np.uint8)
+            boxes, confs, clss = self.trt_ssd.detect(img, 0.3)
+            del img
+        del self.trt_ssd
+        self.cuda_ctx.pop()
+        del self.cuda_ctx
+        print('TrtThread: stopped...')
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+
 def loop_and_detect(cam, trt_ssd, conf_th, vis):
     """Continuously capture images from camera and do object detection.
 
@@ -161,8 +202,8 @@ def loop_and_detect(cam, trt_ssd, conf_th, vis):
             break
         img = cam.read()
         if img is not None:
-            boxes, confs, clss = trt_ssd.detect(img, conf_th)
-            img = vis.draw_bboxes(img, boxes, confs, clss)
+            #boxes, confs, clss = trt_ssd.detect(img, conf_th)
+            #img = vis.draw_bboxes(img, boxes, confs, clss)
             img = show_fps(img, fps)
             cv2.imshow(WINDOW_NAME, img)
             toc = time.time()
@@ -186,13 +227,17 @@ def main():
         sys.exit('Failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
-    trt_ssd = TrtSSD(args.model)
+
+    cuda.init()
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
                 'Camera TensorRT SSD Demo for Jetson Nano')
     vis = BBoxVisualization(cls_dict)
-    loop_and_detect(cam, trt_ssd, conf_th=0.3, vis=vis)
+    t = TrtThread(cam, args.model)
+    t.start()
+    loop_and_detect(cam, None, conf_th=0.3, vis=vis)
+    t.stop()
 
     cam.stop()
     cam.release()
