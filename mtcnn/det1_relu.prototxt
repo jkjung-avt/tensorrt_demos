@@ -17,7 +17,7 @@ layer
    #   Rounded:  216, 154, 108,  78,  54,  38,  28,  20,  14
    #   Offsets:    0, 216, 370, 478, 556, 610, 648, 676, 696, (710)
    #
-   # Input dimension of the 'stacked image': 724x384
+   # Input dimension of the 'stacked image': 710x384
    #
    # Output dimension: (stride=2)
    #   (710 - 12) / 2 + 1 = 350
