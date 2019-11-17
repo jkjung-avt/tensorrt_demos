@@ -1,23 +1,18 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and run inferencing on Jetson Nano/TX2.
+Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and run inferencing on Jetson Nano/TX2.  Highlights:
+
+* Run an optimized 'GoogLeNet' image classifier at 60 FPS on Jetson Nano.
+* Run a very accurate optimized 'MTCNN' face detector at 5~8 FPS on Jetson Nano.
+* Run an optimized 'ssd_mobilenet_v1_coco' object detector (trt_ssd_async) at 26 FPS on Jetson Nano.
 
 Table of contents
 -----------------
 
-* [Blog posts](#blog)
 * [Prerequisite](#prerequisite)
 * [Demo #1: googlenet](#googlenet)
 * [Demo #2: mtcnn](#mtcnn)
 * [Demo #3: ssd](#ssd)
-
-<a name="blog"></a>
-Blog posts related to this repository
--------------------------------------
-
-* [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
-* [TensorRT MTCNN Face Detector](https://jkjung-avt.github.io/tensorrt-mtcnn/)
-* [Optimizing TensorRT MTCNN](https://jkjung-avt.github.io/optimize-mtcnn/)
 
 <a name="prerequisite"></a>
 Prerequisite
@@ -87,6 +82,10 @@ Step-by-step:
    * `--usb --vid 0`: USB webcam (/dev/video0).
    * `--rtsp --uri rtsp://admin:123456@192.168.1.1/live.sdp`: RTSP source, e.g. an IP cam.
 
+6. Check out my blog post for implementation details:
+
+   * [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
+
 <a name="mtcnn"></a>
 Demo #2: mtcnn
 --------------
@@ -116,7 +115,12 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 
    ![Avengers faces detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/avengers.png)
 
-4. The `trt_mtcnn.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
+4. The `trt_mtcnn.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 for details.
+
+5. Check out my related blog posts:
+
+   * [TensorRT MTCNN Face Detector](https://jkjung-avt.github.io/tensorrt-mtcnn/)
+   * [Optimizing TensorRT MTCNN](https://jkjung-avt.github.io/optimize-mtcnn/)
 
 <a name="ssd"></a>
 Demo #3: ssd
@@ -163,7 +167,7 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 
 3. The `trt_ssd.py` demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
-4. Refer to this comment, ['#TODO enable video pipeline'](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code.  I implemented an 'async' version of ssd detection code to do just that.  When I tested 'ssd_mobilenet_v1_coco' on the same huskies image with the async demo program, frame rate improved from 22.8 to ~26.
+4. Check out to this comment, ['#TODO enable video pipeline'](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code.  I did implement an 'async' version of ssd detection code to do just that.  When I tested 'ssd_mobilenet_v1_coco' on the same huskies image with the async demo program, frame rate improved from 22.8 to ~26.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos
@@ -171,3 +175,7 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
                               --image \
                               --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
+
+5. Check out my blog post for implementation details:
+
+   * [TensorRT UFF SSD](https://jkjung-avt.github.io/tensorrt-ssd/)
