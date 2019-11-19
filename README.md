@@ -19,9 +19,11 @@ Table of contents
 Prerequisite
 ------------
 
-The code in this repository was tested on both Jetson Nano DevKit and Jetson TX2.  In order to run the demo programs below, first make sure you have the target Jetson Nano system with the proper version of image installed.  Reference: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
+The code in this repository was tested on both Jetson Nano DevKit and Jetson TX2.  In order to run the demo programs below, first make sure you have the target Jetson Nano/TX2 system with the proper version of image installed.  Reference for Jetson Nano: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
-More specifically, the target Jetson Nano/TX2 system should have TensorRT libraries installed.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on the tested Jetson Nano system.
+More specifically, the target Jetson Nano/TX2 system should have TensorRT libraries installed.  **Demo #1 and demo #2 should work for TensorRT 3.x, 4.x, or 5.x.  But demo #3 would require TensorRT 5.x.**
+
+You could check which version of TensorRT has been installed on your Jetson Nano/TX2 by looking at file names of the libraries.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on my Jetson Nano DevKit.
 
 ```shell
 $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
@@ -30,7 +32,7 @@ $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
 /usr/lib/aarch64-linux-gnu/libnvinfer.so.5.1.6
 ```
 
-Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) for how to install opencv-3.4.6 on the Jetson system.
+Furthermore, the demo programs require the 'cv2' (OpenCV) module in python3.  You could, for example, refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) for how to install opencv-3.4.6 on the Jetson system.
 
 Lastly, if you plan to run demo #3 (ssd), you'd also need to have 'tensorflowi-1.x' installed.  You could refer to [Building TensorFlow 1.12.2 on Jetson Nano](https://jkjung-avt.github.io/build-tensorflow-1.12.2/) for how to install tensorflow-1.12.2 on the Jetson Nano/TX2.
 
@@ -140,6 +142,8 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
    $ ./install.sh
    $ ./build_engines.sh
    ```
+
+   NOTE: On my Jetson Nano DevKit with TensorRT 5.1.6, the version number of UFF converter is "0.6.3".  When I run `build_engine.py`, the UFF library actually printed out: `UFF has been tested with tensorflow 1.12.0. Other versions are not guaranteed to work.`  So I would strongly suggest you to use **tensorflow 1.12.x** (or whatever matching version for the UFF library installed on your system) when converting pb to uff.
 
 2. Run the `trt_ssd.py` demo program.  The demo supports 4 models: 'ssd_mobilenet_v1_coco', 'ssd_mobilenet_v1_egohands', 'ssd_mobilenet_v2_coco', or 'ssd_mobilenet_v2_egohands'.  For example, I tested the 'ssd_mobilenet_v1_coco' model with the 'huskies' picture.
 
