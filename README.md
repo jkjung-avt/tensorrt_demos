@@ -4,7 +4,8 @@ Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and
 
 * Run an optimized 'GoogLeNet' image classifier at 60 FPS on Jetson Nano.
 * Run a very accurate optimized 'MTCNN' face detector at 5~8 FPS on Jetson Nano.
-* Run an optimized 'ssd_mobilenet_v1_coco' object detector (trt_ssd_async) at 26 FPS on Jetson Nano.
+* Run an optimized 'ssd_mobilenet_v1_coco' object detector (`trt_ssd_async.py`) at ~26 FPS on Jetson Nano.
+* All demos should also work on Jetson TX2 and AGX Xavier ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927)), and run much faster!
 
 Table of contents
 -----------------
