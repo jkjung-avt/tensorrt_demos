@@ -180,3 +180,4 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
 5. Check out my blog post for implementation details:
 
    * [TensorRT UFF SSD](https://jkjung-avt.github.io/tensorrt-ssd/)
+   * [Speeding Up TensorRT UFF SSD](https://jkjung-avt.github.io/speed-up-trt-ssd/)
