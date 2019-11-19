@@ -185,8 +185,9 @@ class TrtThread(threading.Thread):
     def run(self):
         """Run until 'running' flag is set to False by main thread.
 
-        NOTE: CUDA context is created here (NOTE: inside the thread
-        which would calls CUDA kernelis, instead of the main thread).
+        NOTE: CUDA context is created here, i.e. inside the thread
+        which calls CUDA kernels.  In other words, creating CUDA
+        context in __init__() doesn't work.
         """
         global s_img, s_boxes, s_confs, s_clss
 
