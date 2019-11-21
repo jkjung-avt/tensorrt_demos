@@ -131,7 +131,7 @@ Demo #3: ssd
 
 This demo shows how to convert trained tensorflow Single-Shot Multibox Detector (SSD) models through UFF to TensorRT engines, and to do real-time object detection with the optimized engines.
 
-NOTE: This particular demo requires TensorRT 'Python API'.  So, unlike the previous 2 demos, this one only works for TensorRT 5.x on Jetson Nano/TX2.  In other words, it only works on Jetson systems properly set up with JetPack-4.x, but **not** Jetson-3.x or earlier versions.
+NOTE: This particular demo requires TensorRT 'Python API'.  So, unlike the previous 2 demos, this one only works for TensorRT 5.x on Jetson Nano/TX2.  In other words, it only works on Jetson systems properly set up with JetPack-4.2+, but **not** JetPack-3.x or earlier versions.
 
 Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, follow these steps:
 
