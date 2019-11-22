@@ -143,7 +143,7 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
    $ ./build_engines.sh
    ```
 
-   NOTE: On my Jetson Nano DevKit with TensorRT 5.1.6, the version number of UFF converter is "0.6.3".  When I run `build_engine.py`, the UFF library actually printed out: `UFF has been tested with tensorflow 1.12.0. Other versions are not guaranteed to work.`  So I would strongly suggest you to use **tensorflow 1.12.x** (or whatever matching version for the UFF library installed on your system) when converting pb to uff.
+   NOTE: On my Jetson Nano DevKit with TensorRT 5.1.6, the version number of UFF converter was "0.6.3".  When I ran `build_engine.py`, the UFF library actually printed out: `UFF has been tested with tensorflow 1.12.0. Other versions are not guaranteed to work.`  So I would strongly suggest you to use **tensorflow 1.12.x** (or whatever matching version for the UFF library installed on your system) when converting pb to uff.
 
 2. Run the `trt_ssd.py` demo program.  The demo supports 4 models: 'ssd_mobilenet_v1_coco', 'ssd_mobilenet_v1_egohands', 'ssd_mobilenet_v2_coco', or 'ssd_mobilenet_v2_egohands'.  For example, I tested the 'ssd_mobilenet_v1_coco' model with the 'huskies' picture.
 
