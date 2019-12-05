@@ -7,23 +7,20 @@ TensorRT optimized Single-Shot Multibox Detector (SSD) engine.
 
 import sys
 import time
-import ctypes
 import argparse
 
-import numpy as np
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
-import pycuda.driver as cuda
-import tensorrt as trt
 
 from utils.ssd_classes import get_cls_dict
+from utils.ssd import TrtSSD
 from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 
 
 WINDOW_NAME = 'TrtSsdDemo'
-INPUT_WH = (300, 300)
+INPUT_HW = (300, 300)
 OUTPUT_LAYOUT = 7
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
@@ -44,104 +41,6 @@ def parse_args():
                         choices=SUPPORTED_MODELS)
     args = parser.parse_args()
     return args
-
-
-def preprocess(img):
-    """Preprocess an image before SSD inferencing."""
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, INPUT_WH)
-    img = img.transpose((2, 0, 1)).astype(np.float32)
-    img = (2.0/255.0) * img - 1.0
-    return img
-
-
-def postprocess(img, output, conf_th):
-    """Postprocess TRT SSD output."""
-    img_h, img_w, _ = img.shape
-    boxes, confs, clss = [], [], []
-    for prefix in range(0, len(output), OUTPUT_LAYOUT):
-        #index = int(output[prefix+0])
-        conf = float(output[prefix+2])
-        if conf < conf_th:
-            continue
-        x1 = int(output[prefix+3] * img_w)
-        y1 = int(output[prefix+4] * img_h)
-        x2 = int(output[prefix+5] * img_w)
-        y2 = int(output[prefix+6] * img_h)
-        cls = int(output[prefix+1])
-        boxes.append((x1, y1, x2, y2))
-        confs.append(conf)
-        clss.append(cls)
-    return boxes, confs, clss
-
-
-class TrtSSD(object):
-    """TrtSSD class encapsulates things needed to run TRT SSD."""
-
-    def _load_plugins(self):
-        ctypes.CDLL("ssd/libflattenconcat.so")
-        trt.init_libnvinfer_plugins(self.trt_logger, '')
-
-    def _load_engine(self):
-        TRTbin = 'ssd/TRT_%s.bin' % self.model
-        with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
-            return runtime.deserialize_cuda_engine(f.read())
-
-    def _create_context(self):
-        for binding in self.engine:
-            size = trt.volume(self.engine.get_binding_shape(binding)) * \
-                   self.engine.max_batch_size
-            host_mem = cuda.pagelocked_empty(size, np.float32)
-            cuda_mem = cuda.mem_alloc(host_mem.nbytes)
-            self.bindings.append(int(cuda_mem))
-            if self.engine.binding_is_input(binding):
-                self.host_inputs.append(host_mem)
-                self.cuda_inputs.append(cuda_mem)
-            else:
-                self.host_outputs.append(host_mem)
-                self.cuda_outputs.append(cuda_mem)
-        return self.engine.create_execution_context()
-
-    def __init__(self, model):
-        """Initialize TensorRT plugins, engine and conetxt."""
-        self.model = model
-        self.trt_logger = trt.Logger(trt.Logger.INFO)
-        self._load_plugins()
-        self.engine = self._load_engine()
-
-        self.host_inputs = []
-        self.cuda_inputs = []
-        self.host_outputs = []
-        self.cuda_outputs = []
-        self.bindings = []
-        self.stream = cuda.Stream()
-        self.context = self._create_context()
-
-    def __del__(self):
-        """Free CUDA memories."""
-        del self.stream
-        del self.cuda_outputs
-        del self.cuda_inputs
-
-    def detect(self, img, conf_th=0.3):
-        """Detect objects in the input image."""
-        img_resized = preprocess(img)
-        np.copyto(self.host_inputs[0], img_resized.ravel())
-
-        cuda.memcpy_htod_async(
-            self.cuda_inputs[0], self.host_inputs[0], self.stream)
-        self.context.execute_async(
-            batch_size=1,
-            bindings=self.bindings,
-            stream_handle=self.stream.handle)
-        cuda.memcpy_dtoh_async(
-            self.host_outputs[1], self.cuda_outputs[1], self.stream)
-        cuda.memcpy_dtoh_async(
-            self.host_outputs[0], self.cuda_outputs[0], self.stream)
-        self.stream.synchronize()
-
-        output = self.host_outputs[0]
-        return postprocess(img, output, conf_th)
 
 
 def loop_and_detect(cam, trt_ssd, conf_th, vis):
@@ -186,7 +85,7 @@ def main():
         sys.exit('Failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
-    trt_ssd = TrtSSD(args.model)
+    trt_ssd = TrtSSD(args.model, INPUT_HW, OUTPUT_LAYOUT)
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
