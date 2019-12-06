@@ -7,9 +7,6 @@ set -e
 folder=${HOME}/src
 mkdir -p $folder
 script_path=$(realpath $0)
-boost_pylib=$(basename /usr/lib/aarch64-linux-gnu/libboost_python3-py3?.so)
-boost_pylibname=${boost_pylib%.so}
-boost_pyname=${boost_pylibname/lib/}
 gs_path=$(ls /usr/lib/python3.?/dist-packages/graphsurgeon/node_manipulation.py)
 patch_path=$(dirname $script_path)/graphsurgeon.patch
 
@@ -17,6 +14,10 @@ echo "** Install requirements"
 sudo apt-get install -y build-essential python-dev
 sudo apt-get install -y libboost-python-dev libboost-thread-dev
 sudo pip3 install setuptools
+
+boost_pylib=$(basename /usr/lib/aarch64-linux-gnu/libboost_python3-py3?.so)
+boost_pylibname=${boost_pylib%.so}
+boost_pyname=${boost_pylibname/lib/}
 
 echo "** Download pycuda-2019.1.2 sources"
 pushd $folder
