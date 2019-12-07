@@ -15,6 +15,13 @@ import numpy as np
 import cv2
 
 
+# The following flag ise used to control whether to use a GStreamer
+# pipeline to open USB webcam source.  If set to False, we just open
+# the webcam using cv2.VideoCapture(index) machinery. i.e. relying
+# on cv2's built-in function to capture images from the webcam.
+USB_GSTREAMER = True
+
+
 def add_camera_args(parser):
     """Add parser augument for camera options."""
     parser.add_argument('--file', dest='use_file',
@@ -54,25 +61,36 @@ def add_camera_args(parser):
 
 def open_cam_rtsp(uri, width, height, latency):
     """Open an RTSP URI (IP CAM)."""
-    gst_str = ('rtspsrc location={} latency={} ! '
-               'rtph264depay ! h264parse ! omxh264dec ! '
-               'nvvidconv ! '
-               'video/x-raw, width=(int){}, height=(int){}, '
-               'format=(string)BGRx ! videoconvert ! '
-               'appsink').format(uri, latency, width, height)
+    gst_elements = str(subprocess.check_output('gst-inspect-1.0'))
+    if 'omxh264dec' in gst_elements:
+        # Use hardware H.264 decoder on Jetson platforms
+        gst_str = ('rtspsrc location={} latency={} ! '
+                   'rtph264depay ! h264parse ! omxh264dec ! '
+                   'nvvidconv ! '
+                   'video/x-raw, width=(int){}, height=(int){}, '
+                   'format=(string)BGRx ! videoconvert ! '
+                   'appsink').format(uri, latency, width, height)
+    elif 'avdec_h264' in gst_elements:
+        # Otherwise try to use the software decoder 'avdec_h264'
+        # NOTE: in case resizing images is necessary, try adding
+        #       a 'videoscale' into the pipeline
+        gst_str = ('rtspsrc location={} latency={} ! '
+                   'rtph264depay ! h264parse ! avdec_h264 ! '
+                   'videoconvert ! appsink').format(uri, latency)
+    else:
+        raise RuntimeError('H.264 decoder not found!')
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
 
 def open_cam_usb(dev, width, height):
-    """Open a USB webcam.
-
-    We want to set width and height here, otherwise we could just do:
+    """Open a USB webcam."""
+    if USB_GSTREAMER:
+        gst_str = ('v4l2src device=/dev/video{} ! '
+                   'video/x-raw, width=(int){}, height=(int){} ! '
+                   'videoconvert ! appsink').format(dev, width, height)
+        return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    else:
         return cv2.VideoCapture(dev)
-    """
-    gst_str = ('v4l2src device=/dev/video{} ! '
-               'video/x-raw, width=(int){}, height=(int){} ! '
-               'videoconvert ! appsink').format(dev, width, height)
-    return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
 
 def open_cam_onboard(width, height):
