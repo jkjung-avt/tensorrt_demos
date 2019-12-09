@@ -6,7 +6,7 @@ Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and
 * Run a very accurate optimized 'MTCNN' face detector at 5~8 FPS on Jetson Nano.
 * Run an optimized 'ssd_mobilenet_v1_coco' object detector (`trt_ssd_async.py`) at ~26 FPS on Jetson Nano.
 * All demos should also work on Jetson TX2 and AGX Xavier ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927)), and run much faster!
-* Furthermore, all demos should work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to `README_x86.md` for more information.
+* Furthermore, all demos should work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
 Table of contents
 -----------------
