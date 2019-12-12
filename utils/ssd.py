@@ -22,7 +22,7 @@ def _preprocess_trt(img, shape=(300, 300)):
     return img
 
 
-def _postprocess_trt(img, output, conf_th, output_layout=7):
+def _postprocess_trt(img, output, conf_th, output_layout):
     """Postprocess TRT SSD output."""
     img_h, img_w, _ = img.shape
     boxes, confs, clss = [], [], []
@@ -69,7 +69,7 @@ class TrtSSD(object):
                 self.cuda_outputs.append(cuda_mem)
         return self.engine.create_execution_context()
 
-    def __init__(self, model, input_shape, output_layout):
+    def __init__(self, model, input_shape, output_layout=7):
         """Initialize TensorRT plugins, engine and conetxt."""
         self.model = model
         self.input_shape = input_shape
@@ -119,6 +119,7 @@ def _preprocess_tf(img, shape=(300, 300)):
     img = cv2.resize(img, shape)
     return img
 
+
 def _postprocess_tf(img, boxes, scores, classes, conf_th):
     """Postprocess TensorFlow SSD output."""
     h, w, _ = img.shape
@@ -132,11 +133,13 @@ def _postprocess_tf(img, boxes, scores, classes, conf_th):
     mask = np.where(out_confs >= conf_th)
     return out_boxes[mask], out_confs[mask], out_clss[mask]
 
+
 class TfSSD(object):
     """TfSSD class encapsulates things needed to run TensorFlow SSD."""
 
-    def __init__(self, model):
+    def __init__(self, model, input_shape):
         self.model = model
+        self.input_shape = input_shape
 
         # load detection graph
         ssd_graph = tf.Graph()
@@ -160,7 +163,7 @@ class TfSSD(object):
         self.sess.close()
 
     def detect(self, img, conf_th):
-        img_resized = _preprocess_tf(img)
+        img_resized = _preprocess_tf(img, self.input_shape)
         boxes, scores, classes = self.sess.run(
             [self.det_boxes, self.det_scores, self.det_classes],
             feed_dict={self.image_tensor: np.expand_dims(img_resized, 0)})
