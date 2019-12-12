@@ -21,7 +21,6 @@ from utils.visualization import BBoxVisualization
 
 WINDOW_NAME = 'TrtSsdDemo'
 INPUT_HW = (300, 300)
-OUTPUT_LAYOUT = 7
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
     'ssd_mobilenet_v1_egohands',
@@ -85,7 +84,7 @@ def main():
         sys.exit('Failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
-    trt_ssd = TrtSSD(args.model, INPUT_HW, OUTPUT_LAYOUT)
+    trt_ssd = TrtSSD(args.model, INPUT_HW)
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,

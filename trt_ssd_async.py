@@ -26,7 +26,6 @@ from utils.visualization import BBoxVisualization
 
 WINDOW_NAME = 'TrtSsdDemoAsync'
 INPUT_HW = (300, 300)
-OUTPUT_LAYOUT = 7
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
     'ssd_mobilenet_v1_egohands',
@@ -93,7 +92,7 @@ class TrtThread(threading.Thread):
 
         print('TrtThread: loading the TRT SSD engine...')
         self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
-        self.trt_ssd = TrtSSD(self.model, INPUT_HW, OUTPUT_LAYOUT)
+        self.trt_ssd = TrtSSD(self.model, INPUT_HW)
         print('TrtThread: start running...')
         self.running = True
         while self.running:
