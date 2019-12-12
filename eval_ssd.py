@@ -24,8 +24,6 @@ INPUT_HW = (300, 300)
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
     'ssd_mobilenet_v2_coco',
-    #'ssd_mobilenet_v3_small_coco',
-    #'ssd_mobilenet_v3_large_coco',
 ]
 
 HOME = os.environ['HOME']
@@ -69,9 +67,9 @@ def generate_results(ssd, imgs_dir, jpgs, results_file):
             w = float(box[2] - box[0] + 1)
             h = float(box[3] - box[1] + 1)
             results.append({'image_id': image_id,
-                            'category_id': cls,
+                            'category_id': int(cls),
                             'bbox': [x, y, w, h],
-                            'score': conf})
+                            'score': float(conf)})
     with open(results_file, 'w') as f:
         f.write(json.dumps(results, indent=4))
 
