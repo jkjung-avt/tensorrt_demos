@@ -182,7 +182,9 @@ Assuming this repository has been cloned at `${HOME}/project/tensorrt_demos`, fo
                               --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
 
-5. Check out my blog post for implementation details:
+5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure it does not degrade too much (due to reduced floating-point precision of 'FP16') from the original TensorFlow frozen inference graphs, try to run `eval_ssd.py`.  Refer to [README_eval_ssd.md](README_eval_ssd.md) for details.
+
+6. Check out my blog post for implementation details:
 
    * [TensorRT UFF SSD](https://jkjung-avt.github.io/tensorrt-ssd/)
    * [Speeding Up TensorRT UFF SSD](https://jkjung-avt.github.io/speed-up-trt-ssd/)
