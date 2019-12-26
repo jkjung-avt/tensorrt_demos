@@ -39,10 +39,17 @@ class IHostMemoryFromFile : public IHostMemory
 {
     public:
         IHostMemoryFromFile(std::string filename);
+#if NV_TENSORRT_MAJOR <= 5
         void* data() const { return mem; }
         std::size_t size() const { return s; }
         DataType type () const { return DataType::kFLOAT; } // not used
         void destroy() { free(mem); }
+#else  // NV_TENSORRT_MAJOR
+        void* data() const noexcept { return mem; }
+        std::size_t size() const noexcept { return s; }
+        DataType type () const noexcept { return DataType::kFLOAT; } // not used
+        void destroy() noexcept { free(mem); }
+#endif // NV_TENSORRT_MAJOR
     private:
         void *mem{nullptr};
         std::size_t s;

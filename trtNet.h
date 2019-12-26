@@ -37,10 +37,17 @@ namespace trtnet {
                 _mem = malloc(_s);
                 infile.read(reinterpret_cast<char*>(_mem), _s);
             }
+#if NV_TENSORRT_MAJOR <= 5
             void* data() const { return _mem; }
             std::size_t size() const { return _s; }
             DataType type () const { return DataType::kFLOAT; } // not used
             void destroy() { free(_mem); }
+#else  // NV_TENSORRT_MAJOR
+            void* data() const noexcept { return _mem; }
+            std::size_t size() const noexcept { return _s; }
+            DataType type () const noexcept { return DataType::kFLOAT; } // not used
+            void destroy() noexcept { free(_mem); }
+#endif // NV_TENSORRT_MAJOR
         private:
             void *_mem{nullptr};
             std::size_t _s;
