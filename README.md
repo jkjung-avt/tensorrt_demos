@@ -22,7 +22,7 @@ Prerequisite
 
 The code in this repository was tested on both Jetson Nano and Jetson TX2 Devkits.  In order to run the demos below, first make sure you have the proper version of image (JetPack) installed on the target Jetson system.  For example, reference for Jetson Nano: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
-More specifically, the target Jetson system must have TensorRT libraries installed.  **Demo #1 and demo #2 should work for TensorRT 3.x, 4.x, or 5.x.  But demo #3 would require TensorRT 5.x or 6.x.**
+More specifically, the target Jetson system must have TensorRT libraries installed.  **Demo #1 and demo #2 should work for TensorRT 3.x, 4.x, 5.x, 6.x.  But demo #3 would require TensorRT 5.x or 6.x.**
 
 You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on my Jetson Nano DevKit.
 
