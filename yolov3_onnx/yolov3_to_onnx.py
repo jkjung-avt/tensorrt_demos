@@ -1,3 +1,5 @@
+# yolov3_to_onnx.py
+#
 # Copyright 1993-2019 NVIDIA Corporation.  All rights reserved.
 #
 # NOTICE TO LICENSEE:
@@ -245,7 +247,7 @@ class UpsampleParams(object):
 
     def generate_param_name(self):
         """Generates the scale parameter name for the Upsample node."""
-        param_name = self.node_name + '_' + "scale"
+        param_name = self.node_name + '_' + 'scale'
         return param_name
 
 class WeightLoader(object):
@@ -436,7 +438,7 @@ class GraphBuilderONNX(object):
                     params)
                 initializer.extend(initializer_layer)
                 inputs.extend(inputs_layer)
-            elif layer_type == "upsample":
+            elif layer_type == 'upsample':
                 initializer_layer, inputs_layer = weight_loader.load_upsample_scales(
                     params)
                 initializer.extend(initializer_layer)
@@ -751,9 +753,8 @@ def download_file(local_path, link, checksum_reference=None):
 
 def main():
     """Run the DarkNet-to-ONNX conversion for YOLOv3-608."""
-    # Have to use python 2 due to hashlib compatibility
-    #if sys.version_info[0] > 2:
-    #    raise Exception("This script is only compatible with python2, please re-run this script with python2. The rest of this sample can be run with either version of python.")
+    if sys.version_info[0] < 3:
+        raise Exception('This modified version of yolov3_to_onnx.py script is only compatible with python3...')
 
     # Download the config for YOLOv3 if not present yet, and analyze the checksum:
     cfg_file_path = download_file(
