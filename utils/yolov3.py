@@ -73,7 +73,6 @@ class PostprocessYOLO(object):
     def __init__(self,
                  yolo_masks,
                  yolo_anchors,
-                 obj_threshold,
                  nms_threshold,
                  yolo_input_resolution,
                  category_num=80):
@@ -92,12 +91,11 @@ class PostprocessYOLO(object):
         """
         self.masks = yolo_masks
         self.anchors = yolo_anchors
-        self.object_threshold = obj_threshold
         self.nms_threshold = nms_threshold
         self.input_resolution_yolo = yolo_input_resolution
         self.category_num = category_num
 
-    def process(self, outputs, resolution_raw):
+    def process(self, outputs, resolution_raw, conf_th):
         """Take the YOLOv3 outputs generated from a TensorRT forward pass, post-process them
         and return a list of bounding boxes for detected object together with their category
         and their confidences in separate lists.
@@ -105,13 +103,22 @@ class PostprocessYOLO(object):
         Keyword arguments:
         outputs -- outputs from a TensorRT engine in NCHW format
         resolution_raw -- the original spatial resolution from the input PIL image in WH order
+        conf_th -- confidence threshold, e.g. 0.3
         """
         outputs_reshaped = list()
         for output in outputs:
             outputs_reshaped.append(self._reshape_output(output))
 
-        boxes, categories, confidences = self._process_yolo_output(
-            outputs_reshaped, resolution_raw)
+        xywh, categories, confidences = self._process_yolo_output(
+            outputs_reshaped, resolution_raw, conf_th)
+
+        # convert (x, y, width, height) to (x1, y1, x2, y2)
+        xx = xywh[:, 0].reshape(-1, 1)
+        yy = xywh[:, 1].reshape(-1, 1)
+        ww = xywh[:, 2].reshape(-1, 1)
+        hh = xywh[:, 3].reshape(-1, 1)
+        boxes = np.concatenate([xx, yy, xx+ww, yy+hh], axis=1) + 0.5
+        boxes = boxes.astype(np.int)
 
         return boxes, categories, confidences
 
@@ -130,7 +137,7 @@ class PostprocessYOLO(object):
         dim4 = (4 + 1 + self.category_num)
         return np.reshape(output, (dim1, dim2, dim3, dim4))
 
-    def _process_yolo_output(self, outputs_reshaped, resolution_raw):
+    def _process_yolo_output(self, outputs_reshaped, resolution_raw, conf_th):
         """Take in a list of three reshaped YOLO outputs in (height,width,3,85) shape and return
         return a list of bounding boxes for detected object together with their category and their
         confidences in separate lists.
@@ -139,6 +146,7 @@ class PostprocessYOLO(object):
         outputs_reshaped -- list of three reshaped YOLO outputs as NumPy arrays
         with shape (height,width,3,85)
         resolution_raw -- the original spatial resolution from the input PIL image in WH order
+        conf_th -- confidence threshold
         """
 
         # E.g. in YOLOv3-608, there are three output tensors, which we associate with their
@@ -147,7 +155,7 @@ class PostprocessYOLO(object):
         boxes, categories, confidences = list(), list(), list()
         for output, mask in zip(outputs_reshaped, self.masks):
             box, category, confidence = self._process_feats(output, mask)
-            box, category, confidence = self._filter_boxes(box, category, confidence)
+            box, category, confidence = self._filter_boxes(box, category, confidence, conf_th)
             boxes.append(box)
             categories.append(category)
             confidences.append(confidence)
@@ -177,7 +185,7 @@ class PostprocessYOLO(object):
             nscores.append(confidence[keep])
 
         if not nms_categories and not nscores:
-            return None, None, None
+            return [], [], []
 
         boxes = np.concatenate(nms_boxes)
         categories = np.concatenate(nms_categories)
@@ -239,7 +247,7 @@ class PostprocessYOLO(object):
         # class confidence
         return boxes, box_confidence, box_class_probs
 
-    def _filter_boxes(self, boxes, box_confidences, box_class_probs):
+    def _filter_boxes(self, boxes, box_confidences, box_class_probs, conf_th):
         """Take in the unfiltered bounding box descriptors and discard each cell
         whose score is lower than the object threshold set during class initialization.
 
@@ -249,12 +257,12 @@ class PostprocessYOLO(object):
         box_confidences -- bounding box confidences with shape (height,width,3,1); 1 for as
         confidence scalar per element
         box_class_probs -- class probabilities with shape (height,width,3,CATEGORY_NUM)
-
+        conf_th -- confidence threshold
         """
         box_scores = box_confidences * box_class_probs
         box_classes = np.argmax(box_scores, axis=-1)
         box_class_scores = np.max(box_scores, axis=-1)
-        pos = np.where(box_class_scores >= self.object_threshold)
+        pos = np.where(box_class_scores >= conf_th)
 
         boxes = boxes[pos]
         classes = box_classes[pos]
@@ -418,8 +426,6 @@ class TrtYOLOv3(object):
             'yolo_anchors': [(10, 13), (16, 30), (33, 23),
                              (30, 61), (62, 45), (59, 119),
                              (116, 90), (156, 198), (373, 326)],
-            # Threshold for object coverage, float value between 0 and 1
-            'obj_threshold': 0.6,
             # Threshold for non-max suppression algorithm, float value
             # between 0 and 1
             'nms_threshold': 0.5,
@@ -439,7 +445,7 @@ class TrtYOLOv3(object):
         del self.outputs
         del self.inputs
 
-    def detect(self, img, conf_th=0.3):  # TODO: conf_th
+    def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
         shape_orig_WH = (img.shape[1], img.shape[0])
         img_resized = _preprocess_yolov3(img, self.input_shape)
@@ -462,5 +468,5 @@ class TrtYOLOv3(object):
         # Run the post-processing algorithms on the TensorRT outputs
         # and get the bounding box details of detected objects
         boxes, classes, scores = self.postprocessor.process(
-            trt_outputs, shape_orig_WH)
+            trt_outputs, shape_orig_WH, conf_th)
         return boxes, scores, classes
