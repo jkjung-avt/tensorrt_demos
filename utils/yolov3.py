@@ -107,19 +107,22 @@ class PostprocessYOLO(object):
         for output in outputs:
             outputs_reshaped.append(self._reshape_output(output))
 
-        xywh, categories, confidences = self._process_yolo_output(
+        boxes_xywh, categories, confidences = self._process_yolo_output(
             outputs_reshaped, resolution_raw, conf_th)
 
-        # convert (x, y, width, height) to (x1, y1, x2, y2)
-        img_w, img_h = resolution_raw
-        xx = xywh[:, 0].reshape(-1, 1)
-        yy = xywh[:, 1].reshape(-1, 1)
-        ww = xywh[:, 2].reshape(-1, 1)
-        hh = xywh[:, 3].reshape(-1, 1)
-        boxes = np.concatenate([xx, yy, xx+ww, yy+hh], axis=1) + 0.5
-        boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., float(img_w-1))
-        boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., float(img_h-1))
-        boxes = boxes.astype(np.int)
+        if len(boxes_xywh) > 0:
+            # convert (x, y, width, height) to (x1, y1, x2, y2)
+            img_w, img_h = resolution_raw
+            xx = boxes_xywh[:, 0].reshape(-1, 1)
+            yy = boxes_xywh[:, 1].reshape(-1, 1)
+            ww = boxes_xywh[:, 2].reshape(-1, 1)
+            hh = boxes_xywh[:, 3].reshape(-1, 1)
+            boxes = np.concatenate([xx, yy, xx+ww, yy+hh], axis=1) + 0.5
+            boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., float(img_w-1))
+            boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., float(img_h-1))
+            boxes = boxes.astype(np.int)
+        else:
+            boxes = np.zeros((0, 4), dtype=np.int)  # empty
 
         return boxes, categories, confidences
 
@@ -186,7 +189,9 @@ class PostprocessYOLO(object):
             nscores.append(confidence[keep])
 
         if not nms_categories and not nscores:
-            return [], [], []
+            return (np.empty((0, 4), dtype=np.float32),
+                    np.empty((0, 1), dtype=np.float32),
+                    np.empty((0, 1), dtype=np.float32))
 
         boxes = np.concatenate(nms_boxes)
         categories = np.concatenate(nms_categories)
