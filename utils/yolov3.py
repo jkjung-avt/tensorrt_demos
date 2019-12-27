@@ -50,8 +50,6 @@
 
 from __future__ import print_function
 
-import math
-
 import numpy as np
 import cv2
 import tensorrt as trt
@@ -113,11 +111,14 @@ class PostprocessYOLO(object):
             outputs_reshaped, resolution_raw, conf_th)
 
         # convert (x, y, width, height) to (x1, y1, x2, y2)
+        img_w, img_h = resolution_raw
         xx = xywh[:, 0].reshape(-1, 1)
         yy = xywh[:, 1].reshape(-1, 1)
         ww = xywh[:, 2].reshape(-1, 1)
         hh = xywh[:, 3].reshape(-1, 1)
         boxes = np.concatenate([xx, yy, xx+ww, yy+hh], axis=1) + 0.5
+        boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., float(img_w-1))
+        boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., float(img_h-1))
         boxes = boxes.astype(np.int)
 
         return boxes, categories, confidences
@@ -203,19 +204,11 @@ class PostprocessYOLO(object):
         mask -- 2-dimensional tuple with mask specification for this output
         """
 
-        # Two in-line functions required for calculating the bounding box
-        # descriptors:
-        def sigmoid(value):
-            """Return the sigmoid of the input."""
-            return 1.0 / (1.0 + math.exp(-value))
+        def sigmoid_v(array):
+            return np.reciprocal(np.exp(-array) + 1.0)
 
-        def exponential(value):
-            """Return the exponential of the input."""
-            return math.exp(value)
-
-        # Vectorized calculation of above two functions:
-        sigmoid_v = np.vectorize(sigmoid)
-        exponential_v = np.vectorize(exponential)
+        def exponential_v(array):
+            return np.exp(array)
 
         grid_h, grid_w, _, _ = output_reshaped.shape
 
@@ -223,11 +216,9 @@ class PostprocessYOLO(object):
 
         # Reshape to N, height, width, num_anchors, box_params:
         anchors_tensor = np.reshape(anchors, [1, 1, len(anchors), 2])
-        box_xy = sigmoid_v(output_reshaped[..., :2])
+        box_xy = sigmoid_v(output_reshaped[..., 0:2])
         box_wh = exponential_v(output_reshaped[..., 2:4]) * anchors_tensor
-        box_confidence = sigmoid_v(output_reshaped[..., 4])
-
-        box_confidence = np.expand_dims(box_confidence, axis=-1)
+        box_confidence = sigmoid_v(output_reshaped[..., 4:5])
         box_class_probs = sigmoid_v(output_reshaped[..., 5:])
 
         col = np.tile(np.arange(0, grid_w), grid_w).reshape(-1, grid_w)
@@ -369,36 +360,6 @@ def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
     stream.synchronize()
     # Return only the host outputs.
     return [out.host for out in outputs]
-
-
-# TODO: remove draw_bboxes
-def draw_bboxes(image_raw, bboxes, confidences, categories, all_categories, bbox_color='blue'):
-    """Draw the bounding boxes on the original input image and return it.
-
-    Keyword arguments:
-    image_raw -- a raw PIL Image
-    bboxes -- NumPy array containing the bounding box coordinates of N objects, with shape (N,4).
-    categories -- NumPy array containing the corresponding category for each object,
-    with shape (N,)
-    confidences -- NumPy array containing the corresponding confidence for each object,
-    with shape (N,)
-    all_categories -- a list of all categories in the correct ordered (required for looking up
-    the category name)
-    bbox_color -- an optional string specifying the color of the bounding boxes (default: 'blue')
-    """
-    draw = ImageDraw.Draw(image_raw)
-    print(bboxes, confidences, categories)
-    for box, score, category in zip(bboxes, confidences, categories):
-        x_coord, y_coord, width, height = box
-        left = max(0, np.floor(x_coord + 0.5).astype(int))
-        top = max(0, np.floor(y_coord + 0.5).astype(int))
-        right = min(image_raw.width, np.floor(x_coord + width + 0.5).astype(int))
-        bottom = min(image_raw.height, np.floor(y_coord + height + 0.5).astype(int))
-
-        draw.rectangle(((left, top), (right, bottom)), outline=bbox_color)
-        draw.text((left, top - 12), '{0} {1:.2f}'.format(all_categories[category], score), fill=bbox_color)
-
-    return image_raw
 
 
 class TrtYOLOv3(object):
