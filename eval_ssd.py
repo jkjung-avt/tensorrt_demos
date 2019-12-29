@@ -60,7 +60,7 @@ def generate_results(ssd, imgs_dir, jpgs, results_file):
     for jpg in progressbar(jpgs):
         img = cv2.imread(os.path.join(imgs_dir, jpg))
         image_id = int(jpg.split('.')[0].split('_')[-1])
-        boxes, confs, clss = ssd.detect(img, conf_th=1e-8)
+        boxes, confs, clss = ssd.detect(img, conf_th=1e-2)
         for box, conf, cls in zip(boxes, confs, clss):
             x = float(box[0])
             y = float(box[1])
