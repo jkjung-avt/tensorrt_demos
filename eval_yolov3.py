@@ -19,8 +19,6 @@ from utils.yolov3 import TrtYOLOv3
 from utils.yolov3_classes import yolov3_cls_to_ssd
 
 
-INPUT_HW = (608, 608)
-
 HOME = os.environ['HOME']
 VAL_IMGS_DIR = HOME + '/data/coco/images/val2014'
 VAL_ANNOTATIONS = HOME + '/data/coco/annotations/instances_val2014.json'
@@ -34,6 +32,8 @@ def parse_args():
                         help='directory of validation images [%s]' % VAL_IMGS_DIR)
     parser.add_argument('--annotations', type=str, default=VAL_ANNOTATIONS,
                         help='groundtruth annotations [%s]' % VAL_ANNOTATIONS)
+    parser.add_argument('--model', type=str, default='yolov3-416',
+                        choices=['yolov3-416', 'yolov3-608'])
     args = parser.parse_args()
     return args
 
@@ -71,11 +71,12 @@ def main():
     args = parse_args()
     check_args(args)
 
-    results_file = 'yolov3_onnx/results_yolov3.json'
-    yolov3 = TrtYOLOv3('yolov3', INPUT_HW)
+    results_file = 'yolov3_onnx/results_%s.json' % args.model
+    yolo_dim = int(args.model.split('-')[-1])  # 416 or 608
+    trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim))
 
     jpgs = [j for j in os.listdir(args.imgs_dir) if j.endswith('.jpg')]
-    generate_results(yolov3, args.imgs_dir, jpgs, results_file)
+    generate_results(trt_yolov3, args.imgs_dir, jpgs, results_file)
 
     # Run COCO mAP evaluation
     # Reference: https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb

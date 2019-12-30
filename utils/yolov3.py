@@ -378,13 +378,14 @@ class TrtYOLOv3(object):
     def _create_context(self):
         return self.engine.create_execution_context()
 
-    def __init__(self, model, input_shape=(608, 608)):
+    def __init__(self, model, input_shape=(416, 416)):
         """Initialize TensorRT plugins, engine and conetxt."""
         self.model = model
         self.input_shape = input_shape
-        self.output_shapes = [(1, 255, 19, 19),
-                              (1, 255, 38, 38),
-                              (1, 255, 76, 76)]
+        h, w = input_shape
+        self.output_shapes = [(1, 255, h // 32, w // 32),
+                              (1, 255, h // 16, w // 16),
+                              (1, 255, h //  8, w //  8)]
         postprocessor_args = {
             # A list of 3 three-dimensional tuples for the YOLO masks
             'yolo_masks': [(6, 7, 8), (3, 4, 5), (0, 1, 2)],

@@ -5,6 +5,7 @@ Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and
 * Run an optimized 'GoogLeNet' image classifier at ~60 FPS on Jetson Nano.
 * Run a very accurate optimized 'MTCNN' face detector at 5~8 FPS on Jetson Nano.
 * Run an optimized 'ssd_mobilenet_v1_coco' object detector ('trt_ssd_async.py') at ~26 FPS on Jetson Nano.
+* Run an optimized 'yolov3-416' object detector at ~3 FPS on Jetson Nano.
 * All demos should also work on Jetson TX2 and AGX Xavier ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927)), and run much faster!
 * Furthermore, all demos should work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
@@ -23,7 +24,7 @@ Prerequisite
 
 The code in this repository was tested on both Jetson Nano and Jetson TX2 Devkits.  In order to run the demos below, first make sure you have the proper version of image (JetPack) installed on the target Jetson system.  For example, reference for Jetson Nano: [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/).
 
-More specifically, the target Jetson system must have TensorRT libraries installed.  **Demo #1 and Demo #2 should work for TensorRT 3.x, 4.x, 5.x, 6.x.  But Demo #3 would require TensorRT 5.x or 6.x.**
+More specifically, the target Jetson system must have TensorRT libraries installed.  **Demo #1 and Demo #2 should work for TensorRT 3.x, 4.x, 5.x, 6.x.  But Demo #3 and Demo #4 would require TensorRT 5.x or 6.x.**
 
 You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on my Jetson Nano DevKit.
 
@@ -217,27 +218,29 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 2. Install the required python3 packages.  Note that we are installing version '1.4.1' (not the latest) of 'onnx', based on [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/yolov3
+   $ cd ${HOME}/project/tensorrt_demos/yolov3_onnx
    $ sudo pip3 install -r requirements.txt
    ```
 
-3. Download the trained YOLOv3 COCO model and convert it to ONNX and then to TensorRT engine.
+3. Download the trained YOLOv3 COCO model and convert it to ONNX and then to TensorRT engine.  (NOTE: I use 'yolov3-416' as example below.  Alternatively, you could use the larger and more accurate model by replacing all occurrences of 'yolov3_416' with 'yolov3-608' below.)
 
    ```shell
-   $ python3 yolov3_to_onnx.py
-   $ python3 onnx_to_tensorrt.py
+   $ ./download_yolov3.sh
+   $ python3 yolov3_to_onnx.py --model yolov3-416
+   $ python3 onnx_to_tensorrt.py --model yolov3-416
    ```
 
-   When the above is done, the optimized TensorRT engine would be saved as 'yolov3.trt'.  We could use it for inference in the following steps.
+   When the above is done, the optimized TensorRT engine would be saved as 'yolov3-416.trt'.  We could use it for inference in the following steps.
 
 4. Test the YOLOv3 TensorRT engine with the 'dog.jpg' image.
 
    ```shell
    $ wget https://github.com/pjreddie/darknet/raw/f86901f6177dfc6116360a13cc06ab680e0c86b0/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
-   $ python3 trt_yolov3.py --image --filename ${HOME}/Pictures/dog.jpg
+   $ python3 trt_yolov3.py --model yolov3-416
+                           --image --filename ${HOME}/Pictures/dog.jpg
    ```
 
-   ![YOLOv3 detection result](doc/dog.jpg)
+   ![YOLOv3 detection result](doc/dog_trt_yolov3.jpg)
 
 5. 'trt_yolov3_async.py'?
 
@@ -245,11 +248,19 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
 7. I created 'eval_yolov3.py' for evaluating mAP of the optimized YOLOv3 engine.  It works the same way as 'eval_ssd.py'.  Refer to step #5 in Demo #3.
 
-   I evaluated the YOLOv3-608 TensorRT engine with 'val2014' data and got 'COCO mAP: 0.377, mAP@IoU=0.5: 0.672'.
-
    ```shell
-   $ python3 eval_yolov3.py
+   $ python3 eval_yolov3.py --model yolov3-416
+   $ python3 eval_yolov3.py --model yolov3-608
    ```
+
+   I evaluated both YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2014' data and got the following results.
+ 'mAP@IoU=0.5:0.95 0.377, mAP@IoU=0.5: 0.672'.
+
+   | TensorRT engine | mAP@IoU=0.5:0.95 |   mAP@IoU=0.5   |
+   |:---------------:|:----------------:|:---------------:|
+   |   yolov3-416    |       0.377      |      0.672      |
+   |   yolov3-608    |       0.377      |      0.672      |
+
 
 Licenses
 --------

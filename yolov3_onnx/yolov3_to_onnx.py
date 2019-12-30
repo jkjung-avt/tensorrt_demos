@@ -48,19 +48,19 @@
 # Users Notice.
 #
 
-from __future__ import print_function
-from collections import OrderedDict
-import hashlib
-import os.path
 
-import wget
+from __future__ import print_function
+
+import sys
+import hashlib
+import argparse
+from collections import OrderedDict
 
 import onnx
 from onnx import helper
 from onnx import TensorProto
 import numpy as np
 
-import sys
 
 class DarkNetParser(object):
     """Definition of a parser for DarkNet-based YOLOv3-608 (only tested for this topology)."""
@@ -727,40 +727,20 @@ def generate_md5_checksum(local_path):
         return hashlib.md5(data).hexdigest()
 
 
-def download_file(local_path, link, checksum_reference=None):
-    """Checks if a local file is present and downloads it from the specified path otherwise.
-    If checksum_reference is specified, the file's md5 checksum is compared against the
-    expected value.
-
-    Keyword arguments:
-    local_path -- path of the file whose checksum shall be generated
-    link -- link where the file shall be downloaded from if it is not found locally
-    checksum_reference -- expected MD5 checksum of the file
-    """
-    if not os.path.exists(local_path):
-        print('Downloading from %s, this may take a while...' % link)
-        wget.download(link, local_path)
-        print()
-    if checksum_reference is not None:
-        checksum = generate_md5_checksum(local_path)
-        if checksum != checksum_reference:
-            raise ValueError(
-                'The MD5 checksum of local file %s differs from %s, please manually remove \
-                 the file and try again.' %
-                (local_path, checksum_reference))
-    return local_path
-
-
 def main():
-    """Run the DarkNet-to-ONNX conversion for YOLOv3-608."""
+    """Run the DarkNet-to-ONNX conversion for YOLOv3."""
     if sys.version_info[0] < 3:
         raise Exception('This modified version of yolov3_to_onnx.py script is only compatible with python3...')
 
-    # Download the config for YOLOv3 if not present yet, and analyze the checksum:
-    cfg_file_path = download_file(
-        'yolov3.cfg',
-        'https://raw.githubusercontent.com/pjreddie/darknet/f86901f6177dfc6116360a13cc06ab680e0c86b0/cfg/yolov3.cfg',
-        'b969a43a848bbf26901643b833cfb96c')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default='yolov3-416',
+                        choices=['yolov3-416', 'yolov3-608'])
+    args = parser.parse_args()
+
+    cfg_file_path = '%s.cfg' % args.model
+    weights_file_path = '%s.weights' % args.model.split('-')[0]
+    output_file_path = '%s.onnx' % args.model
+    yolo_dim = int(args.model.split('-')[-1])  # 416 or 608
 
     # These are the only layers DarkNetParser will extract parameters from. The three layers of
     # type 'yolo' are not parsed in detail because they are included in the post-processing later:
@@ -777,19 +757,13 @@ def main():
     # In above layer_config, there are three outputs that we need to know the output
     # shape of (in CHW format):
     output_tensor_dims = OrderedDict()
-    output_tensor_dims['082_convolutional'] = [255, 19, 19]
-    output_tensor_dims['094_convolutional'] = [255, 38, 38]
-    output_tensor_dims['106_convolutional'] = [255, 76, 76]
+    d = yolo_dim
+    output_tensor_dims['082_convolutional'] = [255, d // 32, d // 32]
+    output_tensor_dims['094_convolutional'] = [255, d // 16, d // 16]
+    output_tensor_dims['106_convolutional'] = [255, d //  8, d //  8]
 
     # Create a GraphBuilderONNX object with the known output tensor dimensions:
     builder = GraphBuilderONNX(output_tensor_dims)
-
-    # We want to populate our network with weights later, that's why we download those from
-    # the official mirror (and verify the checksum):
-    weights_file_path = download_file(
-        'yolov3.weights',
-        'https://pjreddie.com/media/files/yolov3.weights',
-        'c84e5b99d0e52cd466ae710cadf6d84c')
 
     # Now generate an ONNX graph with weights from the previously parsed layer configurations
     # and the weights file:
@@ -804,8 +778,8 @@ def main():
     onnx.checker.check_model(yolov3_model_def)
 
     # Serialize the generated ONNX graph to this file:
-    output_file_path = 'yolov3.onnx'
     onnx.save(yolov3_model_def, output_file_path)
+
 
 if __name__ == '__main__':
     main()

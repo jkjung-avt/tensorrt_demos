@@ -29,6 +29,8 @@ def parse_args():
             'YOLOv3 model on Jetson Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
+    parser.add_argument('--model', type=str, default='yolov3-416',
+                        choices=['yolov3-416', 'yolov3-608'])
     args = parser.parse_args()
     return args
 
@@ -75,7 +77,8 @@ def main():
         sys.exit('Failed to open camera!')
 
     cls_dict = get_cls_dict('coco')
-    trt_yolov3 = TrtYOLOv3('yolov3')
+    yolo_dim = int(args.model.split('-')[-1])  # 416 or 608
+    trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim))
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,

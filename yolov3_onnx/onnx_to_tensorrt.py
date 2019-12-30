@@ -51,6 +51,7 @@
 from __future__ import print_function
 
 import os
+import argparse
 
 import tensorrt as trt
 
@@ -83,9 +84,14 @@ def build_engine(onnx_file_path, engine_file_path=''):
 
 
 def main():
-    """Create a TensorRT engine for ONNX-based YOLOv3-608."""
-    onnx_file_path = 'yolov3.onnx'
-    engine_file_path = 'yolov3.trt'
+    """Create a TensorRT engine for ONNX-based YOLOv3."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default='yolov3-416',
+                        choices=['yolov3-416', 'yolov3-608'])
+    args = parser.parse_args()
+
+    onnx_file_path = '%s.onnx' % args.model
+    engine_file_path = '%s.trt' % args.model
     _ = build_engine(onnx_file_path, engine_file_path)
 
 
