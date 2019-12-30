@@ -734,13 +734,13 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-416', 'yolov3-608'])
+                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608'])
     args = parser.parse_args()
 
     cfg_file_path = '%s.cfg' % args.model
     weights_file_path = '%s.weights' % args.model.split('-')[0]
     output_file_path = '%s.onnx' % args.model
-    yolo_dim = int(args.model.split('-')[-1])  # 416 or 608
+    yolo_dim = int(args.model.split('-')[-1])  # 288, 416 or 608
 
     # These are the only layers DarkNetParser will extract parameters from. The three layers of
     # type 'yolo' are not parsed in detail because they are included in the post-processing later:

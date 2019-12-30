@@ -87,7 +87,7 @@ def main():
     """Create a TensorRT engine for ONNX-based YOLOv3."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-416', 'yolov3-608'])
+                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608'])
     args = parser.parse_args()
 
     onnx_file_path = '%s.onnx' % args.model
