@@ -240,7 +240,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
                            --image --filename ${HOME}/Pictures/dog.jpg
    ```
 
-   ![YOLOv3 detection result](doc/dog_trt_yolov3.jpg)
+   ![YOLOv3 detection result](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
 5. 'trt_yolov3_async.py'?
 
@@ -256,10 +256,10 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    I evaluated both YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2014' data and got the following results.
  'mAP@IoU=0.5:0.95 0.377, mAP@IoU=0.5: 0.672'.
 
-   | TensorRT engine | mAP@IoU=0.5:0.95 |   mAP@IoU=0.5   |
-   |:---------------:|:----------------:|:---------------:|
-   |   yolov3-416    |       0.377      |      0.672      |
-   |   yolov3-608    |       0.377      |      0.672      |
+   |  TensorRT engine  | mAP @ IoU=0.5:0.95 |   mAP @ IoU=0.5   |
+   |:-----------------:|:------------------:|:-----------------:|
+   | yolov3-416 (FP16) |        0.373       |       0.667       |
+   | yolov3-608 (FP16) |        0.377       |       0.672       |
 
 
 Licenses
