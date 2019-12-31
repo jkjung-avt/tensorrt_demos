@@ -383,21 +383,39 @@ class TrtYOLOv3(object):
         self.model = model
         self.input_shape = input_shape
         h, w = input_shape
-        self.output_shapes = [(1, 255, h // 32, w // 32),
-                              (1, 255, h // 16, w // 16),
-                              (1, 255, h //  8, w //  8)]
-        postprocessor_args = {
-            # A list of 3 three-dimensional tuples for the YOLO masks
-            'yolo_masks': [(6, 7, 8), (3, 4, 5), (0, 1, 2)],
-            # A list of 9 two-dimensional tuples for the YOLO anchors
-            'yolo_anchors': [(10, 13), (16, 30), (33, 23),
-                             (30, 61), (62, 45), (59, 119),
-                             (116, 90), (156, 198), (373, 326)],
-            # Threshold for non-max suppression algorithm, float value
-            # between 0 and 1
-            'nms_threshold': 0.5,
-            'yolo_input_resolution': input_shape
-        }
+        if 'tiny' in model:
+            self.output_shapes = [(1, 255, h // 32, w // 32),
+                                  (1, 255, h // 16, w // 16)]
+        else:
+            self.output_shapes = [(1, 255, h // 32, w // 32),
+                                  (1, 255, h // 16, w // 16),
+                                  (1, 255, h //  8, w //  8)]
+        if 'tiny' in model:
+            postprocessor_args = {
+                # A list of 3 three-dimensional tuples for the YOLO masks
+                'yolo_masks': [(3, 4, 5), (0, 1, 2)],
+                # A list of 9 two-dimensional tuples for the YOLO anchors
+                'yolo_anchors': [(10, 14), (23, 27), (37, 58),
+                                 (81, 82), (135, 169), (344, 319)],
+                # Threshold for non-max suppression algorithm, float
+                # value between 0 and 1
+                'nms_threshold': 0.5,
+                'yolo_input_resolution': input_shape
+            }
+        else:
+            postprocessor_args = {
+                # A list of 3 three-dimensional tuples for the YOLO masks
+                'yolo_masks': [(6, 7, 8), (3, 4, 5), (0, 1, 2)],
+                # A list of 9 two-dimensional tuples for the YOLO anchors
+                'yolo_anchors': [(10, 13), (16, 30), (33, 23),
+                                 (30, 61), (62, 45), (59, 119),
+                                 (116, 90), (156, 198), (373, 326)],
+                # Threshold for non-max suppression algorithm, float
+                # value between 0 and 1
+                # between 0 and 1
+                'nms_threshold': 0.5,
+                'yolo_input_resolution': input_shape
+            }
         self.postprocessor = PostprocessYOLO(**postprocessor_args)
 
         self.trt_logger = trt.Logger(trt.Logger.INFO)

@@ -33,7 +33,8 @@ def parse_args():
     parser.add_argument('--annotations', type=str, default=VAL_ANNOTATIONS,
                         help='groundtruth annotations [%s]' % VAL_ANNOTATIONS)
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608'])
+                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
+                                 'yolov3-tiny-288', 'yolov3-tiny-416'])
     args = parser.parse_args()
     return args
 

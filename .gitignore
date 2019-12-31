@@ -22,7 +22,7 @@ ssd/*.bin
 ssd/*.json
 
 yolov3_onnx/yolov3*.cfg
-yolov3_onnx/yolov3.weights
+yolov3_onnx/yolov3*.weights
 yolov3_onnx/yolov3*.onnx
 yolov3_onnx/yolov3*.trt
 yolov3_onnx/*.json
