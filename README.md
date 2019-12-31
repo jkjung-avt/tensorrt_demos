@@ -1,10 +1,10 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize caffe/tensorflow models with TensorRT and run inferencing on NVIDIA Jetson platforms.  Highlights:
+Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.  Highlights:  (The following FPS numbers have been updated using test results against JetPack 4.3, i.e. TensorRT 6, on Jetson Nano.)
 
 * Run an optimized 'GoogLeNet' image classifier at ~60 FPS on Jetson Nano.
-* Run a very accurate optimized 'MTCNN' face detector at 5~8 FPS on Jetson Nano.
-* Run an optimized 'ssd_mobilenet_v1_coco' object detector ('trt_ssd_async.py') at ~26 FPS on Jetson Nano.
+* Run a very accurate optimized 'MTCNN' face detector at 6~11 FPS on Jetson Nano.
+* Run an optimized 'ssd_mobilenet_v1_coco' object detector ('trt_ssd_async.py') at 27~28 FPS on Jetson Nano.
 * Run an optimized 'yolov3-416' object detector at ~3 FPS on Jetson Nano.
 * All demos should also work on Jetson TX2 and AGX Xavier ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927)), and run much faster!
 * Furthermore, all demos should work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
@@ -157,7 +157,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
                         --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
 
-   Here's the result.  (Frame rate was around 22.8 fps on Jetson Nano, which is pretty good.)
+   Here's the result.  Frame rate was good (over 20 FPS).
 
    ![Huskies detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/huskies.png)
 
@@ -167,7 +167,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    [TensorRT] ERROR: Could not register plugin creator: FlattenConcat_TRT in namespace
    ```
 
-   I also tested the 'ssd_mobilenet_v1_egohands' (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate (27~28 fps) was good.  But the detection didn't seem very accurate though :-(
+   I also tested the 'ssd_mobilenet_v1_egohands' (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate was pretty good.  But the detection didn't seem very accurate though :-(
 
    ```shell
    $ python3 trt_ssd.py --model ssd_mobilenet_v1_egohands \
@@ -181,7 +181,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
 3. The 'trt_ssd.py' demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
-4. Refer to this comment, ['#TODO enable video pipeline'](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code.  I did implement an 'async' version of ssd detection code to do just that.  When I tested 'ssd_mobilenet_v1_coco' on the same huskies image with the async demo program, frame rate improved from 22.8 to ~26.
+4. Referring to this comment, ['#TODO enable video pipeline'](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code, I did implement an 'async' version of ssd detection code to do just that.  When I tested 'ssd_mobilenet_v1_coco' on the same huskies image with the async demo program, frame rate improved 3~4 FPS.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos
@@ -192,7 +192,15 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
 5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure they do not degrade too much (due to reduced floating-point precision of 'FP16') from the original TensorFlow frozen inference graphs, you could prepare validation data and run 'eval_ssd.py'.  Refer to [README_eval_ssd.md](README_eval_ssd.md) for details.
 
-   I compared mAP of the TensorRT engine and the origial tensorflow model for both 'ssd_mobilenet_v1_coco' (COCO mAP: 0.230) and 'ssd_mobilenet_v2_coco' (COCO mAP: 0.246), using COCO 'val2014' data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.
+   I compared mAP of the TensorRT engine and the original tensorflow model for both 'ssd_mobilenet_v1_coco' and 'ssd_mobilenet_v2_coco' using COCO 'val2014' data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.  The FPS (frames per second) numbers below were measured using 'trt_ssd_async.py' on my Jetson Nano DevKit with JetPack-4.3.
+
+   |                         |     mAP @    |   mAP @   |             |
+   | SSD COCO Model          | IoU=0.5:0.95 |  IoU=0.5  | FPS on Nano |
+   |:------------------------|:------------:|:---------:|:-----------:|
+   | mobilenet_v1 TF         |     0.230    |   0.352   |      --     |
+   | mobilenet_v1 TRT (FP16) |     0.230    |   0.352   |     27.7    |
+   | mobilenet_v2 TF         |     0.246    |   0.373   |      --     |
+   | mobilenet_v2 TRT (FP16) |     0.246    |   0.373   |     22.7    |
 
 6. Check out my blog posts for implementation details:
 
@@ -222,7 +230,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ sudo pip3 install -r requirements.txt
    ```
 
-3. Download the trained YOLOv3 COCO model and convert it to ONNX and then to TensorRT engine.  (NOTE: I use 'yolov3-416' as example below.  Alternatively, you could use the larger and more accurate model by replacing all occurrences of 'yolov3_416' with 'yolov3-608' below.)
+3. Download the trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 3 models: 'yolov3-288', 'yolov3-416', and 'yolov3-608'.  I use 'yolov3-416' as example below.
 
    ```shell
    $ ./download_yolov3.sh
@@ -230,37 +238,39 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 onnx_to_tensorrt.py --model yolov3-416
    ```
 
-   When the above is done, the optimized TensorRT engine would be saved as 'yolov3-416.trt'.  We could use it for inference in the following steps.
+   The last step ('onnx_to_tensorrt.py') takes a little bit more than half au hour to complete on my Jetson Nano DevKit.  When that is done, the optimized TensorRT engine would be saved as 'yolov3-416.trt'.
 
 4. Test the YOLOv3 TensorRT engine with the 'dog.jpg' image.
 
    ```shell
-   $ wget https://github.com/pjreddie/darknet/raw/f86901f6177dfc6116360a13cc06ab680e0c86b0/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
+   $ wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
    $ python3 trt_yolov3.py --model yolov3-416
                            --image --filename ${HOME}/Pictures/dog.jpg
    ```
 
-   ![YOLOv3 detection result](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
+   ![YOLOv3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
-5. 'trt_yolov3_async.py'?  (To be updated...)
+5. # TODO: 'trt_yolov3_async.py'
 
 6. The 'trt_yolov3.py' demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
 7. I created 'eval_yolov3.py' for evaluating mAP of the optimized YOLOv3 engine.  It works the same way as 'eval_ssd.py'.  Refer to step #5 in Demo #3.
 
    ```shell
+   $ python3 eval_yolov3.py --model yolov3-288
    $ python3 eval_yolov3.py --model yolov3-416
    $ python3 eval_yolov3.py --model yolov3-608
    ```
 
-   I evaluated all of YOLOv3-288, YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2014' data and got the following results.
+   I evaluated all of YOLOv3-288, YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2014' data and got the following results.  The FPS (frames per second) numbers were measured using 'trt_yolov3.py' on my Jetson Nano DevKit with JetPack-4.3.
 
-   |  TensorRT engine  | mAP @ IoU=0.5:0.95 |   mAP @ IoU=0.5   |
-   |:-----------------:|:------------------:|:-----------------:|
-   | yolov3-288 (FP16) |        0.331       |       0.605       |
-   | yolov3-416 (FP16) |        0.373       |       0.667       |
-   | yolov3-608 (FP16) |        0.377       |       0.673       |
-   | yolov3-608 (FP32) |        0.377       |       0.672       |
+   |                   |     mAP @    |   mAP @   |             |
+   | TensorRT engine   | IoU=0.5:0.95 |  IoU=0.5  | FPS on Nano |
+   |:------------------|:------------:|:---------:|:-----------:|
+   | yolov3-288 (FP16) |     0.331    |   0.605   |     5.42    |
+   | yolov3-416 (FP16) |     0.373    |   0.667   |     3.07    |
+   | yolov3-608 (FP16) |     0.377    |   0.673   |     1.53    |
+   | yolov3-608 (FP32) |     0.377    |   0.672   |      --     |
 
 Licenses
 --------
