@@ -229,7 +229,9 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ sudo pip3 install -r requirements.txt
    ```
 
-3. Download the trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 3 models: 'yolov3-288', 'yolov3-416', and 'yolov3-608'.  I use 'yolov3-416' as example below.
+3. Download the trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 5 models: 'yolov3-tiny-288', 'yolov3-tiny-416',  'yolov3-288', 'yolov3-416', and 'yolov3-608'.  **NOTE: I'm not sure whether my implementation of the 'yolov3-tiny-288' and 'yolov3-tiny-416' models is correct.  They are for reference only.**
+
+   I use 'yolov3-416' as example below.
 
    ```shell
    $ ./download_yolov3.sh
@@ -251,11 +253,9 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
    ![YOLOv3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
-5. TODO: 'trt_yolov3_async.py'
+5. The 'trt_yolov3.py' demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
-6. The 'trt_yolov3.py' demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
-
-7. I created 'eval_yolov3.py' for evaluating mAP of the optimized YOLOv3 engine.  It works the same way as 'eval_ssd.py'.  Refer to step #5 in Demo #3.
+6. I created 'eval_yolov3.py' for evaluating mAP of the optimized YOLOv3 engine.  It works the same way as 'eval_ssd.py'.  Refer to step #5 in Demo #3.
 
    ```shell
    $ python3 eval_yolov3.py --model yolov3-288
@@ -263,14 +263,16 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 eval_yolov3.py --model yolov3-608
    ```
 
-   I evaluated all of YOLOv3-288, YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2017' data and got the following results.  The FPS (frames per second) numbers were measured using 'trt_yolov3.py' on my Jetson Nano DevKit with JetPack-4.3.
+   I evaluated all of yolov3-tiny-288, yolov3-tiny-416, yolov3-288, yolov3-416 and yolov3-608 TensorRT engines with COCO 'val2017' data and got the following results.  The FPS (frames per second) numbers were measured using 'trt_yolov3.py' on my Jetson Nano DevKit with JetPack-4.3.
 
-   | TensorRT engine   | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
-   |:------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-288 (FP16) |          0.331        |        0.600       |     5.42    |
-   | yolov3-416 (FP16) |          0.373        |        0.664       |     3.07    |
-   | yolov3-608 (FP16) |          0.376        |        0.665       |     1.53    |
-   | yolov3-608 (FP32) |          0.376        |        0.665       |      --     |
+   | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
+   |:-----------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-288 (FP16) |          0.077        |        0.158       |      ??     |
+   | yolov3-tiny-416 (FP16) |          0.096        |        0.202       |      ??     |
+   | yolov3-288 (FP16)      |          0.331        |        0.600       |     5.42    |
+   | yolov3-416 (FP16)      |          0.373        |        0.664       |     3.07    |
+   | yolov3-608 (FP16)      |          0.376        |        0.665       |     1.53    |
+   | yolov3-608 (FP32)      |          0.376        |        0.665       |      --     |
 
 Licenses
 --------
