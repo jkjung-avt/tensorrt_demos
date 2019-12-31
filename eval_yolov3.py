@@ -20,8 +20,8 @@ from utils.yolov3_classes import yolov3_cls_to_ssd
 
 
 HOME = os.environ['HOME']
-VAL_IMGS_DIR = HOME + '/data/coco/images/val2014'
-VAL_ANNOTATIONS = HOME + '/data/coco/annotations/instances_val2014.json'
+VAL_IMGS_DIR = HOME + '/data/coco/images/val2017'
+VAL_ANNOTATIONS = HOME + '/data/coco/annotations/instances_val2017.json'
 
 
 def parse_args():

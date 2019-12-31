@@ -192,14 +192,14 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
 5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure they do not degrade too much (due to reduced floating-point precision of 'FP16') from the original TensorFlow frozen inference graphs, you could prepare validation data and run 'eval_ssd.py'.  Refer to [README_eval_ssd.md](README_eval_ssd.md) for details.
 
-   I compared mAP of the TensorRT engine and the original tensorflow model for both 'ssd_mobilenet_v1_coco' and 'ssd_mobilenet_v2_coco' using COCO 'val2014' data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.  The FPS (frames per second) numbers below were measured using 'trt_ssd_async.py' on my Jetson Nano DevKit with JetPack-4.3.
+   I compared mAP of the TensorRT engine and the original tensorflow model for both 'ssd_mobilenet_v1_coco' and 'ssd_mobilenet_v2_coco' using COCO 'val2017' data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.  The FPS (frames per second) numbers in the table were measured using 'trt_ssd_async.py' on my Jetson Nano DevKit with JetPack-4.3.
 
    | TensorRT engine         | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:------------------------|:---------------------:|:------------------:|:-----------:|
-   | mobilenet_v1 TF         |          0.230        |        0.352       |      --     |
-   | mobilenet_v1 TRT (FP16) |          0.230        |        0.352       |     27.7    |
-   | mobilenet_v2 TF         |          0.246        |        0.373       |      --     |
-   | mobilenet_v2 TRT (FP16) |          0.246        |        0.373       |     22.7    |
+   | mobilenet_v1 TF         |          0.232        |        0.351       |      --     |
+   | mobilenet_v1 TRT (FP16) |          0.232        |        0.351       |     27.7    |
+   | mobilenet_v2 TF         |          0.248        |        0.375       |      --     |
+   | mobilenet_v2 TRT (FP16) |          0.248        |        0.375       |     22.7    |
 
 6. Check out my blog posts for implementation details:
 
@@ -263,14 +263,14 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 eval_yolov3.py --model yolov3-608
    ```
 
-   I evaluated all of YOLOv3-288, YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2014' data and got the following results.  The FPS (frames per second) numbers were measured using 'trt_yolov3.py' on my Jetson Nano DevKit with JetPack-4.3.
+   I evaluated all of YOLOv3-288, YOLOv3-416 and YOLOv3-608 TensorRT engines with 'val2017' data and got the following results.  The FPS (frames per second) numbers were measured using 'trt_yolov3.py' on my Jetson Nano DevKit with JetPack-4.3.
 
    | TensorRT engine   | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-288 (FP16) |          0.331        |        0.605       |     5.42    |
-   | yolov3-416 (FP16) |          0.373        |        0.667       |     3.07    |
-   | yolov3-608 (FP16) |          0.377        |        0.673       |     1.53    |
-   | yolov3-608 (FP32) |          0.377        |        0.672       |      --     |
+   | yolov3-288 (FP16) |          0.331        |        0.600       |     5.42    |
+   | yolov3-416 (FP16) |          0.373        |        0.664       |     3.07    |
+   | yolov3-608 (FP16) |          0.376        |        0.665       |     1.53    |
+   | yolov3-608 (FP32) |          0.376        |        0.665       |      --     |
 
 Licenses
 --------
