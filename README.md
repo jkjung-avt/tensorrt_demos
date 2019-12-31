@@ -77,7 +77,7 @@ Step-by-step:
    $ python3 trt_googlenet.py --usb --vid 0 --width 1280 --height 720
    ```
 
-   Here's a screenshot of the demo.
+   Here's a screenshot of the demo (JetPack-4.2.2, i.e. TensorRT 5).
 
    ![A Picture of a Golden Retriever](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/golden_retriever.png)
 
@@ -117,7 +117,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 trt_mtcnn.py --image --filename ${HOME}/Pictures/avengers.jpg
    ```
 
-   Here's the result.
+   Here's the result (JetPack-4.2.2, i.e. TensorRT 5).
 
    ![Avengers faces detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/avengers.png)
 
@@ -157,7 +157,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
                         --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
 
-   Here's the result.  Frame rate was good (over 20 FPS).
+   Here's the result (JetPack-4.2.2, i.e. TensorRT 5).  Frame rate was good (over 20 FPS).
 
    ![Huskies detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/huskies.png)
 
@@ -247,6 +247,8 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 trt_yolov3.py --model yolov3-416
                            --image --filename ${HOME}/Pictures/dog.jpg
    ```
+
+   This was tested against JetPack-4.3, i.e. TensorRT 6.
 
    ![YOLOv3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
