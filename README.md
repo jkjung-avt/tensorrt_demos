@@ -251,7 +251,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
    ![YOLOv3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
-5. # TODO: 'trt_yolov3_async.py'
+5. TODO: 'trt_yolov3_async.py'
 
 6. The 'trt_yolov3.py' demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
