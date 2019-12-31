@@ -2,7 +2,7 @@
 
 All demos in this repository, with minor tweaks, should also work on x86_64 platforms with NVIDIA GPU(s).  Here is a list of required modifications if you'd like to run the demos on an x86_64 PC/server.
 
-Demo #1 (googlenet) and #2 (mtcnn)
+Demo #1 (GoogLeNet) and #2 (MTCNN)
 ----------------------------------
 
 1. When compiling `create_engine.cpp`, set `CUDA_VER`, `INCPATHS` and `LIBPATHS` based on how you've installed CUDA and TensorRT on your system.  For example, I have CUDA 10.0 installed at `/usr/local/cuda` and TensorRT 5.1.5.0 at `/usr/local/TensorRT-5.1.5.0`.  So I'd modify the following lines in `common/Makefile.config`:
@@ -37,7 +37,7 @@ Demo #1 (googlenet) and #2 (mtcnn)
 
 3. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md), and the demos should work on x86_64 as well.
 
-Demo #3 (ssd)
+Demo #3 (SSD)
 -------------
 
 1. Install `tensorrt`, `uff` and `graphsurgeon` python3 packages.  For example, I do the following on my x86_64 PC since I have TensorRT-5.1.5.0 installed at `/usr/local`.
@@ -110,3 +110,8 @@ Demo #3 (ssd)
    ```
 
 6. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md) but skip `install.sh`.  You should be able to build the SSD TensorRT engines and run them on on x86_64 as well.
+
+Demo #4 (YOLOv3)
+----------------
+
+This demo runs on x86 platforms directly.  No modification is required.

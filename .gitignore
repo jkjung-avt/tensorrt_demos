@@ -1,6 +1,10 @@
 __pycache__
 *.pyc
 
+pytrt.cpp
+build
+pytrt.*.so
+
 googlenet/*.engine
 googlenet/chobj
 googlenet/dchobj
@@ -17,6 +21,8 @@ ssd/*.pbtxt
 ssd/*.bin
 ssd/*.json
 
-pytrt.cpp
-build
-pytrt.*.so
+yolov3_onnx/yolov3*.cfg
+yolov3_onnx/yolov3.weights
+yolov3_onnx/yolov3*.onnx
+yolov3_onnx/yolov3*.trt
+yolov3_onnx/*.json
