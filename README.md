@@ -222,11 +222,10 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ ./install_pycuda.sh
    ```
 
-2. Install the required python3 packages.  Note that we are installing version '1.4.1' (not the latest) of 'onnx', based on [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
+2. Install version '1.4.1' (not the latest) of python3 'onnx'i module.  Reference: [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/yolov3_onnx
-   $ sudo pip3 install -r requirements.txt
+   $ sudo pip3 install onnx==1.4.1
    ```
 
 3. Download the trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 5 models: 'yolov3-tiny-288', 'yolov3-tiny-416',  'yolov3-288', 'yolov3-416', and 'yolov3-608'.  **NOTE: I'm not sure whether my implementation of the 'yolov3-tiny-288' and 'yolov3-tiny-416' models is correct.  They are for reference only.**
@@ -234,6 +233,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    I use 'yolov3-416' as example below.
 
    ```shell
+   $ cd ${HOME}/project/tensorrt_demos/yolov3_onnx
    $ ./download_yolov3.sh
    $ python3 yolov3_to_onnx.py --model yolov3-416
    $ python3 onnx_to_tensorrt.py --model yolov3-416
@@ -267,8 +267,8 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-288 (FP16) |          0.077        |        0.158       |      ??     |
-   | yolov3-tiny-416 (FP16) |          0.096        |        0.202       |      ??     |
+   | yolov3-tiny-288 (FP16) |          0.077        |        0.158       |     20.9    |
+   | yolov3-tiny-416 (FP16) |          0.096        |        0.202       |     14.2    |
    | yolov3-288 (FP16)      |          0.331        |        0.600       |     5.42    |
    | yolov3-416 (FP16)      |          0.373        |        0.664       |     3.07    |
    | yolov3-608 (FP16)      |          0.376        |        0.665       |     1.53    |
