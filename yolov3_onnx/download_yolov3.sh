@@ -15,6 +15,7 @@ ln -sf yolov3.weights yolov3-416.weights
 cp yolov3.cfg yolov3-608.cfg
 ln -sf yolov3.weights yolov3-608.weights
 
+echo
 echo "Downloading YOLOv3-tiny config and weights..."
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -q --show-progress --no-clobber
 wget https://pjreddie.com/media/files/yolov3-tiny.weights -q --show-progress --no-clobber
