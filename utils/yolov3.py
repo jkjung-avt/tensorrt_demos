@@ -392,9 +392,9 @@ class TrtYOLOv3(object):
                                   (1, 255, h //  8, w //  8)]
         if 'tiny' in model:
             postprocessor_args = {
-                # A list of 3 three-dimensional tuples for the YOLO masks
+                # A list of 2 three-dimensional tuples for the Tiny YOLO masks
                 'yolo_masks': [(3, 4, 5), (0, 1, 2)],
-                # A list of 9 two-dimensional tuples for the YOLO anchors
+                # A list of 6 two-dimensional tuples for the Tiny YOLO anchors
                 'yolo_anchors': [(10, 14), (23, 27), (37, 58),
                                  (81, 82), (135, 169), (344, 319)],
                 # Threshold for non-max suppression algorithm, float
