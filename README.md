@@ -222,7 +222,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ ./install_pycuda.sh
    ```
 
-2. Install version '1.4.1' (not the latest) of python3 'onnx'i module.  Reference: [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
+2. Install version '1.4.1' (not the latest) of python3 'onnx' module.  Reference: [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
 
    ```shell
    $ sudo pip3 install onnx==1.4.1
