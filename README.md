@@ -274,6 +274,10 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    | yolov3-608 (FP16)      |          0.376        |        0.665       |     1.53    |
    | yolov3-608 (FP32)      |          0.376        |        0.665       |      --     |
 
+7. Check out my blog post for implementation details:
+
+   * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
+
 Licenses
 --------
 
