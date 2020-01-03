@@ -63,9 +63,10 @@ TRT_LOGGER = trt.Logger()
 def build_engine(onnx_file_path, engine_file_path=''):
     """Takes an ONNX file and creates a TensorRT engine."""
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
-        builder.max_workspace_size = 1 << 30
+        builder.max_workspace_size = 1 << 28
         builder.max_batch_size = 1
         builder.fp16_mode = True
+        #builder.strict_type_constraints = True
 
         # Parse model file
         if not os.path.exists(onnx_file_path):
