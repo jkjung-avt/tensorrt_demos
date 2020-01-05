@@ -205,6 +205,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 
    * [TensorRT UFF SSD](https://jkjung-avt.github.io/tensorrt-ssd/)
    * [Speeding Up TensorRT UFF SSD](https://jkjung-avt.github.io/speed-up-trt-ssd/)
+   * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
    * Or if you'd like to learn how to train your own custom object detectors which could be easily converted to TensorRT engines and inferenced with 'trt_ssd.py' and 'trt_ssd_async.py': [Training a Hand Detector with TensorFlow Object Detection API](https://jkjung-avt.github.io/hand-detection-tutorial/)
 
 <a name="YOLOv3"></a>
@@ -277,6 +278,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
 7. Check out my blog post for implementation details:
 
    * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
+   * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
 
 Licenses
 --------
