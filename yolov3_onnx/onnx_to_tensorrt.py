@@ -48,6 +48,7 @@
 # Users Notice.
 #
 
+
 from __future__ import print_function
 
 import os
@@ -56,12 +57,9 @@ import argparse
 import tensorrt as trt
 
 
-#TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)
-TRT_LOGGER = trt.Logger()
-
-
-def build_engine(onnx_file_path, engine_file_path=''):
+def build_engine(onnx_file_path, engine_file_path, verbose=False):
     """Takes an ONNX file and creates a TensorRT engine."""
+    TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
         builder.max_workspace_size = 1 << 28
         builder.max_batch_size = 1
@@ -75,19 +73,26 @@ def build_engine(onnx_file_path, engine_file_path=''):
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
         with open(onnx_file_path, 'rb') as model:
             print('Beginning ONNX file parsing')
-            parser.parse(model.read())
-        print('Completed parsing of ONNX file')
-        print('Building an engine from file {}; this may take a while...'.format(onnx_file_path))
-        engine = builder.build_cuda_engine(network)
-        print('Completed creating Engine')
-        with open(engine_file_path, 'wb') as f:
-            f.write(engine.serialize())
-        return engine
+            parse_succeeded = parser.parse(model.read())
+        if not parse_succeeded:
+            print('Failed to parse the ONNX file.  Try "-v" option '
+                  'to enable verbose output.')
+            return None
+        else:
+            print('Completed parsing of ONNX file')
+            print('Building an engine; this may take a while...')
+            engine = builder.build_cuda_engine(network)
+            print('Completed creating engine')
+            with open(engine_file_path, 'wb') as f:
+                f.write(engine.serialize())
+            return engine
 
 
 def main():
     """Create a TensorRT engine for ONNX-based YOLOv3."""
     parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='enable verbose output (for debugging)')
     parser.add_argument('--model', type=str, default='yolov3-416',
                         choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
                                  'yolov3-tiny-288', 'yolov3-tiny-416'])
@@ -95,7 +100,7 @@ def main():
 
     onnx_file_path = '%s.onnx' % args.model
     engine_file_path = '%s.trt' % args.model
-    _ = build_engine(onnx_file_path, engine_file_path)
+    _ = build_engine(onnx_file_path, engine_file_path, args.verbose)
 
 
 if __name__ == '__main__':
