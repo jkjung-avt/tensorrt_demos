@@ -131,15 +131,28 @@ def add_plugin(graph, model, spec):
         axis=2
     )
 
-    concat_box_loc = gs.create_plugin_node(
-        "concat_box_loc",
-        op="FlattenConcat_TRT",
-    )
-
-    concat_box_conf = gs.create_plugin_node(
-        "concat_box_conf",
-        op="FlattenConcat_TRT",
-    )
+    if trt.__version__[0] >= '7':
+        concat_box_loc = gs.create_plugin_node(
+            "concat_box_loc",
+            op="FlattenConcat_TRT",
+            axis=1,
+            ignoreBatch=0
+        )
+        concat_box_conf = gs.create_plugin_node(
+            "concat_box_conf",
+            op="FlattenConcat_TRT",
+            axis=1,
+            ignoreBatch=0
+        )
+    else:
+        concat_box_loc = gs.create_plugin_node(
+            "concat_box_loc",
+            op="FlattenConcat_TRT"
+        )
+        concat_box_conf = gs.create_plugin_node(
+            "concat_box_conf",
+            op="FlattenConcat_TRT"
+        )
 
     namespace_plugin_map = {
         "MultipleGridAnchorGenerator": PriorBox,
@@ -168,7 +181,8 @@ def main():
     args = parser.parse_args()
 
     # initialize
-    ctypes.CDLL(LIB_FILE)
+    if trt.__version__[0] < '7':
+        ctypes.CDLL(LIB_FILE)
     TRT_LOGGER = trt.Logger(trt.Logger.INFO)
     trt.init_libnvinfer_plugins(TRT_LOGGER, '')
 

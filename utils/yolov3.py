@@ -349,8 +349,9 @@ def allocate_buffers(engine):
 
 
 def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
-    """This function is generalized for multiple inputs/outputs.
+    """do_inference (for TensorRT 6.x or lower)
 
+    This function is generalized for multiple inputs/outputs.
     Inputs and outputs are expected to be lists of HostDeviceMem objects.
     """
     # Transfer input data to the GPU.
@@ -359,6 +360,25 @@ def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
     context.execute_async(batch_size=batch_size,
                           bindings=bindings,
                           stream_handle=stream.handle)
+    # Transfer predictions back from the GPU.
+    [cuda.memcpy_dtoh_async(out.host, out.device, stream) for out in outputs]
+    # Synchronize the stream
+    stream.synchronize()
+    # Return only the host outputs.
+    return [out.host for out in outputs]
+
+
+def do_inference_v2(context, bindings, inputs, outputs, stream):
+    """do_inference_v2 (for TensorRT 7.0+)
+
+    This function is generalized for multiple inputs/outputs for full
+    dimension networks.
+    Inputs and outputs are expected to be lists of HostDeviceMem objects.
+    """
+    # Transfer input data to the GPU.
+    [cuda.memcpy_htod_async(inp.device, inp.host, stream) for inp in inputs]
+    # Run inference.
+    context.execute_async_v2(bindings=bindings, stream_handle=stream.handle)
     # Transfer predictions back from the GPU.
     [cuda.memcpy_dtoh_async(out.host, out.device, stream) for out in outputs]
     # Synchronize the stream
@@ -423,6 +443,8 @@ class TrtYOLOv3(object):
         self.context = self._create_context()
         self.inputs, self.outputs, self.bindings, self.stream = \
             allocate_buffers(self.engine)
+        self.inference_fn = do_inference if trt.__version__[0] < '7' \
+                                         else do_inference_v2
 
     def __del__(self):
         """Free CUDA memories."""
@@ -438,7 +460,7 @@ class TrtYOLOv3(object):
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
         self.inputs[0].host = img_resized
-        trt_outputs = do_inference(
+        trt_outputs = self.inference_fn(
             context=self.context,
             bindings=self.bindings,
             inputs=self.inputs,

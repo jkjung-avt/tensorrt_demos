@@ -57,10 +57,16 @@ import argparse
 import tensorrt as trt
 
 
+if trt.__version__[0] >= '7':
+    EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+else:
+    EXPLICIT_BATCH = 0
+
+
 def build_engine(onnx_file_path, engine_file_path, verbose=False):
     """Takes an ONNX file and creates a TensorRT engine."""
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
-    with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
+    with trt.Builder(TRT_LOGGER) as builder, builder.create_network(EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
         builder.max_workspace_size = 1 << 28
         builder.max_batch_size = 1
         builder.fp16_mode = True
@@ -73,19 +79,25 @@ def build_engine(onnx_file_path, engine_file_path, verbose=False):
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
         with open(onnx_file_path, 'rb') as model:
             print('Beginning ONNX file parsing')
-            parse_succeeded = parser.parse(model.read())
-        if not parse_succeeded:
-            print('Failed to parse the ONNX file.  Try "-v" option '
-                  'to enable verbose output.')
-            return None
-        else:
-            print('Completed parsing of ONNX file')
-            print('Building an engine; this may take a while...')
-            engine = builder.build_cuda_engine(network)
-            print('Completed creating engine')
-            with open(engine_file_path, 'wb') as f:
-                f.write(engine.serialize())
-            return engine
+            if not parser.parse(model.read()):
+                print('ERROR: Failed to parse the ONNX file.')
+                for error in range(parser.num_errors):
+                    print(parser.get_error(error))
+                return None
+        if trt.__version__[0] >= '7':
+            # The actual yolov3.onnx is generated with batch size 64.
+            # Reshape input to batch size 1
+            shape = list(network.get_input(0).shape)
+            shape[0] = 1
+            network.get_input(0).shape = shape
+        print('Completed parsing of ONNX file')
+
+        print('Building an engine; this may take a while...')
+        engine = builder.build_cuda_engine(network)
+        print('Completed creating engine')
+        with open(engine_file_path, 'wb') as f:
+            f.write(engine.serialize())
+        return engine
 
 
 def main():

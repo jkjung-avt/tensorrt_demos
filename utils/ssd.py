@@ -46,7 +46,8 @@ class TrtSSD(object):
     """TrtSSD class encapsulates things needed to run TRT SSD."""
 
     def _load_plugins(self):
-        ctypes.CDLL("ssd/libflattenconcat.so")
+        if trt.__version__[0] < '7':
+            ctypes.CDLL("ssd/libflattenconcat.so")
         trt.init_libnvinfer_plugins(self.trt_logger, '')
 
     def _load_engine(self):
