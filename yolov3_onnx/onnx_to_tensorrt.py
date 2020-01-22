@@ -57,16 +57,16 @@ import argparse
 import tensorrt as trt
 
 
+EXPLICIT_BATCH = []
 if trt.__version__[0] >= '7':
-    EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
-else:
-    EXPLICIT_BATCH = 0
+    EXPLICIT_BATCH.append(
+        1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
 
 
 def build_engine(onnx_file_path, engine_file_path, verbose=False):
     """Takes an ONNX file and creates a TensorRT engine."""
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
-    with trt.Builder(TRT_LOGGER) as builder, builder.create_network(EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
+    with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
         builder.max_workspace_size = 1 << 28
         builder.max_batch_size = 1
         builder.fp16_mode = True
