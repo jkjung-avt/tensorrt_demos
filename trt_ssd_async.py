@@ -25,12 +25,13 @@ from utils.visualization import BBoxVisualization
 
 
 WINDOW_NAME = 'TrtSsdDemoAsync'
-INPUT_HW = (300, 300)
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
     'ssd_mobilenet_v1_egohands',
     'ssd_mobilenet_v2_coco',
     'ssd_mobilenet_v2_egohands',
+    'ssd_mobilenet_v3_large_coco',
+    'ssd_mobilenet_v3_small_coco',
 ]
 
 # These global variables are 'shared' between the main and child
@@ -92,7 +93,9 @@ class TrtThread(threading.Thread):
 
         print('TrtThread: loading the TRT SSD engine...')
         self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
-        self.trt_ssd = TrtSSD(self.model, INPUT_HW)
+        input_hw = (320, 320) if model.startswith('ssd_mobilenet_v3') \
+                              else (300, 300)
+        self.trt_ssd = TrtSSD(self.model, input_hw)
         print('TrtThread: start running...')
         self.running = True
         while self.running:

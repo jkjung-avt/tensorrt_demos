@@ -119,6 +119,34 @@ MODEL_SPECS = {
 }
 
 
+def create_const_for_anchor_generator():
+    """Creates a 'Const' node as an input to 'MultipleGridAnchorGenerator'
+
+    Note the 'MultipleGridAnchorGenerator' TRT plugin node requires a
+    [1.0, 1.0] array as input.
+
+    Reference: https://stackoverflow.com/a/56296195/7596504
+    """
+    import numpy as np
+    import tensorflow as tf
+    from tensorflow.core.framework.tensor_pb2 import TensorProto
+    from tensorflow.core.framework.tensor_shape_pb2 import TensorShapeProto
+
+    value = np.array([1.0, 1.0], dtype=np.float32)
+    dt = tf.as_dtype(value.dtype).as_datatype_enum
+    tensor_shape = TensorShapeProto(
+        dim=[TensorShapeProto.Dim(size=s) for s in value.shape])
+    tensor_proto = TensorProto(
+        tensor_content=value.tobytes(),
+        tensor_shape=tensor_shape,
+        dtype=dt)
+    return tf.NodeDef(name='const_for_anchors',
+                      op='Const',
+                      attr={'value': tf.AttrValue(tensor=tensor_proto),
+                            'dtype': tf.AttrValue(type=dt)})
+
+
+
 def add_plugin(graph, model, spec):
     """add_plugin
 
@@ -183,12 +211,6 @@ def add_plugin(graph, model, spec):
         'concat_priorbox',
         op='ConcatV2',
         inputs=['MultipleGridAnchorGenerator'],
-        #inputs=['MultipleGridAnchorGenerator',
-        #        'MultipleGridAnchorGenerator_1',
-        #        'MultipleGridAnchorGenerator_2',
-        #        'MultipleGridAnchorGenerator_3',
-        #        'MultipleGridAnchorGenerator_4',
-        #        'MultipleGridAnchorGenerator_5'],
         axis=2
     )
 
@@ -211,11 +233,16 @@ def add_plugin(graph, model, spec):
 
     # Create a dummy node in the 'MultipleGridAnchorGenerator' namespace.
     # This is a hack for 'ssd_mobilenet_v3_large/small'...
-    dummy = gs.create_node(
-        'MultipleGridAnchorGenerator/dummy_for_anchors',
-        op='Const'
-    )
-    graph.add(dummy)
+    if not any([n.startswith('MultipleGridAnchorGenerator/')
+                for n in graph.node_map.keys()]):
+        const = create_const_for_anchor_generator()
+        dummy = gs.create_node(
+            'MultipleGridAnchorGenerator/dummy_for_anchors',
+            op='Dummy',  # not important here, node will be collapsed later
+            inputs=['const_for_anchors']
+        )
+        graph.add(const)
+        graph.add(dummy)
 
     namespace_plugin_map = {
         'MultipleGridAnchorGenerator': PriorBox,
