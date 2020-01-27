@@ -182,6 +182,7 @@ def add_plugin(graph, model, spec):
     concat_priorbox = gs.create_node(
         'concat_priorbox',
         op='ConcatV2',
+        inputs=['MultipleGridAnchorGenerator'],
         #inputs=['MultipleGridAnchorGenerator',
         #        'MultipleGridAnchorGenerator_1',
         #        'MultipleGridAnchorGenerator_2',
@@ -208,6 +209,14 @@ def add_plugin(graph, model, spec):
         **extra_kwargs
     )
 
+    # Create a dummy node in the 'MultipleGridAnchorGenerator' namespace.
+    # This is a hack for 'ssd_mobilenet_v3_large/small'...
+    dummy = gs.create_node(
+        'MultipleGridAnchorGenerator/dummy_for_anchors',
+        op='Const'
+    )
+    graph.add(dummy)
+
     namespace_plugin_map = {
         'MultipleGridAnchorGenerator': PriorBox,
         'Postprocessor': NMS,
@@ -222,10 +231,13 @@ def add_plugin(graph, model, spec):
     }
 
     graph.collapse_namespaces(namespace_plugin_map)
+    if 'anchors' in [node.name for node in graph.graph_outputs]:
+        graph.remove('anchors', remove_exclusive_dependencies=False)
     if 'NMS' not in [node.name for node in graph.graph_outputs]:
         graph.remove(graph.graph_outputs, remove_exclusive_dependencies=False)
-    if 'NMS' not in [node.name for node in graph.graph_outputs]:
-        raise RuntimeError('bad graph_outputs')
+        if 'NMS' not in [node.name for node in graph.graph_outputs]:
+            # We expect 'NMS' to be one of the outputs
+            raise RuntimeError('bad graph_outputs')
     if 'Input' in list(graph.find_nodes_by_name('NMS')[0].input):
         graph.find_nodes_by_name('NMS')[0].input.remove('Input')
     if 'image_tensor:0' in list(graph.find_nodes_by_name('Input')[0].input):
