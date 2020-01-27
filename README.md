@@ -63,9 +63,10 @@ Step-by-step:
    $ ./create_engine
    ```
 
-3. Build the Cython code.
+3. Build the Cython code. Install Cython if not previously installed.
 
    ```shell
+   $ pip3 install Cython 
    $ cd ${HOME}/project/tensorrt_demos
    $ make
    ```
