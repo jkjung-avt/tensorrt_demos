@@ -34,6 +34,12 @@ Preparation
 
    Alternatively, you could build and install it from [source](https://github.com/cocodataset/cocoapi).
 
+3. Install additional requirements.
+
+   ```shell
+   $ sudo pip3 install progressbar2
+   ```
+
 Evaluation
 ----------
 
