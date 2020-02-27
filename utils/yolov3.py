@@ -58,11 +58,11 @@ import pycuda.driver as cuda
 
 def _preprocess_yolov3(img, shape):
     """Preprocess an image before TRT YOLOv3 inferencing."""
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, shape)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
-    img = img / 255.0
-    return np.ascontiguousarray(img)
+    img /= 255.0
+    return img
 
 
 class PostprocessYOLO(object):
@@ -459,7 +459,7 @@ class TrtYOLOv3(object):
 
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
-        self.inputs[0].host = img_resized
+        self.inputs[0].host = np.ascontiguousarray(img_resized)
         trt_outputs = self.inference_fn(
             context=self.context,
             bindings=self.bindings,
