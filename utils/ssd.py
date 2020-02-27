@@ -15,10 +15,11 @@ import pycuda.driver as cuda
 
 def _preprocess_trt(img, shape=(300, 300)):
     """Preprocess an image before TRT SSD inferencing."""
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, shape)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
-    img = (2.0/255.0) * img - 1.0
+    img *= (2.0/255.0)
+    img -= 1.0
     return img
 
 
