@@ -241,7 +241,7 @@ Assuming this repository has been cloned at '${HOME}/project/tensorrt_demos', fo
    $ python3 onnx_to_tensorrt.py --model yolov3-416
    ```
 
-   The last step ('onnx_to_tensorrt.py') takes a little bit more than half au hour to complete on my Jetson Nano DevKit.  When that is done, the optimized TensorRT engine would be saved as 'yolov3-416.trt'.
+   The last step ('onnx_to_tensorrt.py') takes a little bit more than half an hour to complete on my Jetson Nano DevKit.  When that is done, the optimized TensorRT engine would be saved as 'yolov3-416.trt'.
 
 4. Test the YOLOv3 TensorRT engine with the 'dog.jpg' image.
 
