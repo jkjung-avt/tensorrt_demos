@@ -9,6 +9,7 @@ if ! which nvcc > /dev/null; then
   exit
 fi
 
+arch=$(uname -m)
 folder=${HOME}/src
 mkdir -p $folder
 
@@ -17,7 +18,7 @@ sudo apt-get install -y build-essential python3-dev
 sudo apt-get install -y libboost-python-dev libboost-thread-dev
 sudo pip3 install setuptools
 
-boost_pylib=$(basename /usr/lib/aarch64-linux-gnu/libboost_python3-py3?.so)
+boost_pylib=$(basename /usr/lib/${arch}-linux-gnu/libboost_python3-py3?.so)
 boost_pylibname=${boost_pylib%.so}
 boost_pyname=${boost_pylibname/lib/}
 
@@ -30,7 +31,7 @@ fi
 echo "** Build and install pycuda-2019.1.2"
 tar xzvf pycuda-2019.1.2.tar.gz
 cd pycuda-2019.1.2
-python3 ./configure.py --python-exe=/usr/bin/python3 --cuda-root=/usr/local/cuda --cudadrv-lib-dir=/usr/lib/aarch64-linux-gnu --boost-inc-dir=/usr/include --boost-lib-dir=/usr/lib/aarch64-linux-gnu --boost-python-libname=${boost_pyname} --boost-thread-libname=boost_thread --no-use-shipped-boost
+python3 ./configure.py --python-exe=/usr/bin/python3 --cuda-root=/usr/local/cuda --cudadrv-lib-dir=/usr/lib/${arch}-linux-gnu --boost-inc-dir=/usr/include --boost-lib-dir=/usr/lib/${arch}-linux-gnu --boost-python-libname=${boost_pyname} --boost-thread-libname=boost_thread --no-use-shipped-boost
 make -j4
 python3 setup.py build
 sudo python3 setup.py install
