@@ -72,6 +72,14 @@ MODEL_SPECS = {
 INPUT_DIMS = (3, 300, 300)
 DEBUG_UFF = False
 
+def fmap_shape(img_width):
+    shapes = []
+    current = int(np.ceil(img_width / 16.0))
+    for i in range(6):
+        fms.append(current)
+        current = int(np.ceil(curr / 2.0))
+    return fms
+
 
 def add_plugin(graph, model, spec):
     """add_plugin
@@ -85,7 +93,7 @@ def add_plugin(graph, model, spec):
     minSize = spec['min_size']
     maxSize = spec['max_size']
     inputOrder = spec['input_order']
-
+    fmap_shapes = fmap_shape(INPUT_DIMS[1])
     all_assert_nodes = graph.find_nodes_by_op("Assert")
     graph.remove(all_assert_nodes, remove_exclusive_dependencies=True)
 
@@ -105,7 +113,7 @@ def add_plugin(graph, model, spec):
         maxSize=maxSize,  # was 0.95
         aspectRatios=[1.0, 2.0, 0.5, 3.0, 0.33],
         variance=[0.1, 0.1, 0.2, 0.2],
-        featureMapShapes=[19, 10, 5, 3, 2, 1],
+        featureMapShapes=fmap_shapes, #generic fetaure map shapes
         numLayers=6
     )
 
