@@ -25,6 +25,8 @@ fi
 echo "** Making symbolic link of libflattenconcat.so"
 
 trt_version=$(echo /usr/lib/aarch64-linux-gnu/libnvinfer.so.? | cut -d '.' -f 3)
-ln -sf libflattenconcat.so.${trt_version} libflattenconcat.so
+if [ "${trt_version}" = "5" ] || [ "${trt_version}" = "6" ]; then
+  ln -sf libflattenconcat.so.${trt_version} libflattenconcat.so
+fi
 
 echo "** Installation done"
