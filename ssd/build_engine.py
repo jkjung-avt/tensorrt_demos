@@ -159,6 +159,7 @@ def add_plugin(graph, model, spec):
         "Postprocessor": NMS,
         "Preprocessor": Input,
         "ToFloat": Input,
+        "Cast": Input, #added for models trained with tf 1.15
         "image_tensor": Input,
         "MultipleGridAnchorGenerator/Concatenate": concat_priorbox,  # for 'ssd_mobilenet_v1_coco'
         "Concatenate": concat_priorbox,  # for other models
