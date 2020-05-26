@@ -29,10 +29,12 @@ if [ ! -f pycuda-2019.1.2.tar.gz ]; then
 fi
 
 echo "** Build and install pycuda-2019.1.2"
+CPU_CORES=$(nproc)
+echo "** cpu cores available: " $CPU_CORES
 tar xzvf pycuda-2019.1.2.tar.gz
 cd pycuda-2019.1.2
 python3 ./configure.py --python-exe=/usr/bin/python3 --cuda-root=/usr/local/cuda --cudadrv-lib-dir=/usr/lib/${arch}-linux-gnu --boost-inc-dir=/usr/include --boost-lib-dir=/usr/lib/${arch}-linux-gnu --boost-python-libname=${boost_pyname} --boost-thread-libname=boost_thread --no-use-shipped-boost
-make -j4
+make -j$CPU_CORES
 python3 setup.py build
 sudo python3 setup.py install
 
