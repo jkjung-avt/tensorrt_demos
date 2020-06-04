@@ -422,7 +422,8 @@ class TrtYOLOv3(object):
                 # Threshold for non-max suppression algorithm, float
                 # value between 0 and 1
                 'nms_threshold': 0.5,
-                'yolo_input_resolution': input_shape
+                'yolo_input_resolution': input_shape,
+                'category_num': category_num
             }
         else:
             postprocessor_args = {
@@ -436,7 +437,8 @@ class TrtYOLOv3(object):
                 # value between 0 and 1
                 # between 0 and 1
                 'nms_threshold': 0.5,
-                'yolo_input_resolution': input_shape
+                'yolo_input_resolution': input_shape,
+                'category_num': category_num
             }
         self.postprocessor = PostprocessYOLO(**postprocessor_args)
 
