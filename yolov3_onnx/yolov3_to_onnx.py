@@ -759,18 +759,24 @@ def generate_md5_checksum(local_path):
 def main():
     """Run the DarkNet-to-ONNX conversion for YOLOv3."""
     if sys.version_info[0] < 3:
-        raise Exception('This modified version of yolov3_to_onnx.py script is only compatible with python3...')
+        raise SystemExit('This modified version of yolov3_to_onnx.py script is only compatible with python3...')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='yolov3-416',
                         choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
                                  'yolov3-tiny-288', 'yolov3-tiny-416'])
+    parser.add_argument('--category_num', type=int, default=80,
+                        help='number of object categories [80]')
     args = parser.parse_args()
+    if args.category_num <= 0:
+        raise SystemExit('Bad category_num: %d!' % args.category_num)
 
     cfg_file_path = '%s.cfg' % args.model
     weights_file_path = '%s.weights' % args.model
     output_file_path = '%s.onnx' % args.model
-    yolo_dim = int(args.model.split('-')[-1])  # 288, 416 or 608
+    yolo_dim = int(args.model.split('-')[-1])
+    if yolo_dim not in (288, 416, 608):
+        raise SystemExit('Bad yolo_dim: %d!\nPlease make sure the model file name contains the correct dimension...' % yolo_dim)
 
     # These are the only layers DarkNetParser will extract parameters from. The three layers of
     # type 'yolo' are not parsed in detail because they are included in the post-processing later:
@@ -787,14 +793,15 @@ def main():
     # In above layer_config, there are three outputs that we need to know the output
     # shape of (in CHW format):
     output_tensor_dims = OrderedDict()
+    c = (args.category_num + 5) * 3
     d = yolo_dim
     if 'tiny' in args.model:
-        output_tensor_dims['016_convolutional'] = [255, d // 32, d // 32]
-        output_tensor_dims['023_convolutional'] = [255, d // 16, d // 16]
+        output_tensor_dims['016_convolutional'] = [c, d // 32, d // 32]
+        output_tensor_dims['023_convolutional'] = [c, d // 16, d // 16]
     else:
-        output_tensor_dims['082_convolutional'] = [255, d // 32, d // 32]
-        output_tensor_dims['094_convolutional'] = [255, d // 16, d // 16]
-        output_tensor_dims['106_convolutional'] = [255, d //  8, d //  8]
+        output_tensor_dims['082_convolutional'] = [c, d // 32, d // 32]
+        output_tensor_dims['094_convolutional'] = [c, d // 16, d // 16]
+        output_tensor_dims['106_convolutional'] = [c, d //  8, d //  8]
 
     # Create a GraphBuilderONNX object with the known output tensor dimensions:
     builder = GraphBuilderONNX(args.model, output_tensor_dims)

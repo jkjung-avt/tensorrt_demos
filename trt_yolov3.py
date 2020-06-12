@@ -32,6 +32,8 @@ def parse_args():
     parser.add_argument('--model', type=str, default='yolov3-416',
                         choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
                                  'yolov3-tiny-288', 'yolov3-tiny-416'])
+    parser.add_argument('--category_num', type=int, default=80,
+                        help='number of object categories [80]')
     args = parser.parse_args()
     return args
 
@@ -72,14 +74,20 @@ def loop_and_detect(cam, trt_yolov3, conf_th, vis):
 
 def main():
     args = parse_args()
+    if args.category_num <= 0:
+        raise SystemExit('Bad category_num: %d!' % args.category_num)
+
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
         sys.exit('Failed to open camera!')
 
     cls_dict = get_cls_dict('coco')
-    yolo_dim = int(args.model.split('-')[-1])  # 416 or 608
-    trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim))
+    yolo_dim = int(args.model.split('-')[-1])
+    if yolo_dim not in (288, 416, 608):
+        raise SystemExit('Bad yolo_dim: %d!\nPlease make sure the model file name contains the correct dimension...' % yolo_dim)
+
+    trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim), args.category_num)
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
