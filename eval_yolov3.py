@@ -32,6 +32,8 @@ def parse_args():
                         help='directory of validation images [%s]' % VAL_IMGS_DIR)
     parser.add_argument('--annotations', type=str, default=VAL_ANNOTATIONS,
                         help='groundtruth annotations [%s]' % VAL_ANNOTATIONS)
+    parser.add_argument('--non_coco', action=store_true,
+                        help='don\'t do coco class translation [False]')
     parser.add_argument('--model', type=str, default='yolov3-416',
                         choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
                                  'yolov3-tiny-288', 'yolov3-tiny-416'])
@@ -47,7 +49,7 @@ def check_args(args):
         sys.exit('%s is not a valid file' % args.annotations)
 
 
-def generate_results(yolov3, imgs_dir, jpgs, results_file):
+def generate_results(yolov3, imgs_dir, jpgs, results_file, non_coco):
     """Run detection on each jpg and write results to file."""
     results = []
     for jpg in progressbar(jpgs):
@@ -59,9 +61,9 @@ def generate_results(yolov3, imgs_dir, jpgs, results_file):
             y = float(box[1])
             w = float(box[2] - box[0] + 1)
             h = float(box[3] - box[1] + 1)
-            cls = yolov3_cls_to_ssd[cls]
+            cls = cls if non_coco else yolov3_cls_to_ssd[cls]
             results.append({'image_id': image_id,
-                            'category_id': int(cls),
+                            'category_id': cls,
                             'bbox': [x, y, w, h],
                             'score': float(conf)})
     with open(results_file, 'w') as f:
@@ -77,7 +79,8 @@ def main():
     trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim))
 
     jpgs = [j for j in os.listdir(args.imgs_dir) if j.endswith('.jpg')]
-    generate_results(trt_yolov3, args.imgs_dir, jpgs, results_file)
+    generate_results(trt_yolov3, args.imgs_dir, jpgs, results_file,
+                     non_coco=args.non_coco)
 
     # Run COCO mAP evaluation
     # Reference: https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb

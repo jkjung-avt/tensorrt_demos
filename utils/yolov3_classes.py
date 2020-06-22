@@ -96,10 +96,9 @@ yolov3_cls_to_ssd = [
 ]
 
 
-def get_cls_dict(model):
+def get_cls_dict(category_num):
     """Get the class ID to name translation dictionary."""
-    if model == 'coco':
-        cls_list = COCO_CLASSES_LIST
+    if category_num == 80:
+        return {i: n for i, n in enumerate(COCO_CLASSES_LIST)}
     else:
-        raise ValueError('Bad model name')
-    return {i: n for i, n in enumerate(cls_list)}
+        return {i: 'CLS%d' % i for i in range(category_num)}

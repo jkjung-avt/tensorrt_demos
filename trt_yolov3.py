@@ -82,7 +82,7 @@ def main():
     if not cam.is_opened:
         sys.exit('Failed to open camera!')
 
-    cls_dict = get_cls_dict('coco')
+    cls_dict = get_cls_dict(args.category_num)
     yolo_dim = int(args.model.split('-')[-1])
     if yolo_dim not in (288, 416, 608):
         raise SystemExit('Bad yolo_dim: %d!\nPlease make sure the model file name contains the correct dimension...' % yolo_dim)
