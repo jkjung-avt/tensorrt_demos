@@ -130,8 +130,15 @@ class DarkNetParser(object):
         if remainder.replace(' ', '')[0] == '#':
             remainder = remainder.split('\n', 1)[1]
 
-        layer_param_block, remainder = remainder.split('\n\n', 1)
-        layer_param_lines = layer_param_block.split('\n')[1:]
+        out = remainder.split('\n\n', 1)
+        if len(out) == 2:
+            layer_param_block, remainder = out[0], out[1]
+        else:
+            layer_param_block, remainder = out[0], ''
+        if layer_type == 'yolo':
+            layer_param_lines = []
+        else:
+            layer_param_lines = layer_param_block.split('\n')[1:]
         layer_name = str(self.layer_counter).zfill(3) + '_' + layer_type
         layer_dict = dict(type=layer_type)
         if layer_type in self.supported_layers:
@@ -400,6 +407,7 @@ class GraphBuilderONNX(object):
         self.param_dict = OrderedDict()
         self.major_node_specs = list()
         self.batch_size = 1
+        self.route_spec = 0  # keeping track of the current active 'route'
 
     def build_onnx_graph(
             self,
@@ -420,6 +428,9 @@ class GraphBuilderONNX(object):
             major_node_specs = self._make_onnx_node(layer_name, layer_dict)
             if major_node_specs.name is not None:
                 self.major_node_specs.append(major_node_specs)
+        # remove dummy 'yolo' nodes
+        self.major_node_specs = [node for node in self.major_node_specs
+                                      if node.name != 'yolo']
         outputs = list()
         for tensor_name in self.output_tensors.keys():
             output_dims = [self.batch_size, ] + \
@@ -483,6 +494,7 @@ class GraphBuilderONNX(object):
             node_creators['shortcut'] = self._make_shortcut_node
             node_creators['route'] = self._make_route_node
             node_creators['upsample'] = self._make_upsample_node
+            node_creators['yolo'] = self._make_yolo_node
 
             if layer_type in node_creators.keys():
                 major_node_output_name, major_node_output_channels = \
@@ -515,20 +527,25 @@ class GraphBuilderONNX(object):
         self.input_tensor = input_tensor
         return layer_name, channels
 
-    def _get_previous_node_specs(self, target_index=-1):
-        """Get a previously generated ONNX node (skip those that were not generated).
+    def _get_previous_node_specs(self, target_index=0):
+        """Get a previously ONNX node.
+
         Target index can be passed for jumping to a specific index.
 
         Keyword arguments:
-        target_index -- optional for jumping to a specific index (default: -1 for jumping
-        to previous element)
+        target_index -- optional for jumping to a specific index,
+                        default: 0 for the previous element, while
+                        taking 'route' spec into account
         """
-        previous_node = None
-        for node in self.major_node_specs[target_index::-1]:
-            if node.created_onnx_node:
-                previous_node = node
-                break
-        assert previous_node is not None
+        if target_index == 0:
+            if self.route_spec != 0:
+                previous_node = self.major_node_specs[self.route_spec]
+                self.route_spec = 0
+            else:
+                previous_node = self.major_node_specs[-1]
+        else:
+            previous_node = self.major_node_specs[target_index]
+        assert previous_node.created_onnx_node
         return previous_node
 
     def _make_conv_node(self, layer_name, layer_dict):
@@ -653,11 +670,8 @@ class GraphBuilderONNX(object):
         """
         route_node_indexes = layer_dict['layers']
         if len(route_node_indexes) == 1:
-            split_index = route_node_indexes[0]
-            assert split_index < 0
-            # Increment by one because we skipped the YOLO layer:
-            split_index += 1
-            self.major_node_specs = self.major_node_specs[:split_index]
+            self.route_spec = route_node_indexes[0]
+            assert self.route_spec < 0
             layer_name = None
             channels = None
         else:
@@ -745,6 +759,15 @@ class GraphBuilderONNX(object):
         self._nodes.append(maxpool_node)
         return layer_name, channels
 
+    def _make_yolo_node(self, layer_name, layer_dict):
+        """Create an ONNX Yolo node.
+
+        These are dummy nodes which would be removed in the end.
+        """
+        channels = 1
+        return layer_name, channels
+
+
 def generate_md5_checksum(local_path):
     """Returns the MD5 checksum of a local file.
 
@@ -781,7 +804,7 @@ def main():
     # These are the only layers DarkNetParser will extract parameters from. The three layers of
     # type 'yolo' are not parsed in detail because they are included in the post-processing later:
     supported_layers = ['net', 'convolutional', 'maxpool',
-                        'shortcut', 'route', 'upsample']
+                        'shortcut', 'route', 'upsample', 'yolo']
 
     # Create a DarkNetParser object, and the use it to generate an OrderedDict with all
     # layer's configs from the cfg file:
