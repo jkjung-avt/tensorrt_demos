@@ -51,15 +51,15 @@
 
 from __future__ import print_function
 
+import os
 import sys
 import hashlib
 import argparse
 from collections import OrderedDict
 
-import onnx
-from onnx import helper
-from onnx import TensorProto
 import numpy as np
+import onnx
+from onnx import helper, TensorProto
 
 
 class DarkNetParser(object):
@@ -333,9 +333,8 @@ class WeightLoader(object):
         """
         weights_file = open(weights_file_path, 'rb')
         length_header = 5
-        np.ndarray(
-            shape=(length_header, ), dtype='int32', buffer=weights_file.read(
-                length_header * 4))
+        np.ndarray(shape=(length_header, ), dtype='int32',
+                   buffer=weights_file.read(length_header * 4))
         return weights_file
 
     def _create_param_tensors(self, conv_params, param_category, suffix):
@@ -428,9 +427,9 @@ class GraphBuilderONNX(object):
             major_node_specs = self._make_onnx_node(layer_name, layer_dict)
             if major_node_specs.name is not None:
                 self.major_node_specs.append(major_node_specs)
-        # remove dummy 'yolo' nodes
+        # remove dummy 'route' and 'yolo' nodes
         self.major_node_specs = [node for node in self.major_node_specs
-                                      if node.name != 'yolo']
+                                      if 'dummy' not in node.name]
         outputs = list()
         for tensor_name in self.output_tensors.keys():
             output_dims = [self.batch_size, ] + \
@@ -670,10 +669,11 @@ class GraphBuilderONNX(object):
         """
         route_node_indexes = layer_dict['layers']
         if len(route_node_indexes) == 1:
-            self.route_spec = route_node_indexes[0]
-            assert self.route_spec < 0
-            layer_name = None
-            channels = None
+            assert route_node_indexes[0] < 0
+            self.route_spec = route_node_indexes[0] - 1
+            # This dummy route node would be removed in the end.
+            layer_name = layer_name + '_dummy'
+            channels = 1
         else:
             inputs = list()
             channels = 0
@@ -709,7 +709,7 @@ class GraphBuilderONNX(object):
         """
         upsample_factor = float(layer_dict['stride'])
         # Create the scales array with node parameters
-        scales=np.array([1.0, 1.0, upsample_factor, upsample_factor]).astype(np.float32)
+        scales = np.array([1.0, 1.0, upsample_factor, upsample_factor]).astype(np.float32)
         previous_node_specs = self._get_previous_node_specs()
         inputs = [previous_node_specs.name]
 
@@ -765,7 +765,7 @@ class GraphBuilderONNX(object):
         These are dummy nodes which would be removed in the end.
         """
         channels = 1
-        return layer_name, channels
+        return layer_name + '_dummy', channels
 
 
 def generate_md5_checksum(local_path):
@@ -786,20 +786,31 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
-                                 'yolov3-tiny-288', 'yolov3-tiny-416'])
+                        help='yolov3[-spp|-tiny]-[288|416|608]')
     parser.add_argument('--category_num', type=int, default=80,
                         help='number of object categories [80]')
     args = parser.parse_args()
     if args.category_num <= 0:
-        raise SystemExit('Bad category_num: %d!' % args.category_num)
+        raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
 
     cfg_file_path = '%s.cfg' % args.model
+    if not os.path.isfile(cfg_file_path):
+        raise SystemExit('ERROR: file (%s) not found!' % cfg_file_path)
     weights_file_path = '%s.weights' % args.model
+    if not os.path.isfile(weights_file_path):
+        raise SystemExit('ERROR: file (%s) not found!' % weights_file_path)
     output_file_path = '%s.onnx' % args.model
-    yolo_dim = int(args.model.split('-')[-1])
-    if yolo_dim not in (288, 416, 608):
-        raise SystemExit('Bad yolo_dim: %d!\nPlease make sure the model file name contains the correct dimension...' % yolo_dim)
+
+    yolo_dim = args.model.split('-')[-1]
+    if 'x' in yolo_dim:
+        dim_split = yolo_dim.split('x')
+        if len(dim_split) != 2:
+            raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
+        w, h = int(dim_split[0]), int(dim_split[1])
+    else:
+        h = w = int(yolo_dim)
+    if h % 32 != 0 or w % 32 != 0:
+        raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
     # These are the only layers DarkNetParser will extract parameters from. The three layers of
     # type 'yolo' are not parsed in detail because they are included in the post-processing later:
@@ -808,6 +819,7 @@ def main():
 
     # Create a DarkNetParser object, and the use it to generate an OrderedDict with all
     # layer's configs from the cfg file:
+    print('Parsing DarkNet cfg file...')
     parser = DarkNetParser(supported_layers)
     layer_configs = parser.parse_cfg_file(cfg_file_path)
     # We do not need the parser anymore after we got layer_configs:
@@ -817,16 +829,20 @@ def main():
     # shape of (in CHW format):
     output_tensor_dims = OrderedDict()
     c = (args.category_num + 5) * 3
-    d = yolo_dim
     if 'tiny' in args.model:
-        output_tensor_dims['016_convolutional'] = [c, d // 32, d // 32]
-        output_tensor_dims['023_convolutional'] = [c, d // 16, d // 16]
+        output_tensor_dims['016_convolutional'] = [c, h // 32, w // 32]
+        output_tensor_dims['023_convolutional'] = [c, h // 16, w // 16]
+    elif 'spp' in args.model:
+        output_tensor_dims['089_convolutional'] = [c, h // 32, w // 32]
+        output_tensor_dims['101_convolutional'] = [c, h // 16, w // 16]
+        output_tensor_dims['113_convolutional'] = [c, h //  8, w //  8]
     else:
-        output_tensor_dims['082_convolutional'] = [c, d // 32, d // 32]
-        output_tensor_dims['094_convolutional'] = [c, d // 16, d // 16]
-        output_tensor_dims['106_convolutional'] = [c, d //  8, d //  8]
+        output_tensor_dims['082_convolutional'] = [c, h // 32, w // 32]
+        output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
+        output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
 
     # Create a GraphBuilderONNX object with the known output tensor dimensions:
+    print('Building ONNX graph...')
     builder = GraphBuilderONNX(args.model, output_tensor_dims)
 
     # Now generate an ONNX graph with weights from the previously parsed layer configurations
@@ -839,11 +855,14 @@ def main():
     del builder
 
     # Perform a sanity check on the ONNX model definition:
+    print('Checking ONNX model...')
     onnx.checker.check_model(yolov3_model_def)
 
     # Serialize the generated ONNX graph to this file:
+    print('Saving ONNX file...')
     onnx.save(yolov3_model_def, output_file_path)
 
+    print('Done.')
 
 if __name__ == '__main__':
     main()

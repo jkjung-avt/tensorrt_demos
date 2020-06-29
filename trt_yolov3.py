@@ -5,7 +5,7 @@ TensorRT optimized YOLOv3 engine.
 """
 
 
-import sys
+import os
 import time
 import argparse
 
@@ -30,8 +30,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
-                                 'yolov3-tiny-288', 'yolov3-tiny-416'])
+                        help='yolov3[-spp|-tiny]-[288|416|608]')
     parser.add_argument('--category_num', type=int, default=80,
                         help='number of object categories [80]')
     args = parser.parse_args()
@@ -75,19 +74,28 @@ def loop_and_detect(cam, trt_yolov3, conf_th, vis):
 def main():
     args = parse_args()
     if args.category_num <= 0:
-        raise SystemExit('Bad category_num: %d!' % args.category_num)
+        raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
+    if not os.path.isfile('yolov3_onnx/%s.trt' % args.model):
+        raise SystemExit('ERROR: file (yolov3_onnx/%s.trt) not found!' % args.model)
 
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     cls_dict = get_cls_dict(args.category_num)
-    yolo_dim = int(args.model.split('-')[-1])
-    if yolo_dim not in (288, 416, 608):
-        raise SystemExit('Bad yolo_dim: %d!\nPlease make sure the model file name contains the correct dimension...' % yolo_dim)
+    yolo_dim = args.model.split('-')[-1]
+    if 'x' in yolo_dim:
+        dim_split = yolo_dim.split('x')
+        if len(dim_split) != 2:
+            raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
+        w, h = int(dim_split[0]), int(dim_split[1])
+    else:
+        h = w = int(yolo_dim)
+    if h % 32 != 0 or w % 32 != 0:
+        raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
-    trt_yolov3 = TrtYOLOv3(args.model, (yolo_dim, yolo_dim), args.category_num)
+    trt_yolov3 = TrtYOLOv3(args.model, (h, w), args.category_num)
 
     cam.start()
     open_window(WINDOW_NAME, args.image_width, args.image_height,
