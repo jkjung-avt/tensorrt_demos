@@ -226,8 +226,8 @@ class PostprocessYOLO(object):
         box_confidence = sigmoid_v(output_reshaped[..., 4:5])
         box_class_probs = sigmoid_v(output_reshaped[..., 5:])
 
-        col = np.tile(np.arange(0, grid_w), grid_w).reshape(-1, grid_w)
-        row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_h)
+        col = np.tile(np.arange(0, grid_w), grid_h).reshape(-1, grid_w)
+        row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_w)
 
         col = col.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
         row = row.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
@@ -398,7 +398,7 @@ class TrtYOLOv3(object):
     def _create_context(self):
         return self.engine.create_execution_context()
 
-    def __init__(self, model, input_shape=(416, 416), category_num=80):
+    def __init__(self, model, input_shape, category_num=80):
         """Initialize TensorRT plugins, engine and conetxt."""
         self.model = model
         self.input_shape = input_shape

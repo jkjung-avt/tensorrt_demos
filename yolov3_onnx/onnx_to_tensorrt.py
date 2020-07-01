@@ -73,9 +73,6 @@ def build_engine(onnx_file_path, engine_file_path, verbose=False):
         #builder.strict_type_constraints = True
 
         # Parse model file
-        if not os.path.exists(onnx_file_path):
-            print('ONNX file {} not found, please run yolov3_to_onnx.py first to generate it.'.format(onnx_file_path))
-            exit(0)
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
         with open(onnx_file_path, 'rb') as model:
             print('Beginning ONNX file parsing')
@@ -106,11 +103,12 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='enable verbose output (for debugging)')
     parser.add_argument('--model', type=str, default='yolov3-416',
-                        choices=['yolov3-288', 'yolov3-416', 'yolov3-608',
-                                 'yolov3-tiny-288', 'yolov3-tiny-416'])
+                        help='yolov3[-spp|-tiny]-[288|416|608]')
     args = parser.parse_args()
 
     onnx_file_path = '%s.onnx' % args.model
+    if not os.path.isfile(onnx_file_path):
+        raise SystemExit('ERROR: file (%s) not found!  You might want to run yolov3_to_onnx.py first to generate it.' % onnx_file_path)
     engine_file_path = '%s.trt' % args.model
     _ = build_engine(onnx_file_path, engine_file_path, args.verbose)
 
