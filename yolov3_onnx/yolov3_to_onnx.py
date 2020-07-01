@@ -539,6 +539,7 @@ class GraphBuilderONNX(object):
         if target_index == 0:
             if self.route_spec != 0:
                 previous_node = self.major_node_specs[self.route_spec]
+                assert 'dummy' not in previous_node.name
                 self.route_spec = 0
             else:
                 previous_node = self.major_node_specs[-1]
