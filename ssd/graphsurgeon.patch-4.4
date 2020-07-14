@@ -1,0 +1,10 @@
+--- a/node_manipulation.py	2020-07-14 08:34:41.959988887 +0800
++++ b/node_manipulation.py	2020-07-14 08:36:11.863988853 +0800
+@@ -86,6 +86,7 @@
+     '''
+     node.name = name or node.name
+     node.op = op or node.op or node.name
++    node.attr["dtype"].type = 1
+     for key, val in kwargs.items():
+         if isinstance(val, tf.DType):
+             node.attr[key].type = val.as_datatype_enum

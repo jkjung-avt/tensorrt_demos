@@ -21,6 +21,10 @@ if head -22 ${gs_path} | tail -1 | grep -q update_node; then
   # This is for JetPack-4.2.2
   sudo patch -N -p1 -r - ${gs_path} ${patch_path}-4.2.2 && echo
 fi
+if head -69 ${gs_path} | tail -1 | grep -q update_node; then
+  # This is for JetPack-4.4
+  sudo patch -N -p1 -r - ${gs_path} ${patch_path}-4.4 && echo
+fi
 
 echo "** Making symbolic link of libflattenconcat.so"
 
