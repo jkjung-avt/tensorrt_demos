@@ -100,10 +100,14 @@ def build_engine(onnx_file_path, engine_file_path, verbose=False):
 def main():
     """Create a TensorRT engine for ONNX-based YOLOv3."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='enable verbose output (for debugging)')
-    parser.add_argument('--model', type=str, default='yolov3-416',
-                        help='yolov3[-spp|-tiny]-[288|416|608]')
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='enable verbose output (for debugging)')
+    parser.add_argument(
+        '--model', type=str, required=True,
+        help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
+              '[{dimension}], where dimension could be a single '
+              'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
     args = parser.parse_args()
 
     onnx_file_path = '%s.onnx' % args.model

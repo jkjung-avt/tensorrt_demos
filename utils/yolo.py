@@ -1,4 +1,4 @@
-# yolov3.py
+# yolo.py
 #
 # Copyright 1993-2019 NVIDIA Corporation.  All rights reserved.
 #
@@ -56,8 +56,8 @@ import tensorrt as trt
 import pycuda.driver as cuda
 
 
-def _preprocess_yolov3(img, shape):
-    """Preprocess an image before TRT YOLOv3 inferencing."""
+def _preprocess_yolo(img, shape):
+    """Preprocess an image before TRT YOLO inferencing."""
     img = cv2.resize(img, shape)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
@@ -66,7 +66,7 @@ def _preprocess_yolov3(img, shape):
 
 
 class PostprocessYOLO(object):
-    """Class for post-processing the three output tensors from YOLOv3."""
+    """Class for post-processing the three output tensors from YOLO."""
 
     def __init__(self,
                  yolo_masks,
@@ -74,12 +74,13 @@ class PostprocessYOLO(object):
                  nms_threshold,
                  yolo_input_resolution,
                  category_num=80):
-        """Initialize with all values that will be kept when processing several frames.
-        Assuming 3 outputs of the network in the case of (large) YOLOv3.
+        """Initialize with all values that will be kept when processing
+        several frames.  Assuming 3 outputs of the network in the case
+        of (large) YOLO, or 2 for the Tiny YOLO.
 
         Keyword arguments:
-        yolo_masks -- a list of 3 three-dimensional tuples for the YOLO masks
-        yolo_anchors -- a list of 9 two-dimensional tuples for the YOLO anchors
+        yolo_masks -- a list of 3 (or 2) three-dimensional tuples for the YOLO masks
+        yolo_anchors -- a list of 9 (or 6) two-dimensional tuples for the YOLO anchors
         object_threshold -- threshold for object coverage, float value between 0 and 1
         nms_threshold -- threshold for non-max suppression algorithm,
         float value between 0 and 1
@@ -94,7 +95,7 @@ class PostprocessYOLO(object):
         self.category_num = category_num
 
     def process(self, outputs, resolution_raw, conf_th):
-        """Take the YOLOv3 outputs generated from a TensorRT forward pass, post-process them
+        """Take the YOLO outputs generated from a TensorRT forward pass, post-process them
         and return a list of bounding boxes for detected object together with their category
         and their confidences in separate lists.
 
@@ -387,32 +388,28 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
     return [out.host for out in outputs]
 
 
-class TrtYOLOv3(object):
-    """TrtYOLOv3 class encapsulates things needed to run TRT YOLOv3."""
+class TrtYOLO(object):
+    """TrtYOLO class encapsulates things needed to run TRT YOLO."""
 
     def _load_engine(self):
-        TRTbin = 'yolov3_onnx/%s.trt' % self.model
+        TRTbin = 'yolo/%s.trt' % self.model
         with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
     def _create_context(self):
         return self.engine.create_execution_context()
 
-    def __init__(self, model, input_shape, category_num=80):
-        """Initialize TensorRT plugins, engine and conetxt."""
-        self.model = model
-        self.input_shape = input_shape
-        h, w = input_shape
-        # filters count
-        filters = (category_num + 5) * 3
-        if 'tiny' in model:
+    def _init_yolov3_postprocessor(self):
+        h, w = self.input_shape
+        filters = (self.category_num + 5) * 3
+        if 'tiny' in self.model:
             self.output_shapes = [(1, filters, h // 32, w // 32),
                                   (1, filters, h // 16, w // 16)]
         else:
             self.output_shapes = [(1, filters, h // 32, w // 32),
                                   (1, filters, h // 16, w // 16),
                                   (1, filters, h //  8, w //  8)]
-        if 'tiny' in model:
+        if 'tiny' in self.model:
             postprocessor_args = {
                 # A list of 2 three-dimensional tuples for the Tiny YOLO masks
                 'yolo_masks': [(3, 4, 5), (0, 1, 2)],
@@ -422,8 +419,8 @@ class TrtYOLOv3(object):
                 # Threshold for non-max suppression algorithm, float
                 # value between 0 and 1
                 'nms_threshold': 0.5,
-                'yolo_input_resolution': input_shape,
-                'category_num': category_num
+                'yolo_input_resolution': self.input_shape,
+                'category_num': self.category_num
             }
         else:
             postprocessor_args = {
@@ -435,13 +432,62 @@ class TrtYOLOv3(object):
                                  (116, 90), (156, 198), (373, 326)],
                 # Threshold for non-max suppression algorithm, float
                 # value between 0 and 1
-                # between 0 and 1
                 'nms_threshold': 0.5,
-                'yolo_input_resolution': input_shape,
-                'category_num': category_num
+                'yolo_input_resolution': self.input_shape,
+                'category_num': self.category_num
             }
         self.postprocessor = PostprocessYOLO(**postprocessor_args)
 
+    def _init_yolov4_postprocessor(self):
+        h, w = self.input_shape
+        filters = (self.category_num + 5) * 3
+        if 'tiny' in self.model:
+            self.output_shapes = [(1, filters, h // 16, w // 16),
+                                  (1, filters, h // 32, w // 32)]
+        else:
+            self.output_shapes = [(1, filters, h //  8, w //  8),
+                                  (1, filters, h // 16, w // 16),
+                                  (1, filters, h // 32, w // 32)]
+        if 'tiny' in self.model:
+            postprocessor_args = {
+                # A list of 2 three-dimensional tuples for the Tiny YOLO masks
+                'yolo_masks': [(0, 1, 2), (3, 4, 5)],
+                # A list of 6 two-dimensional tuples for the Tiny YOLO anchors
+                'yolo_anchors': [(10, 14), (23, 27), (37, 58),
+                                 (81, 82), (135, 169), (344, 319)],
+                # Threshold for non-max suppression algorithm, float
+                # value between 0 and 1
+                'nms_threshold': 0.5,
+                'yolo_input_resolution': self.input_shape,
+                'category_num': self.category_num
+            }
+        else:
+            postprocessor_args = {
+                # A list of 3 three-dimensional tuples for the YOLO masks
+                'yolo_masks': [(0, 1, 2), (3, 4, 5), (6, 7, 8)],
+                # A list of 9 two-dimensional tuples for the YOLO anchors
+                'yolo_anchors': [(12, 16), (19, 36), (40, 28),
+                                 (36, 75), (76, 55), (72, 146),
+                                 (142, 110), (192, 243), (459, 401)],
+                # Threshold for non-max suppression algorithm, float
+                # value between 0 and 1
+                'nms_threshold': 0.5,
+                'yolo_input_resolution': self.input_shape,
+                'category_num': self.category_num
+            }
+        self.postprocessor = PostprocessYOLO(**postprocessor_args)
+
+    def __init__(self, model, input_shape, category_num=80):
+        """Initialize TensorRT plugins, engine and conetxt."""
+        self.model = model
+        self.input_shape = input_shape
+        self.category_num = category_num
+        if 'yolov3' in self.model:
+            self._init_yolov3_postprocessor()
+        elif 'yolov4' in self.model:
+            self._init_yolov4_postprocessor()
+        else:
+            raise ValueError('bad model name (%s)!' % args.model)
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self.engine = self._load_engine()
         self.context = self._create_context()
@@ -459,7 +505,7 @@ class TrtYOLOv3(object):
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
         shape_orig_WH = (img.shape[1], img.shape[0])
-        img_resized = _preprocess_yolov3(img, self.input_shape)
+        img_resized = _preprocess_yolo(img, self.input_shape)
 
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
@@ -473,8 +519,9 @@ class TrtYOLOv3(object):
 
         # Before doing post-processing, we need to reshape the outputs
         # as do_inference() will give us flat arrays.
-        trt_outputs = [output.reshape(shape) for output, shape
-                       in zip(trt_outputs, self.output_shapes)]
+        trt_outputs = [
+            output.reshape(shape)
+            for output, shape in zip(trt_outputs, self.output_shapes)]
 
         # Run the post-processing algorithms on the TensorRT outputs
         # and get the bounding box details of detected objects
