@@ -611,10 +611,7 @@ class GraphBuilderONNX(object):
             inputs = [layer_name_bn]
             layer_name_output = layer_name_bn
 
-        # TODO: implement 'mish' activation.
-        # I just replace 'mish' with 'leaky' for now...
-        #if layer_dict['activation'] == 'leaky':
-        if layer_dict['activation'] in ['mish', 'leaky']:
+        if layer_dict['activation'] == 'leaky':
             layer_name_lrelu = layer_name + '_lrelu'
 
             lrelu_node = helper.make_node(
@@ -627,6 +624,37 @@ class GraphBuilderONNX(object):
             self._nodes.append(lrelu_node)
             inputs = [layer_name_lrelu]
             layer_name_output = layer_name_lrelu
+        elif layer_dict['activation'] == 'mish':
+            layer_name_softplus = layer_name + '_softplus'
+            layer_name_tanh = layer_name + '_tanh'
+            layer_name_mish = layer_name + '_mish'
+
+            softplus_node = helper.make_node(
+                'Softplus',
+                inputs=inputs,
+                outputs=[layer_name_softplus],
+                name=layer_name_softplus,
+            )
+            self._nodes.append(softplus_node)
+            tanh_node = helper.make_node(
+                'Tanh',
+                inputs=[layer_name_softplus],
+                outputs=[layer_name_tanh],
+                name=layer_name_tanh,
+            )
+            self._nodes.append(tanh_node)
+
+            inputs.append(layer_name_tanh)
+            mish_node = helper.make_node(
+                'Mul',
+                inputs=inputs,
+                outputs=[layer_name_mish],
+                name=layer_name_mish,
+            )
+            self._nodes.append(mish_node)
+
+            inputs = [layer_name_mish]
+            layer_name_output = layer_name_mish
         elif layer_dict['activation'] == 'linear':
             pass
         else:
