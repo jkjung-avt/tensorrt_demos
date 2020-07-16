@@ -242,7 +242,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    I use "yolov3-416" as example below.
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/yolo_onnx
+   $ cd ${HOME}/project/tensorrt_demos/yolo
    $ ./download_yolov3.sh
    $ python3 yolo_to_onnx.py --model yolov3-416
    $ python3 onnx_to_tensorrt.py --model yolov3-416
@@ -304,7 +304,7 @@ Here are the steps:
 2. Download the pre-trained YOLOv4 COCO models and convert, say, "yolov4-416" to a TensorRT engine.  (TODO: add support for "yolov4-tiny" models)
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/yolo_onnx
+   $ cd ${HOME}/project/tensorrt_demos/yolo
    $ ./download_yolov4.sh
    $ python3 yolo_to_onnx.py --model yolov4-416
    $ python3 onnx_to_tensorrt.py --model yolov4-416
