@@ -18,7 +18,7 @@ sudo apt-get install -y build-essential python3-dev
 sudo apt-get install -y libboost-python-dev libboost-thread-dev
 sudo pip3 install setuptools
 
-boost_pylib=$(basename /usr/lib/${arch}-linux-gnu/libboost_python3-py3?.so)
+boost_pylib=$(basename /usr/lib/${arch}-linux-gnu/libboost_python*-py3?.so)
 boost_pylibname=${boost_pylib%.so}
 boost_pyname=${boost_pylibname/lib/}
 
