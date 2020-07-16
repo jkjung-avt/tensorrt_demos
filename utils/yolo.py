@@ -505,7 +505,8 @@ class TrtYOLO(object):
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
         shape_orig_WH = (img.shape[1], img.shape[0])
-        img_resized = _preprocess_yolo(img, self.input_shape)
+        img_resized = _preprocess_yolo(
+            img, (self.input_shape[1], self.input_shape[0]))
 
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
