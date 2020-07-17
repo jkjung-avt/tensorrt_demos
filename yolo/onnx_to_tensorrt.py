@@ -82,7 +82,7 @@ def build_engine(onnx_file_path, engine_file_path, verbose=False):
                     print(parser.get_error(error))
                 return None
         if trt.__version__[0] >= '7':
-            # The actual yolov3.onnx is generated with batch size 64.
+            # The actual yolo*.onnx is generated with batch size 64.
             # Reshape input to batch size 1
             shape = list(network.get_input(0).shape)
             shape[0] = 1
@@ -98,17 +98,21 @@ def build_engine(onnx_file_path, engine_file_path, verbose=False):
 
 
 def main():
-    """Create a TensorRT engine for ONNX-based YOLOv3."""
+    """Create a TensorRT engine for ONNX-based YOLO."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='enable verbose output (for debugging)')
-    parser.add_argument('--model', type=str, default='yolov3-416',
-                        help='yolov3[-spp|-tiny]-[288|416|608]')
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='enable verbose output (for debugging)')
+    parser.add_argument(
+        '--model', type=str, required=True,
+        help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
+              '[{dimension}], where dimension could be a single '
+              'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
     args = parser.parse_args()
 
     onnx_file_path = '%s.onnx' % args.model
     if not os.path.isfile(onnx_file_path):
-        raise SystemExit('ERROR: file (%s) not found!  You might want to run yolov3_to_onnx.py first to generate it.' % onnx_file_path)
+        raise SystemExit('ERROR: file (%s) not found!  You might want to run yolo_to_onnx.py first to generate it.' % onnx_file_path)
     engine_file_path = '%s.trt' % args.model
     _ = build_engine(onnx_file_path, engine_file_path, args.verbose)
 
