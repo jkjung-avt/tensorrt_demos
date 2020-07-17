@@ -48,6 +48,7 @@
 # Users Notice.
 #
 
+
 from __future__ import print_function
 
 import numpy as np
@@ -56,9 +57,17 @@ import tensorrt as trt
 import pycuda.driver as cuda
 
 
-def _preprocess_yolo(img, shape):
-    """Preprocess an image before TRT YOLO inferencing."""
-    img = cv2.resize(img, shape)
+def _preprocess_yolo(img, input_shape):
+    """Preprocess an image before TRT YOLO inferencing.
+
+    # Args
+        img: int8 numpy array of shape (img_h, img_w, 3)
+        input_shape: a tuple of (H, W)
+
+    # Returns
+        preprocessed img: float32 numpy array of shape (3, H, W)
+    """
+    img = cv2.resize(img, (input_shape[1], input_shape[0]))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
     img /= 255.0
@@ -84,14 +93,13 @@ class PostprocessYOLO(object):
         object_threshold -- threshold for object coverage, float value between 0 and 1
         nms_threshold -- threshold for non-max suppression algorithm,
         float value between 0 and 1
-        input_resolution_yolo -- two-dimensional tuple with the target network's (spatial)
-        input resolution in HW order
+        input_wh -- tuple (W, H) for the target network
         category_num -- number of output categories/classes
         """
         self.masks = yolo_masks
         self.anchors = yolo_anchors
         self.nms_threshold = nms_threshold
-        self.input_resolution_yolo = yolo_input_resolution
+        self.input_wh = (yolo_input_resolution[1], yolo_input_resolution[0])
         self.category_num = category_num
 
     def process(self, outputs, resolution_raw, conf_th):
@@ -236,7 +244,7 @@ class PostprocessYOLO(object):
 
         box_xy += grid
         box_xy /= (grid_w, grid_h)
-        box_wh /= self.input_resolution_yolo
+        box_wh /= self.input_wh
         box_xy -= (box_wh / 2.)
         boxes = np.concatenate((box_xy, box_wh), axis=-1)
 
@@ -505,8 +513,7 @@ class TrtYOLO(object):
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
         shape_orig_WH = (img.shape[1], img.shape[0])
-        img_resized = _preprocess_yolo(
-            img, (self.input_shape[1], self.input_shape[0]))
+        img_resized = _preprocess_yolo(img, self.input_shape)
 
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
