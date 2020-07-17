@@ -372,6 +372,7 @@ class WeightLoader(object):
         elif param_category == 'conv':
             if suffix == 'weights':
                 param_shape = [channels_out, channels_in, filter_h, filter_w]
+                #print(param_shape)
             elif suffix == 'bias':
                 param_shape = [channels_out]
         param_size = np.product(np.array(param_shape))
@@ -445,6 +446,7 @@ class GraphBuilderONNX(object):
             _, layer_type = layer_name.split('_', 1)
             params = self.param_dict[layer_name]
             if layer_type == 'convolutional':
+                #print('%s  ' % layer_name, end='')
                 initializer_layer, inputs_layer = weight_loader.load_conv_weights(
                     params)
                 initializer.extend(initializer_layer)
@@ -701,16 +703,57 @@ class GraphBuilderONNX(object):
         """
         route_node_indexes = layer_dict['layers']
         if len(route_node_indexes) == 1:
-            if route_node_indexes[0] < 0:
-                # route should skip self, thus -1
-                self.route_spec = route_node_indexes[0] - 1
-            elif route_node_indexes[0] > 0:
-                # +1 for input node (same as below)
-                self.route_spec = route_node_indexes[0] + 1
-            # This dummy route node would be removed in the end.
-            layer_name = layer_name + '_dummy'
-            channels = 1
+            if 'groups' in layer_dict.keys():
+                # for CSPNet-kind of architecture
+                assert 'group_id' in layer_dict.keys()
+                groups = layer_dict['groups']
+                group_id = int(layer_dict['group_id'])
+                assert group_id < groups
+                index = route_node_indexes[0]
+                if index > 0:
+                    # +1 for input node (same reason as below)
+                    index += 1
+                route_node_specs = self._get_previous_node_specs(
+                    target_index=index)
+                assert route_node_specs.channels % groups == 0
+                channels = route_node_specs.channels // groups
+
+                """
+                split = [channels] * groups
+                outputs = ['%s_%d' % (layer_name, i) for i in range(groups)]
+                outputs[group_id] = layer_name
+                route_node = helper.make_node(
+                    'Split',
+                    axis=1,
+                    split=split,
+                    inputs=[route_node_specs.name],
+                    outputs=outputs,
+                    name=layer_name,
+                )
+                """
+                route_node = helper.make_node(
+                    'Slice',
+                    axes=[1],
+                    starts=[channels * group_id],
+                    ends=[channels * (group_id + 1)],
+                    inputs=[route_node_specs.name],
+                    outputs=[layer_name],
+                    name=layer_name,
+                )
+                self._nodes.append(route_node)
+            else:
+                if route_node_indexes[0] < 0:
+                    # route should skip self, thus -1
+                    self.route_spec = route_node_indexes[0] - 1
+                elif route_node_indexes[0] > 0:
+                    # +1 for input node (same reason as below)
+                    self.route_spec = route_node_indexes[0] + 1
+                # This dummy route node would be removed in the end.
+                layer_name = layer_name + '_dummy'
+                channels = 1
         else:
+            assert 'groups' not in layer_dict.keys(), \
+                'groups not implemented for multiple-input route layer!'
             inputs = list()
             channels = 0
             for index in route_node_indexes:
@@ -887,7 +930,8 @@ def main():
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
     elif 'yolov4' in args.model:
         if 'tiny' in args.model:
-            raise SystemExit('ERROR: yolov4-tiny model not implemented yet!')
+            output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
+            output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
         else:
             output_tensor_dims['139_convolutional'] = [c, h //  8, w //  8]
             output_tensor_dims['150_convolutional'] = [c, h // 16, w // 16]
