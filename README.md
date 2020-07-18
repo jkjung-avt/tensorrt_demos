@@ -285,7 +285,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    | yolov3-608 (FP16)      |          0.376        |        0.665       |     1.53    |
    | yolov3-608 (FP32)      |          0.376        |        0.665       |      --     |
 
-7. Check out my blog post for implementation details:
+7. Check out my blog posts for implementation details:
 
    * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
    * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
@@ -340,7 +340,9 @@ Here are the steps:
 
 6. (TODO: support of "yolov4-tiny" models...)
 
-7. (TODO: blog posts...)
+7. Check out my corresponding blog post:
+
+   * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
 
 Licenses
 --------
