@@ -2,11 +2,11 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.  Highlights:  (The FPS numbers in this README are test results against JetPack 4.3, i.e. TensorRT 6, on Jetson Nano.)
 
-* Run an optimized "GoogLeNet" image classifier at ~60 FPS on Jetson Nano.
-* Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
-* Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~3 FPS on Jetson Nano.
 * Run an optimized **"yolov4-416"** object detector at ~3 FPS on Jetson Nano.
+* Run an optimized "yolov3-416" object detector at ~3 FPS on Jetson Nano.
+* Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
+* Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
+* Run an optimized "GoogLeNet" image classifier at ~60 FPS on Jetson Nano.
 * All demos work on Jetson TX2, AGX Xavier, Xavier NX ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927) and [link](https://github.com/jkjung-avt/tensorrt_demos/issues/30)), and run much faster!
 * Furthermore, all demos should work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
