@@ -111,7 +111,7 @@ Demo #3 (SSD)
 
 6. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md) but skip `install.sh`.  You should be able to build the SSD TensorRT engines and run them on on x86_64 as well.
 
-Demo #4 (YOLOv3)
-----------------
+Demo #4 (YOLOv3) & Demo #5 (YOLOv4)
+-----------------------------------
 
-This demo runs on x86 platforms directly.  No modification is required.
+These 2 demos run on x86 platforms directly.  No modification is required.
