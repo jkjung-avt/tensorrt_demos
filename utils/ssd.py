@@ -94,11 +94,11 @@ class TrtSSD(object):
 
     def __del__(self):
         """Free CUDA memories and context."""
-        del self.stream
         del self.cuda_outputs
         del self.cuda_inputs
         self.cuda_ctx.pop()
         del self.cuda_ctx
+        del self.stream
 
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
