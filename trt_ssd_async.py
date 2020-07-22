@@ -77,7 +77,8 @@ class TrtThread(threading.Thread):
         self.cam = cam
         self.model = model
         self.conf_th = conf_th
-        self.cuda_ctx = None  # to be created when run
+        # NOTE: cuda_ctx code has been moved into TrtSSD class
+        #self.cuda_ctx = None  # to be created when run
         self.trt_ssd = None   # to be created when run
         self.running = False
 
@@ -91,7 +92,7 @@ class TrtThread(threading.Thread):
         global s_img, s_boxes, s_confs, s_clss
 
         print('TrtThread: loading the TRT SSD engine...')
-        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
+        #self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.trt_ssd = TrtSSD(self.model, INPUT_HW)
         print('TrtThread: start running...')
         self.running = True
@@ -102,8 +103,8 @@ class TrtThread(threading.Thread):
                 s_img, s_boxes, s_confs, s_clss = img, boxes, confs, clss
                 self.condition.notify()
         del self.trt_ssd
-        self.cuda_ctx.pop()
-        del self.cuda_ctx
+        #self.cuda_ctx.pop()
+        #del self.cuda_ctx
         print('TrtThread: stopped...')
 
     def stop(self):

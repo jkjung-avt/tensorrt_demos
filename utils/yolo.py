@@ -487,9 +487,12 @@ class TrtYOLO(object):
 
     def __init__(self, model, input_shape, category_num=80):
         """Initialize TensorRT plugins, engine and conetxt."""
+        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.model = model
         self.input_shape = input_shape
         self.category_num = category_num
+        self.inference_fn = do_inference if trt.__version__[0] < '7' \
+                                         else do_inference_v2
         if 'yolov3' in self.model:
             self._init_yolov3_postprocessor()
         elif 'yolov4' in self.model:
@@ -498,17 +501,23 @@ class TrtYOLO(object):
             raise ValueError('bad model name (%s)!' % args.model)
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self.engine = self._load_engine()
-        self.context = self._create_context()
-        self.inputs, self.outputs, self.bindings, self.stream = \
-            allocate_buffers(self.engine)
-        self.inference_fn = do_inference if trt.__version__[0] < '7' \
-                                         else do_inference_v2
+
+        try:
+            self.context = self._create_context()
+            self.inputs, self.outputs, self.bindings, self.stream = \
+                allocate_buffers(self.engine)
+        except Exception as e:
+            self.cuda_ctx.pop()
+            del self.cuda_ctx
+            raise RuntimeError('fail to allocate CUDA resources') from e
 
     def __del__(self):
         """Free CUDA memories."""
         del self.stream
         del self.outputs
         del self.inputs
+        self.cuda_ctx.pop()
+        del self.cuda_ctx
 
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""

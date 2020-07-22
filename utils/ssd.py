@@ -56,23 +56,26 @@ class TrtSSD(object):
         with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
-    def _create_context(self):
+    def _allocate_buffers(self):
+        host_inputs, host_outputs, cuda_inputs, cuda_outputs, bindings = \
+            [], [], [], [], []
         for binding in self.engine:
             size = trt.volume(self.engine.get_binding_shape(binding)) * \
                    self.engine.max_batch_size
             host_mem = cuda.pagelocked_empty(size, np.float32)
             cuda_mem = cuda.mem_alloc(host_mem.nbytes)
-            self.bindings.append(int(cuda_mem))
+            bindings.append(int(cuda_mem))
             if self.engine.binding_is_input(binding):
-                self.host_inputs.append(host_mem)
-                self.cuda_inputs.append(cuda_mem)
+                host_inputs.append(host_mem)
+                cuda_inputs.append(cuda_mem)
             else:
-                self.host_outputs.append(host_mem)
-                self.cuda_outputs.append(cuda_mem)
-        return self.engine.create_execution_context()
+                host_outputs.append(host_mem)
+                cuda_outputs.append(cuda_mem)
+        return host_inputs, host_outputs, cuda_inputs, cuda_outputs, bindings
 
     def __init__(self, model, input_shape, output_layout=7):
         """Initialize TensorRT plugins, engine and conetxt."""
+        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.model = model
         self.input_shape = input_shape
         self.output_layout = output_layout
@@ -80,19 +83,22 @@ class TrtSSD(object):
         self._load_plugins()
         self.engine = self._load_engine()
 
-        self.host_inputs = []
-        self.cuda_inputs = []
-        self.host_outputs = []
-        self.cuda_outputs = []
-        self.bindings = []
-        self.stream = cuda.Stream()
-        self.context = self._create_context()
+        try:
+            self.context = self.engine.create_execution_context()
+            self.stream = cuda.Stream()
+            self.host_inputs, self.host_outputs, self.cuda_inputs, self.cuda_outputs, self.bindings = self._allocate_buffers()
+        except Exception as e:
+            self.cuda_ctx.pop()
+            del self.cuda_ctx
+            raise RuntimeError('fail to allocate CUDA resources') from e
 
     def __del__(self):
-        """Free CUDA memories."""
+        """Free CUDA memories and context."""
         del self.stream
         del self.cuda_outputs
         del self.cuda_inputs
+        self.cuda_ctx.pop()
+        del self.cuda_ctx
 
     def detect(self, img, conf_th=0.3):
         """Detect objects in the input image."""
