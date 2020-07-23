@@ -295,7 +295,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 Demo #5: YOLOv4
 ---------------
 
-Following up on Demo #4, this demo is for YOLOv4 models.  Code for this demo has only been tested with TensorRT 7.1 (JetPack-4.4) so far.
+Following up on Demo #4, this demo is for YOLOv4 models.  This demo also requires TensorRT "Python API" and has been verified working against TensorRT 5.x+.
 
 Here are the steps:
 
@@ -325,22 +325,24 @@ Here are the steps:
 5. Use "eval_yolo.py" to evaluate mAP of the optimized YOLOv4 engines.
 
    ```shell
+   $ python3 eval_yolo.py --model yolov4-tiny-288
+   $ python3 eval_yolo.py --model yolov4-tiny-416
    $ python3 eval_yolo.py --model yolov4-288
    $ python3 eval_yolo.py --model yolov4-416
    $ python3 eval_yolo.py --model yolov4-608
    ```
 
-   The results are summarized as follows.  Note the FPS (frames per second) numbers were measured on my Jetson Nano DevKit with JetPack-4.4.
+   The results are summarized as follows.  Note the FPS (frames per second) numbers were measured on my Jetson Nano DevKit with JetPack-4.4 (TensorRT 7).
 
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-288 (FP16) |          0.179        |        0.344       |     23.8    |
+   | yolov3-tiny-416 (FP16) |          0.196        |        0.386       |     16.5    |
    | yolov4-288 (FP16)      |          0.372        |        0.590       |     6.18    |
    | yolov4-416 (FP16)      |          0.454        |        0.698       |     3.50    |
    | yolov4-608 (FP16)      |          0.484        |        0.735       |     1.77    |
 
-6. (TODO: support of "yolov4-tiny" models...)
-
-7. Check out my corresponding blog post:
+6. Check out my corresponding blog post:
 
    * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
 
