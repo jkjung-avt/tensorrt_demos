@@ -26,7 +26,7 @@ VAL_ANNOTATIONS = HOME + '/data/coco/annotations/instances_val2017.json'
 
 def parse_args():
     """Parse input arguments."""
-    desc = 'Evaluate mAP of SSD model'
+    desc = 'Evaluate mAP of YOLO model'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument(
         '--imgs_dir', type=str, default=VAL_IMGS_DIR,
