@@ -718,26 +718,14 @@ class GraphBuilderONNX(object):
                 assert route_node_specs.channels % groups == 0
                 channels = route_node_specs.channels // groups
 
-                """
-                split = [channels] * groups
-                outputs = ['%s_%d' % (layer_name, i) for i in range(groups)]
+                outputs = [layer_name + '_dummy%d' % i for i in range(groups)]
                 outputs[group_id] = layer_name
                 route_node = helper.make_node(
                     'Split',
                     axis=1,
-                    split=split,
+                    split=[channels] * groups,
                     inputs=[route_node_specs.name],
                     outputs=outputs,
-                    name=layer_name,
-                )
-                """
-                route_node = helper.make_node(
-                    'Slice',
-                    axes=[1],
-                    starts=[channels * group_id],
-                    ends=[channels * (group_id + 1)],
-                    inputs=[route_node_specs.name],
-                    outputs=[layer_name],
                     name=layer_name,
                 )
                 self._nodes.append(route_node)

@@ -450,8 +450,8 @@ class TrtYOLO(object):
         h, w = self.input_shape
         filters = (self.category_num + 5) * 3
         if 'tiny' in self.model:
-            self.output_shapes = [(1, filters, h // 16, w // 16),
-                                  (1, filters, h // 32, w // 32)]
+            self.output_shapes = [(1, filters, h // 32, w // 32),
+                                  (1, filters, h // 16, w // 16)]
         else:
             self.output_shapes = [(1, filters, h //  8, w //  8),
                                   (1, filters, h // 16, w // 16),
@@ -459,7 +459,7 @@ class TrtYOLO(object):
         if 'tiny' in self.model:
             postprocessor_args = {
                 # A list of 2 three-dimensional tuples for the Tiny YOLO masks
-                'yolo_masks': [(0, 1, 2), (3, 4, 5)],
+                'yolo_masks': [(3, 4, 5), (1, 2, 3)],
                 # A list of 6 two-dimensional tuples for the Tiny YOLO anchors
                 'yolo_anchors': [(10, 14), (23, 27), (37, 58),
                                  (81, 82), (135, 169), (344, 319)],
