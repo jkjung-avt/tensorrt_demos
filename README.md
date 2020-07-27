@@ -41,10 +41,11 @@ Furthermore, the demo programs require "cv2" (OpenCV) module for python3.  You c
 
 Lastly, if you plan to run Demo #3 (SSD), you'd also need to have "tensorflowi-1.x" installed.  You could probably use the [official tensorflow wheels provided by NVIDIA](https://docs.nvidia.com/deeplearning/frameworks/pdf/Install-TensorFlow-Jetson-Platform.pdf), or refer to [Building TensorFlow 1.12.2 on Jetson Nano](https://jkjung-avt.github.io/build-tensorflow-1.12.2/) for how to install tensorflow-1.12.2 on the Jetson system.
 
-In case you are setting up a Jetson Nano from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
+In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
 
 * [JetPack-4.3 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.3/)
 * [JetPack-4.4 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.4/)
+* [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/)
 
 <a name="googlenet"></a>
 Demo #1: GoogLeNet
