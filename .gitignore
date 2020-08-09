@@ -26,3 +26,6 @@ yolo/yolo*.weights
 yolo/yolo*.onnx
 yolo/yolo*.trt
 yolo/*.json
+
+plugins/*.o
+plugins/*.so
