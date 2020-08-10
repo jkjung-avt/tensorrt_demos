@@ -216,6 +216,8 @@ namespace nvinfer1
         det->bbox[1] = (row + sigmoidGPU(cur_input[idx + 1 * total_grids])) * input_h / yolo_height;
         det->bbox[2] = __expf(cur_input[idx + 2 * total_grids]) * anchors[2 * anchor_idx];
         det->bbox[3] = __expf(cur_input[idx + 3 * total_grids]) * anchors[2 * anchor_idx + 1];
+        det->bbox[0] -= det->bbox[2] / 2;  // shift from center to top-left
+        det->bbox[1] -= det->bbox[3] / 2;
         det->det_confidence = box_prob;
         det->class_id = class_id;
         det->class_confidence = max_cls_prob;
