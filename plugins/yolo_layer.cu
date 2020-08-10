@@ -303,7 +303,7 @@ namespace nvinfer1
                 input_height = *(static_cast<const int*>(fields[i].data));
             }
             else if (!strcmp(attrName, "anchors")){
-                assert(num_anchors > 0 && num_anchors < MAX_ANCHORS);
+                assert(num_anchors > 0 && num_anchors <= MAX_ANCHORS);
                 assert(fields[i].type == PluginFieldType::kFLOAT32);
                 memcpy(anchors, static_cast<const float*>(fields[i].data), num_anchors * 2 * sizeof(float));
             }

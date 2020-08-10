@@ -93,7 +93,7 @@ namespace nvinfer1
         private:
             void forwardGpu(const float* const* inputs, float* output, cudaStream_t stream, int batchSize = 1);
 
-            int mThreadCount = 256;
+            int mThreadCount = 64;
             int mYoloWidth, mYoloHeight, mNumAnchors;
             float mAnchorsHost[MAX_ANCHORS * 2];
             float *mAnchors;  // allocated on GPU
