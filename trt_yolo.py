@@ -13,7 +13,8 @@ import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from utils.yolo_classes import get_cls_dict
-from utils.yolo import TrtYOLO
+#from utils.yolo import TrtYOLO
+from utils.yolo_with_plugins import TrtYOLO
 from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
@@ -29,6 +30,9 @@ def parse_args():
             'YOLO model on Jetson')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
+    parser.add_argument(
+        '-p', '--with_plugins', action='store_true',
+        help='use a TensorRT engine with yolo plugins')
     parser.add_argument(
         '--model', type=str, required=True,
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
