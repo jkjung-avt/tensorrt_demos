@@ -2,8 +2,8 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.  Highlights:  (The FPS numbers in this README are test results against JetPack 4.3, i.e. TensorRT 6, on Jetson Nano.)
 
-* Run an optimized **"yolov4-416"** object detector at ~3 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~3 FPS on Jetson Nano.
+* Run an optimized "yolov4-opt-416" object detector at ~4.4 FPS on Jetson Nano.
+* Run an optimized "yolov3-opt-416" object detector at ~4.6 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
 * Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
 * Run an optimized "GoogLeNet" image classifier at ~60 FPS on Jetson Nano.
@@ -19,6 +19,7 @@ Table of contents
 * [Demo #3: SSD](#ssd)
 * [Demo #4: YOLOv3](#yolov3)
 * [Demo #5: YOLOv4](#yolov4)
+* [Demo #6: YOLOv3/YOLOv4 with TensorRT plugins](#yolo_with_plugins)
 
 <a name="prerequisite"></a>
 Prerequisite
@@ -238,7 +239,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    $ sudo pip3 install onnx==1.4.1
    ```
 
-3. Download the pre-trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 5 models: "yolov3-tiny-288", "yolov3-tiny-416", "yolov3-288", "yolov3-416", and "yolov3-608".  In addition, the code should also work for custom YOLOv3 models, or even models with different width and height for the input, e.g. yolov3-416x256.  Refer to my [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/) blog post for more information.
+3. Download the pre-trained YOLOv3 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  This demo supports 5 models: "yolov3-tiny-288", "yolov3-tiny-416", "yolov3-288", "yolov3-416", and "yolov3-608".  In addition, the code should also work for custom YOLOv3 models, or even models with different width and height for the input, e.g. "yolov3-416x256".  Refer to my [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/) blog post for more information.
 
    I use "yolov3-416" as example below.
 
@@ -251,7 +252,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    The last step ("onnx_to_tensorrt.py") takes a little bit more than half an hour to complete on my Jetson Nano DevKit.  When that is done, the optimized TensorRT engine would be saved as "yolov3-416.trt".
 
-4. Test the YOLOv3 TensorRT engine with the "dog.jpg" image.
+4. Test the TensorRT YOLOv3 engine with the "dog.jpg" image.
 
    ```shell
    $ wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
@@ -261,7 +262,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    This was tested against JetPack-4.3, i.e. TensorRT 6.
 
-   ![YOLOv3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
+   ![yolov3-416 detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov3.png)
 
 5. The "trt_yolo.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
@@ -275,7 +276,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    $ python3 eval_yolo.py --model yolov3-608
    ```
 
-   I evaluated all of yolov3-tiny-288, yolov3-tiny-416, yolov3-288, yolov3-416 and yolov3-608 TensorRT engines with COCO "val2017" data and got the following results.  The FPS (frames per second) numbers were measured using "trt_yolov3.py" on my Jetson Nano DevKit with JetPack-4.3.
+   I evaluated all of "yolov3-tiny-288", "yolov3-tiny-416", "yolov3-288", "yolov3-416", and "yolov3-608" TensorRT engines with COCO "val2017" data and got the following results.  The FPS (frames per second) numbers were measured using "trt_yolov3.py" on my Jetson Nano DevKit with JetPack-4.3.
 
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
@@ -290,7 +291,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
    * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
-   * For adapting the code to your own custom trained YOLOv3 models: [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/)
+   * For adapting the code to your own custom trained yolov3/yolov4 models: [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/)
 
 <a name="YOLOv4"></a>
 Demo #5: YOLOv4
@@ -313,7 +314,7 @@ Here are the steps:
 
    The last step ("onnx_to_tensorrt.py") would take quite a while.  When that is done, the optimized TensorRT engine would be saved as "yolov4-416.trt".
 
-3. Test the YOLOv4 TensorRT engine with the "dog.jpg" image.
+3. Test the TensorRT YOLOv4 engine with the "dog.jpg" image.
 
    ```shell
    $ wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
@@ -321,9 +322,9 @@ Here are the steps:
                          --image --filename ${HOME}/Pictures/dog.jpg
    ```
 
-4. (Optional) Test the YOLOv4 TensorRT engine with other kinds of video inputs.  Refer to step 5 in Demo #4.
+4. (Optional) Test the TensorRT YOLOv4 engine with other kinds of video inputs.  Refer to step 5 in Demo #1.
 
-5. Use "eval_yolo.py" to evaluate mAP of the optimized YOLOv4 engines.
+5. Use "eval_yolo.py" to evaluate mAP of the TensorRT YOLOv4 engines.
 
    ```shell
    $ python3 eval_yolo.py --model yolov4-tiny-288
@@ -346,7 +347,66 @@ Here are the steps:
 6. Check out my corresponding blog post:
 
    * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
+   * For adapting the code to your own custom trained yolov3/yolov4 models: [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/)
 
+<a name="yolo_with_plugins"></a>
+Demo #6: YOLOv3/YOLOv4 with TensorRT plugins
+--------------------------------------------
+
+Thanks to [wang-xinyu](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov4) and [dongfangduoshou123](https://github.com/dongfangduoshou123/YoloV3-TensorRT/blob/master/seralizeEngineFromPythonAPI.py), I referenced their code and was able to create a "yolo_layer" plugin and significantly improve inference speed of the yolov3/yolov4 TensorRT engines.  In order not to affecting my previous working implementations of TensorRT YOLOv3/YOLOv4, I created a new command-line option: "--with_plugins" or "-p", for this new feature.  Please refer to the step-by-step guide below for how to build and inference with these improved TensorRT YOLOv3/YOLOv4 engines.
+
+Note that so far I've only tested the "yolo_layer" plugin with TensorRT 7 (JetPack-4.4).  I'm not sure whether the code is compatible of TensorRT 6 or 5.  I'll update the documentation once I have the chance to test it on different TensorRT versions.
+
+1. I assume Demo #5 (and/or Demo #4) has been completed already.  So, for example, the "yolov4-416.cfg" and "yolov4-416.onnx" files are already present in the "yolo/" subdirectory.  Run the following script so that symbolic links of "yolov4-opt-416.cfg" and "yolov4-opt-416.onnx" are created.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/yolo
+   $ ./generate_yolo_opts.sh
+   ```
+
+2. Go to the "plugins/" subdirectory and build the "yolo_layer" plugin.  When done, a "libyolo_layer.so" would be generated.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/plugins
+   $ make
+   ```
+
+3. Build, say, the "yolov4-opt-416" TensorRT engine with the "--with_plugins" (or "-p") flag.  This would take a while.  When it finishes, the optimized TensorRT engine would be saved as "yolov4-opt-416.trt".
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/yolo
+   $ python3 onnx_to_tensorrt.py --with_plugins --model yolov4-opt-416
+   ```
+4. Test, say, the improved "yolov4-opt-416" with the "dog.jpg" image.  Note the use of "--with_plugins" (or "-p") flag again.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_yolo.py --with_plugins --model yolov4-opt-416 \
+                         --image --filename ${HOME}/Pictures/dog.jpg
+   ```
+
+5. (Optional) Test with other kinds of video inputs.  Refer to step 5 in Demo #1.
+
+6. (Optional) Test other models: "yolov3-tiny-opt-288", "yolov3-tiny-opt-416", "yolov3-opt-288", "yolov3-opt-416", "yolov3-opt-608", "yolov4-tiny-opt-288", "yolov4-tiny-opt-416", "yolov4-opt-288", "yolov4-opt-416", and "yolov4-opt-608".  Or you could use your custom trained models, even with non-square input (e.g. 416x256).  Refer to my [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/) blog post if needed.
+
+7. Use "eval_yolo.py" to evaluate mAP of the improved yolov3/yolov4 engines and also check inference speed.
+
+   | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
+   |:-----------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-288 (FP16) |                       |                    |             |
+   | yolov3-tiny-416 (FP16) |                       |                    |     20.5    |
+   | yolov3-288 (FP16)      |                       |                    |             |
+   | yolov3-416 (FP16)      |                       |                    |     4.67    |
+   | yolov3-608 (FP16)      |                       |                    |             |
+   | yolov4-tiny-288 (FP16) |                       |                    |             |
+   | yolov4-tiny-416 (FP16) |                       |                    |     21.2    |
+   | yolov4-288 (FP16)      |                       |                    |             |
+   | yolov4-416 (FP16)      |                       |                    |     4.42    |
+   | yolov4-608 (FP16)      |                       |                    |             |
+
+   To be updated...
+
+---------------
 Licenses
 --------
 
