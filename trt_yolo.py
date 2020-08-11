@@ -13,8 +13,6 @@ import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from utils.yolo_classes import get_cls_dict
-#from utils.yolo import TrtYOLO
-from utils.yolo_with_plugins import TrtYOLO
 from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
@@ -103,6 +101,10 @@ def main():
     if h % 32 != 0 or w % 32 != 0:
         raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
+    if args.with_plugins:
+        from utils.yolo_with_plugins import TrtYOLO
+    else:
+        from utils.yolo import TrtYOLO
     trt_yolo = TrtYOLO(args.model, (h, w), args.category_num)
 
     cam.start()

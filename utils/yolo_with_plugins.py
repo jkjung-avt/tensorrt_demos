@@ -75,7 +75,7 @@ def _nms_boxes(detections, nms_threshold):
     return keep
 
 
-def _postprocess_yolo(trt_outputs, conf_th, nms_threshold=0.5):
+def _postprocess_yolo(trt_outputs, img_w, img_h, conf_th, nms_threshold=0.5):
     """Postprocess TensorRT outputs.
 
     # Args
@@ -87,11 +87,22 @@ def _postprocess_yolo(trt_outputs, conf_th, nms_threshold=0.5):
     # Returns
         boxes, scores, classes (after NMS)
     """
+    # concatenate outputs of all yolo layers
     detections = np.concatenate(
         [o.reshape(-1, 7) for o in trt_outputs], axis=0)
+
+    # drop detections with score lower than conf_th
     box_scores = detections[:, 4] * detections[:, 6]
     pos = np.where(box_scores >= conf_th)
     detections = detections[pos]
+
+    # scale x, y, w, h from [0, 1] to pixel values
+    detections[:, 0] *= img_w
+    detections[:, 1] *= img_h
+    detections[:, 2] *= img_w
+    detections[:, 3] *= img_h
+
+    # NMS
     nms_detections = np.zeros((0, 7), dtype=detections.dtype)
     for class_id in set(detections[:, 5]):
         idxs = np.where(detections[:, 5] == class_id)
@@ -128,11 +139,12 @@ class HostDeviceMem(object):
         return self.__str__()
 
 
-def allocate_buffers(engine):
+def allocate_buffers(engine, grid_sizes):
     """Allocates all host/device in/out buffers required for an engine."""
     inputs = []
     outputs = []
     bindings = []
+    output_idx = 0
     stream = cuda.Stream()
     for binding in engine:
         size = trt.volume(engine.get_binding_shape(binding)) * \
@@ -147,7 +159,11 @@ def allocate_buffers(engine):
         if engine.binding_is_input(binding):
             inputs.append(HostDeviceMem(host_mem, device_mem))
         else:
+            # each grid has 3 anchors, each anchor generates a detection
+            # output of 7 float32 values
+            assert size == grid_sizes[output_idx] * 3 * 7 * engine.max_batch_size
             outputs.append(HostDeviceMem(host_mem, device_mem))
+            output_idx += 1
     return inputs, outputs, bindings, stream
 
 
@@ -190,6 +206,22 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
     return [out.host for out in outputs]
 
 
+def get_yolo_grid_sizes(model_name, h, w):
+    """Get grid sizes (w*h) for all yolo layers in the model."""
+    if 'yolov3' in model_name:
+        if 'tiny' in model_name:
+            return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
+        else:
+            return [(h // 32) * (w // 32), (h // 16) * (w // 16), (h // 8) * (w // 8)]
+    elif 'yolov4' in model_name:
+        if 'tiny' in model_name:
+            return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
+        else:
+            return [(h // 8) * (w // 8), (h // 16) * (w // 16), (w // 32) * (h // 32)]
+    else:
+        raise ValueError('ERROR: unknown model (%s)!' % args.model)
+
+
 class TrtYOLO(object):
     """TrtYOLO class encapsulates things needed to run TRT YOLO."""
 
@@ -214,8 +246,10 @@ class TrtYOLO(object):
 
         try:
             self.context = self._create_context()
+            grid_sizes = get_yolo_grid_sizes(
+                self.model, self.input_shape[0], self.input_shape[1])
             self.inputs, self.outputs, self.bindings, self.stream = \
-                allocate_buffers(self.engine)
+                allocate_buffers(self.engine, grid_sizes)
         except Exception as e:
             self.cuda_ctx.pop()
             del self.cuda_ctx
@@ -243,7 +277,8 @@ class TrtYOLO(object):
             outputs=self.outputs,
             stream=self.stream)
 
-        boxes, scores, classes = _postprocess_yolo(trt_outputs, conf_th)
+        boxes, scores, classes = _postprocess_yolo(
+            trt_outputs, img.shape[1], img.shape[0], conf_th)
 
         # clip x1, y1, x2, y2 within original image
         boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0, img.shape[1]-1)
