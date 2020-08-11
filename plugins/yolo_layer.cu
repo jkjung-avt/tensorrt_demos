@@ -229,7 +229,7 @@ namespace nvinfer1
     {
         int num_elements = batchSize * mNumAnchors * mYoloWidth * mYoloHeight;
 
-        CHECK(cudaMemset(output, 0, num_elements * sizeof(float)));
+        CHECK(cudaMemset(output, 0, num_elements * sizeof(Detection)));
 
         CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount>>>
             (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight);
