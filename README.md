@@ -2,8 +2,8 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.  Highlights:  (The FPS numbers in this README are test results against JetPack 4.3, i.e. TensorRT 6, on Jetson Nano.)
 
-* Run an optimized **"yolov4-416"** object detector at ~3 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~3 FPS on Jetson Nano.
+* Run an optimized "yolov4-opt-416" object detector at ~4.4 FPS on Jetson Nano.
+* Run an optimized "yolov3-opt-416" object detector at ~4.6 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
 * Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
 * Run an optimized "GoogLeNet" image classifier at ~60 FPS on Jetson Nano.
@@ -351,8 +351,11 @@ Here are the steps:
 
 <a name="yolo_with_plugins"></a>
 Demo #6: YOLOv3/YOLOv4 with TensorRT plugins
+--------------------------------------------
 
 Thanks to [wang-xinyu](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov4) and [dongfangduoshou123](https://github.com/dongfangduoshou123/YoloV3-TensorRT/blob/master/seralizeEngineFromPythonAPI.py), I referenced their code and was able to create a "yolo_layer" plugin and significantly improve inference speed of the yolov3/yolov4 TensorRT engines.  In order not to affecting my previous working implementations of TensorRT YOLOv3/YOLOv4, I created a new command-line option: "--with_plugins" or "-p", for this new feature.  Please refer to the step-by-step guide below for how to build and inference with these improved TensorRT YOLOv3/YOLOv4 engines.
+
+Note that so far I've only tested the "yolo_layer" plugin with TensorRT 7 (JetPack-4.4).  I'm not sure whether the code is compatible of TensorRT 6 or 5.  I'll update the documentation once I have the chance to test it on different TensorRT versions.
 
 1. I assume Demo #5 (and/or Demo #4) has been completed already.  So, for example, the "yolov4-416.cfg" and "yolov4-416.onnx" files are already present in the "yolo/" subdirectory.  Run the following script so that symbolic links of "yolov4-opt-416.cfg" and "yolov4-opt-416.onnx" are created.
 
@@ -384,11 +387,24 @@ Thanks to [wang-xinyu](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov
 
 5. (Optional) Test with other kinds of video inputs.  Refer to step 5 in Demo #1.
 
-6. (Optional) Test other models: "yolov3-opt-288", "yolov3-opt-416", "yolov3-opt-608", "yolov3-tiny-opt-288","yolov3-tiny-opt-416", "yolov4-opt-288", "yolov4-opt-416", "yolov4-opt-608", "yolov4-tiny-opt-288", and "yolov4-tiny-opt-416".  Or you could use your custom trained models, even with non-square input (e.g. 416x256).  Refer to my [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/) blog post if needed.
+6. (Optional) Test other models: "yolov3-tiny-opt-288", "yolov3-tiny-opt-416", "yolov3-opt-288", "yolov3-opt-416", "yolov3-opt-608", "yolov4-tiny-opt-288", "yolov4-tiny-opt-416", "yolov4-opt-288", "yolov4-opt-416", and "yolov4-opt-608".  Or you could use your custom trained models, even with non-square input (e.g. 416x256).  Refer to my [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/) blog post if needed.
 
-7. (To be updated) Use "eval_yolo.py" to evaluate mAP of the improved yolov3/yolov4 engines.
+7. Use "eval_yolo.py" to evaluate mAP of the improved yolov3/yolov4 engines and also check inference speed.
 
-   ......
+   | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
+   |:-----------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-288 (FP16) |                       |                    |             |
+   | yolov3-tiny-416 (FP16) |                       |                    |     20.5    |
+   | yolov3-288 (FP16)      |                       |                    |             |
+   | yolov3-416 (FP16)      |                       |                    |     4.67    |
+   | yolov3-608 (FP16)      |                       |                    |             |
+   | yolov4-tiny-288 (FP16) |                       |                    |             |
+   | yolov4-tiny-416 (FP16) |                       |                    |     21.2    |
+   | yolov4-288 (FP16)      |                       |                    |             |
+   | yolov4-416 (FP16)      |                       |                    |     4.42    |
+   | yolov4-608 (FP16)      |                       |                    |             |
+
+   To be updated...
 
 ---------------
 Licenses
