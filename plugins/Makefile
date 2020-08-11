@@ -14,13 +14,7 @@ else ifeq ($(chip_id), 25)  # Xavier NX
 else
   $(error Cannot determine cuda compute automatically, so please modify Makefile manually)
 endif
-# Jetson Nano and TX1
-# NVCCFLAGS=-m64 -gencode arch=compute_53,code=sm_53 \
-#                -gencode arch=compute_53,code=compute_53
-# Jetson TX2
-# NVCCFLAGS=-m64 -gencode arch=compute_62,code=sm_62 \
-#                -gencode arch=compute_62,code=compute_62
-# Jetson Xavire NX
+
 NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
                -gencode arch=compute_$(compute),code=compute_$(compute)
 
