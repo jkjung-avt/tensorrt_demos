@@ -91,7 +91,7 @@ def build_engine(onnx_file_path, add_plugins=False, category_num=80, verbose=Fal
 
         if add_plugins:
             from plugins import add_yolo_plugins
-            print('Adding Yolo plugins')
+            print('Adding yolo_layer plugins')
             model_name = onnx_file_path[:-5]
             network = add_yolo_plugins(
                 network, model_name, category_num, TRT_LOGGER)
