@@ -393,18 +393,18 @@ Note that so far I've only tested the "yolo_layer" plugin with TensorRT 7 (JetPa
 
    | TensorRT engine            | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:---------------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-opt-288 (FP16) |                       |                    |     26.7    |
-   | yolov3-tiny-opt-416 (FP16) |                       |                    |     20.8    |
-   | yolov3-opt-288 (FP16)      |                       |                    |     7.58    |
-   | yolov3-opt-416 (FP16)      |                       |                    |     4.69    |
-   | yolov3-opt-608 (FP16)      |                       |                    |     2.47    |
-   | yolov4-tiny-opt-288 (FP16) |                       |                    |     27.8    |
-   | yolov4-tiny-opt-416 (FP16) |                       |                    |     20.7    |
-   | yolov4-opt-288 (FP16)      |                       |                    |     7.43    |
-   | yolov4-opt-416 (FP16)      |                       |                    |     4.43    |
-   | yolov4-opt-608 (FP16)      |                       |                    |     2.30    |
+   | yolov3-tiny-opt-288 (FP16) |         0.077         |        0.158       |     26.7    |
+   | yolov3-tiny-opt-416 (FP16) |         0.096         |        0.201       |     20.8    |
+   | yolov3-opt-288 (FP16)      |         0.331         |        0.600       |     7.58    |
+   | yolov3-opt-416 (FP16)      |         0.373         |        0.663       |     4.69    |
+   | yolov3-opt-608 (FP16)      |         0.376         |        0.664       |     2.47    |
+   | yolov4-tiny-opt-288 (FP16) |         0.178         |        0.344       |     27.8    |
+   | yolov4-tiny-opt-416 (FP16) |         0.195         |        0.386       |     20.7    |
+   | yolov4-opt-288 (FP16)      |         0.371         |        0.590       |     7.43    |
+   | yolov4-opt-416 (FP16)      |         0.453         |        0.698       |     4.43    |
+   | yolov4-opt-608 (FP16)      |         0.483         |        0.735       |     2.30    |
 
-   To be updated...
+   NOTE: I'm planning to merge Demo #4, Demo #5 and Demo #6.  And I'll probably only keep the new ("--with_plugins") implementation of TensorRT yolov3/yolov4 when I do that...
 
 ---------------
 Licenses
