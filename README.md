@@ -391,18 +391,18 @@ Note that so far I've only tested the "yolo_layer" plugin with TensorRT 7 (JetPa
 
 7. Use "eval_yolo.py" to evaluate mAP of the improved yolov3/yolov4 engines and also check inference speed.
 
-   | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
-   |:-----------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-288 (FP16) |                       |                    |             |
-   | yolov3-tiny-416 (FP16) |                       |                    |     20.5    |
-   | yolov3-288 (FP16)      |                       |                    |             |
-   | yolov3-416 (FP16)      |                       |                    |     4.67    |
-   | yolov3-608 (FP16)      |                       |                    |             |
-   | yolov4-tiny-288 (FP16) |                       |                    |             |
-   | yolov4-tiny-416 (FP16) |                       |                    |     21.2    |
-   | yolov4-288 (FP16)      |                       |                    |             |
-   | yolov4-416 (FP16)      |                       |                    |     4.42    |
-   | yolov4-608 (FP16)      |                       |                    |             |
+   | TensorRT engine            | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
+   |:---------------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-opt-288 (FP16) |                       |                    |     26.7    |
+   | yolov3-tiny-opt-416 (FP16) |                       |                    |     20.8    |
+   | yolov3-opt-288 (FP16)      |                       |                    |     7.58    |
+   | yolov3-opt-416 (FP16)      |                       |                    |     4.69    |
+   | yolov3-opt-608 (FP16)      |                       |                    |     2.47    |
+   | yolov4-tiny-opt-288 (FP16) |                       |                    |     27.8    |
+   | yolov4-tiny-opt-416 (FP16) |                       |                    |     20.7    |
+   | yolov4-opt-288 (FP16)      |                       |                    |     7.43    |
+   | yolov4-opt-416 (FP16)      |                       |                    |     4.43    |
+   | yolov4-opt-608 (FP16)      |                       |                    |     2.30    |
 
    To be updated...
 
