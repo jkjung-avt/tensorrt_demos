@@ -206,8 +206,8 @@ namespace nvinfer1
         }
         float max_cls_prob = sigmoidGPU(max_cls_logit);
         float box_prob = sigmoidGPU(cur_input[idx + 4 * total_grids]);
-        if (max_cls_prob < IGNORE_THRESH || box_prob < IGNORE_THRESH)
-            return;
+        //if (max_cls_prob < IGNORE_THRESH || box_prob < IGNORE_THRESH)
+        //    return;
 
         int row = idx / yolo_width;
         int col = idx % yolo_width;
@@ -229,7 +229,7 @@ namespace nvinfer1
     {
         int num_elements = batchSize * mNumAnchors * mYoloWidth * mYoloHeight;
 
-        CHECK(cudaMemset(output, 0, num_elements * sizeof(Detection)));
+        //CHECK(cudaMemset(output, 0, num_elements * sizeof(Detection)));
 
         CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount>>>
             (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight);
