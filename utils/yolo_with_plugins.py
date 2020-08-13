@@ -14,7 +14,12 @@ import tensorrt as trt
 import pycuda.driver as cuda
 
 
-ctypes.cdll.LoadLibrary('./plugins/libyolo_layer.so')
+try:
+    ctypes.cdll.LoadLibrary('./plugins/libyolo_layer.so')
+except OSError as e:
+    raise SystemExit('ERROR: failed to load ./plugins/libyolo_layer.so.  '
+                     'Did you forget to do a "make" in the "./plugins/" '
+                     'subdirectory?') from e
 
 
 def _preprocess_yolo(img, input_shape):

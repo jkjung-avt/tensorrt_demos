@@ -56,6 +56,8 @@ import argparse
 
 import tensorrt as trt
 
+from plugins import add_yolo_plugins
+
 
 EXPLICIT_BATCH = []
 if trt.__version__[0] >= '7':
@@ -63,7 +65,7 @@ if trt.__version__[0] >= '7':
         1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
 
 
-def build_engine(onnx_file_path, add_plugins=False, category_num=80, verbose=False):
+def build_engine(onnx_file_path, category_num=80, verbose=False):
     """Build a TensorRT engine from an ONNX file."""
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
@@ -75,7 +77,6 @@ def build_engine(onnx_file_path, add_plugins=False, category_num=80, verbose=Fal
         # Parse model file
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
         with open(onnx_file_path, 'rb') as model:
-            print('Beginning ONNX file parsing')
             if not parser.parse(model.read()):
                 print('ERROR: Failed to parse the ONNX file.')
                 for error in range(parser.num_errors):
@@ -87,18 +88,16 @@ def build_engine(onnx_file_path, add_plugins=False, category_num=80, verbose=Fal
             shape = list(network.get_input(0).shape)
             shape[0] = 1
             network.get_input(0).shape = shape
-        print('Completed parsing of ONNX file')
 
-        if add_plugins:
-            from plugins import add_yolo_plugins
-            print('Adding yolo_layer plugins')
-            model_name = onnx_file_path[:-5]
-            network = add_yolo_plugins(
-                network, model_name, category_num, TRT_LOGGER)
+        print('Adding yolo_layer plugins...')
+        model_name = onnx_file_path[:-5]
+        network = add_yolo_plugins(
+            network, model_name, category_num, TRT_LOGGER)
 
-        print('Building an engine; this may take a while...')
+        print('Building an engine.  This would take a while...')
+        print('(Use "--verbose" to enable verbose logging.)')
         engine = builder.build_cuda_engine(network)
-        print('Completed creating engine')
+        print('Completed creating engine.')
         return engine
 
 
@@ -109,13 +108,10 @@ def main():
         '-v', '--verbose', action='store_true',
         help='enable verbose output (for debugging)')
     parser.add_argument(
-        '-p', '--with_plugins', action='store_true',
-        help='build TensorRT engine with yolo plugins')
-    parser.add_argument(
         '-c', '--category_num', type=int, default=80,
         help='number of object categories [80]')
     parser.add_argument(
-        '--model', type=str, required=True,
+        '-m', '--model', type=str, required=True,
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
@@ -125,8 +121,7 @@ def main():
     if not os.path.isfile(onnx_file_path):
         raise SystemExit('ERROR: file (%s) not found!  You might want to run yolo_to_onnx.py first to generate it.' % onnx_file_path)
     engine_file_path = '%s.trt' % args.model
-    engine = build_engine(
-        onnx_file_path, args.with_plugins, args.category_num, args.verbose)
+    engine = build_engine(onnx_file_path, args.category_num, args.verbose)
     with open(engine_file_path, 'wb') as f:
         f.write(engine.serialize())
     print('Serialized the TensorRT engine to file: %s' % engine_file_path)
