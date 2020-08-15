@@ -16,10 +16,9 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from progressbar import progressbar
 
-from utils.yolo import TrtYOLO
+from utils.yolo_with_plugins import TrtYOLO
 from utils.yolo_classes import yolo_cls_to_ssd
 
-from utils.yolo_with_plugins import TrtYOLO
 
 
 HOME = os.environ['HOME']

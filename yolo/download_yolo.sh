@@ -3,12 +3,16 @@
 set -e
 
 # yolov3-tiny
-wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -q --show-progress --no-clobber
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov3-tiny.cfg -q --show-progress --no-clobber
 wget https://pjreddie.com/media/files/yolov3-tiny.weights -q --show-progress --no-clobber
 
 # yolov3
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg -q --show-progress --no-clobber
 wget https://pjreddie.com/media/files/yolov3.weights -q --show-progress --no-clobber
+
+# yolov3-spp
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov3-spp.cfg -q --show-progress --no-clobber
+wget https://pjreddie.com/media/files/yolov3-spp.weights -q --show-progress --no-clobber
 
 # yolov4-tiny
 wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.cfg -q --show-progress --no-clobber
@@ -37,6 +41,16 @@ ln -sf yolov3.weights yolov3-416.weights
 echo "Creating yolov3-608.cfg and yolov3-608.weights"
 cp yolov3.cfg yolov3-608.cfg
 ln -sf yolov3.weights yolov3-608.weights
+
+echo "Creating yolov3-spp-288.cfg and yolov3-spp-288.weights"
+cat yolov3-spp.cfg | sed -e '8s/width=608/width=288/' | sed -e '9s/height=608/height=288/' > yolov3-spp-288.cfg
+ln -sf yolov3-spp.weights yolov3-spp-288.weights
+echo "Creating yolov3-spp-416.cfg and yolov3-spp-416.weights"
+cat yolov3-spp.cfg | sed -e '8s/width=608/width=416/' | sed -e '9s/height=608/height=416/' > yolov3-spp-416.cfg
+ln -sf yolov3-spp.weights yolov3-spp-416.weights
+echo "Creating yolov3-spp-608.cfg and yolov3-spp-608.weights"
+cp yolov3-spp.cfg yolov3-spp-608.cfg
+ln -sf yolov3-spp.weights yolov3-spp-608.weights
 
 echo "Creating yolov4-tiny-288.cfg and yolov4-tiny-288.weights"
 cat yolov4-tiny.cfg | sed -e '6s/batch=64/batch=1/' | sed -e '8s/width=416/width=288/' | sed -e '9s/height=416/height=288/' > yolov4-tiny-288.cfg
