@@ -23,7 +23,7 @@ def _preprocess_trt(img, shape=(300, 300)):
     return img
 
 
-def _postprocess_trt(img, output, conf_th, output_layout):
+def _postprocess_trt(img, output, conf_th, output_layout=7):
     """Postprocess TRT SSD output."""
     img_h, img_w, _ = img.shape
     boxes, confs, clss = [], [], []
@@ -73,12 +73,14 @@ class TrtSSD(object):
                 cuda_outputs.append(cuda_mem)
         return host_inputs, host_outputs, cuda_inputs, cuda_outputs, bindings
 
-    def __init__(self, model, input_shape, output_layout=7):
+    def __init__(self, model, input_shape, cuda_ctx=None):
         """Initialize TensorRT plugins, engine and conetxt."""
-        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.model = model
         self.input_shape = input_shape
-        self.output_layout = output_layout
+        self.cuda_ctx = cuda_ctx
+        if self.cuda_ctx:
+            self.cuda_ctx.push()
+
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self._load_plugins()
         self.engine = self._load_engine()
@@ -88,16 +90,15 @@ class TrtSSD(object):
             self.stream = cuda.Stream()
             self.host_inputs, self.host_outputs, self.cuda_inputs, self.cuda_outputs, self.bindings = self._allocate_buffers()
         except Exception as e:
-            self.cuda_ctx.pop()
-            del self.cuda_ctx
             raise RuntimeError('fail to allocate CUDA resources') from e
+        finally:
+            if self.cuda_ctx:
+                self.cuda_ctx.pop()
 
     def __del__(self):
         """Free CUDA memories and context."""
         del self.cuda_outputs
         del self.cuda_inputs
-        self.cuda_ctx.pop()
-        del self.cuda_ctx
         del self.stream
 
     def detect(self, img, conf_th=0.3):
@@ -105,6 +106,8 @@ class TrtSSD(object):
         img_resized = _preprocess_trt(img, self.input_shape)
         np.copyto(self.host_inputs[0], img_resized.ravel())
 
+        if self.cuda_ctx:
+            self.cuda_ctx.push()
         cuda.memcpy_htod_async(
             self.cuda_inputs[0], self.host_inputs[0], self.stream)
         self.context.execute_async(
@@ -116,9 +119,11 @@ class TrtSSD(object):
         cuda.memcpy_dtoh_async(
             self.host_outputs[0], self.cuda_outputs[0], self.stream)
         self.stream.synchronize()
+        if self.cuda_ctx:
+            self.cuda_ctx.pop()
 
         output = self.host_outputs[0]
-        return _postprocess_trt(img, output, conf_th, self.output_layout)
+        return _postprocess_trt(img, output, conf_th)
 
 
 def _preprocess_tf(img, shape=(300, 300)):
