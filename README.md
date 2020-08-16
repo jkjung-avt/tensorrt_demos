@@ -207,7 +207,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
                               --filename ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg
    ```
 
-5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure they do not degrade too much (due to reduced floating-point precision of "FP16") from the original TensorFlow frozen inference graphs, you could prepare validation data and run "eval_ssd.py".  Refer to [README_eval_ssd.md](README_eval_ssd.md) for details.
+5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure they do not degrade too much (due to reduced floating-point precision of "FP16") from the original TensorFlow frozen inference graphs, you could prepare validation data and run "eval_ssd.py".  Refer to [README_mAP.md](README_mAP.md) for details.
 
    I compared mAP of the TensorRT engine and the original tensorflow model for both "ssd_mobilenet_v1_coco" and "ssd_mobilenet_v2_coco" using COCO "val2017" data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.  The FPS (frames per second) numbers in the table were measured using "trt_ssd_async.py" on my Jetson Nano DevKit with JetPack-4.3.
 
@@ -287,7 +287,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
 7. (Optional) Test other models than "yolov4-416".
 
-8. Similar to step 5 of Demo #3, I created an "eval_yolo.py" for evaluating mAP of the TensorRT yolov3/yolov4 engines.
+8. Similar to step 5 of Demo #3, I created an "eval_yolo.py" for evaluating mAP of the TensorRT yolov3/yolov4 engines.  Refer to [README_mAP.md](README_mAP.md) for details.
 
    ```shell
    $ python3 eval_yolo.py -m yolov3-tiny-288
