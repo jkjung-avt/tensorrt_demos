@@ -47,6 +47,8 @@ If you plan to run Demo #3 (SSD), you'd also need to have "tensorflow-1.x" insta
 
 Or if you plan to run Demo #4 and Demo #5, you'd need to have "protobuf" installed.  I recommend installing "protobuf-3.8.0" using my [install_protobuf-3.8.0.sh](https://github.com/jkjung-avt/jetson_nano/blob/master/install_protobuf-3.8.0.sh) script.  This script would take a couple of hours on a Jetson system.  Alternatively, pip3 install a recent version of "protobuf" should also work (but might run a little bit slowlier).
 
+I use Python 3.6 as my primary test environment.  I think other versions of python3 would likely just work without any problem.
+
 In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
 
 * [JetPack-4.3 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.3/)
