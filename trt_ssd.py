@@ -5,7 +5,6 @@ TensorRT optimized Single-Shot Multibox Detector (SSD) engine.
 """
 
 
-import sys
 import time
 import argparse
 
@@ -36,7 +35,8 @@ def parse_args():
             'SSD model on Jetson Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
-    parser.add_argument('--model', type=str, default='ssd_mobilenet_v2_coco',
+    parser.add_argument('-m', '--model', type=str,
+                        default='ssd_mobilenet_v1_coco',
                         choices=SUPPORTED_MODELS)
     args = parser.parse_args()
     return args
@@ -81,7 +81,7 @@ def main():
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
     trt_ssd = TrtSSD(args.model, INPUT_HW)

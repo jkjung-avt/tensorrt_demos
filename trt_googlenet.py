@@ -5,7 +5,6 @@ This script demonstrates how to do real-time image classification
 """
 
 
-import sys
 import timeit
 import argparse
 
@@ -111,7 +110,7 @@ def main():
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     # initialize the tensorrt googlenet engine
     net = PyTrtGooglenet(DEPLOY_ENGINE, ENGINE_SHAPE0, ENGINE_SHAPE1)

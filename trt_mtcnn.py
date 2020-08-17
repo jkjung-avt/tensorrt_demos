@@ -4,7 +4,6 @@ This script demonstrates how to do real-time face detection with
 Cython wrapped TensorRT optimized MTCNN engine.
 """
 
-import sys
 import time
 import argparse
 
@@ -74,7 +73,7 @@ def main():
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     mtcnn = TrtMtcnn()
 
