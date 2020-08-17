@@ -3,10 +3,10 @@
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.
 
 * Run an optimized "yolov4-416" object detector at ~4.4 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~4.6 FPS on Jetson Nano.
+* Run an optimized "yolov3-416" object detector at ~4.7 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
 * Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
-* Run an optimized "GoogLeNet" image classifier at ~60 FPS on Jetson Nano.
+* Run an optimized "GoogLeNet" image classifier at "~16 ms per image (inference only)" on Jetson Nano.
 * In addition to Jetson Nano, all demos also work on Jetson TX2, AGX Xavier, Xavier NX ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927) and [link](https://github.com/jkjung-avt/tensorrt_demos/issues/30)), and run much faster!
 * All demos work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
@@ -24,15 +24,15 @@ Table of contents
 Prerequisite
 ------------
 
-The code in this repository was tested on both Jetson Nano, TX2, and Xavier NX Devkits.  In order to run the demos below, first make sure you have the proper version of image (JetPack) installed on the target Jetson system.  For example, [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/) and [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/).
+The code in this repository was tested on Jetson Nano, TX2, and Xavier NX DevKits.  In order to run the demos below, first make sure you have the proper version of image (JetPack) installed on the target Jetson system.  For example, [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/) and [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/).
 
 More specifically, the target Jetson system must have TensorRT libraries installed.
 
-* Demo #1 and Demo #2: works TensorRT 3.x+,
+* Demo #1 and Demo #2: works for TensorRT 3.x+,
 * Demo #3: requires TensoRT 5.x+,
-* Demo #4 and Demo $5: requires TensorRT 6.x+.
+* Demo #4 and Demo #5: requires TensorRT 6.x+.
 
-You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (from JetPack-4.2.2) was present on one of my Jetson Nano DevKits.
+You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (JetPack-4.2.2) was present on one of my Jetson Nano DevKits.
 
 ```shell
 $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
@@ -228,6 +228,9 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 <a name="YOLOv3"></a>
 Demo #4: YOLOv3
 ---------------
+
+(Merged with Demo #5: YOLOv4...)
+
 <a name="YOLOv4"></a>
 Demo #5: YOLOv4
 ---------------
@@ -281,7 +284,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    This is a screenshot of the demo against JetPack-4.4, i.e. TensorRT 7.
 
-   !["yolov4-416" detection result on dog.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/dog_trt_yolov4.png)
+   !["yolov4-416" detection result on dog.jpg](doc/dog_trt_yolov4_416.jpg)
 
 6. The "trt_yolo.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
@@ -300,19 +303,19 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     26.7    |
-   | yolov3-tiny-416 (FP16) |         0.096         |        0.201       |     20.8    |
-   | yolov3-288 (FP16)      |         0.331         |        0.600       |     7.58    |
-   | yolov3-416 (FP16)      |         0.373         |        0.663       |     4.69    |
+   | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     28.2    |
+   | yolov3-tiny-416 (FP16) |         0.096         |        0.201       |     21.4    |
+   | yolov3-288 (FP16)      |         0.331         |        0.600       |     7.68    |
+   | yolov3-416 (FP16)      |         0.373         |        0.663       |     4.73    |
    | yolov3-608 (FP16)      |         0.376         |        0.664       |     2.47    |
-   | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |             |
-   | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |             |
-   | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |             |
-   | yolov4-tiny-288 (FP16) |         0.178         |        0.344       |     27.8    |
-   | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     20.7    |
-   | yolov4-288 (FP16)      |         0.371         |        0.590       |     7.43    |
-   | yolov4-416 (FP16)      |         0.453         |        0.698       |     4.43    |
-   | yolov4-608 (FP16)      |         0.483         |        0.735       |     2.30    |
+   | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     7.66    |
+   | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |     4.62    |
+   | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |     2.43    |
+   | yolov4-tiny-288 (FP16) |         0.178         |        0.344       |     28.5    |
+   | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     21.3    |
+   | yolov4-288 (FP16)      |         0.371         |        0.590       |     7.41    |
+   | yolov4-416 (FP16)      |         0.453         |        0.698       |     4.45    |
+   | yolov4-608 (FP16)      |         0.483         |        0.735       |     2.28    |
 
 7. Check out my blog posts for implementation details:
 
