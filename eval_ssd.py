@@ -17,7 +17,8 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from progressbar import progressbar
 
-from utils.ssd import TrtSSD, TfSSD
+from utils.ssd import TrtSSD
+from utils.ssd_tf import TfSSD
 
 
 INPUT_HW = (300, 300)
