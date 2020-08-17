@@ -108,6 +108,7 @@ Checkout "plugins/Makefile".  You'll need to make sure in "plugins/Makefile":
 ```
 ......
 else ifeq ($(cpu_arch), x86_64)  # x86_64 PC
+  $(warning "compute=75" is for GeForce RTX-2080 Ti.  Please make sure CUDA compute is set correctly for your system in the Makefile.)
   compute=75
 ......
 NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
