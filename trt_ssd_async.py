@@ -9,7 +9,6 @@ would be improved comparing to the non-async version.
 """
 
 
-import sys
 import time
 import argparse
 import threading
@@ -25,6 +24,7 @@ from utils.visualization import BBoxVisualization
 
 
 WINDOW_NAME = 'TrtSsdDemoAsync'
+MAIN_THREAD_TIMEOUT = 30.0  # 30 seconds
 INPUT_HW = (300, 300)
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
@@ -46,7 +46,8 @@ def parse_args():
             'SSD model on Jetson Nano')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
-    parser.add_argument('--model', type=str, default='ssd_mobilenet_v2_coco',
+    parser.add_argument('-m', '--model', type=str,
+                        default='ssd_mobilenet_v1_coco',
                         choices=SUPPORTED_MODELS)
     args = parser.parse_args()
     return args
@@ -132,8 +133,10 @@ def loop_and_display(condition, vis):
             # getting the signal from the child thread, save the
             # references to the frame and detection result for
             # display.
-            condition.wait()
-            img, boxes, confs, clss = s_img, s_boxes, s_confs, s_clss
+            if condition.wait(timeout=MAIN_THREAD_TIMEOUT):
+                img, boxes, confs, clss = s_img, s_boxes, s_confs, s_clss
+            else:
+                raise SystemExit('ERROR: timeout waiting for img from child')
         img = vis.draw_bboxes(img, boxes, confs, clss)
         img = show_fps(img, fps)
         cv2.imshow(WINDOW_NAME, img)
@@ -155,7 +158,7 @@ def main():
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
 

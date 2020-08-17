@@ -26,6 +26,7 @@ ENGINE_SHAPE1 = (1000, 1, 1)
 RESIZED_SHAPE = (224, 224)
 
 WINDOW_NAME = 'TrtGooglenetDemo'
+MAIN_THREAD_TIMEOUT = 30.0  # 30 seconds
 
 # 'shared' global variables
 s_img, s_probs, s_labels = None, None, None
@@ -135,8 +136,10 @@ def loop_and_display(condition):
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
         with condition:
-            condition.wait()
-            img, top_probs, top_labels = s_img, s_probs, s_labels
+            if condition.wait(timeout=MAIN_THREAD_TIMEOUT):
+                img, top_probs, top_labels = s_img, s_probs, s_labels
+            else:
+                raise SystemExit('ERROR: timeout waiting for img from child')
         show_top_preds(img, top_probs, top_labels)
         img = show_fps(img, fps)
         cv2.imshow(WINDOW_NAME, img)
@@ -161,7 +164,7 @@ def main():
     cam = Camera(args)
     cam.open()
     if not cam.is_opened:
-        sys.exit('Failed to open camera!')
+        raise SystemExit('ERROR: failed to open camera!')
 
     cam.start()  # let camera start grabbing frames
     open_window(WINDOW_NAME, args.image_width, args.image_height,
