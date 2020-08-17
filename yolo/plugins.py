@@ -9,8 +9,12 @@ import ctypes
 import numpy as np
 import tensorrt as trt
 
-
-ctypes.cdll.LoadLibrary('../plugins/libyolo_layer.so')
+try:
+    ctypes.cdll.LoadLibrary('../plugins/libyolo_layer.so')
+except OSError as e:
+    raise SystemExit('ERROR: failed to load ../plugins/libyolo_layer.so.  '
+                     'Did you forget to do a "make" in the "../plugins/" '
+                     'subdirectory?') from e
 
 
 def get_input_wh(model_name):

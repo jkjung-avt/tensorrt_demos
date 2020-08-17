@@ -14,7 +14,12 @@ import tensorrt as trt
 import pycuda.driver as cuda
 
 
-ctypes.cdll.LoadLibrary('./plugins/libyolo_layer.so')
+try:
+    ctypes.cdll.LoadLibrary('./plugins/libyolo_layer.so')
+except OSError as e:
+    raise SystemExit('ERROR: failed to load ./plugins/libyolo_layer.so.  '
+                     'Did you forget to do a "make" in the "./plugins/" '
+                     'subdirectory?') from e
 
 
 def _preprocess_yolo(img, input_shape):
@@ -230,37 +235,36 @@ class TrtYOLO(object):
         with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
-    def _create_context(self):
-        return self.engine.create_execution_context()
-
-    def __init__(self, model, input_shape, category_num=80):
+    def __init__(self, model, input_shape, category_num=80, cuda_ctx=None):
         """Initialize TensorRT plugins, engine and conetxt."""
-        self.cuda_ctx = cuda.Device(0).make_context()  # GPU 0
         self.model = model
         self.input_shape = input_shape
         self.category_num = category_num
+        self.cuda_ctx = cuda_ctx
+        if self.cuda_ctx:
+            self.cuda_ctx.push()
+
         self.inference_fn = do_inference if trt.__version__[0] < '7' \
                                          else do_inference_v2
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self.engine = self._load_engine()
 
         try:
-            self.context = self._create_context()
+            self.context = self.engine.create_execution_context()
             grid_sizes = get_yolo_grid_sizes(
                 self.model, self.input_shape[0], self.input_shape[1])
             self.inputs, self.outputs, self.bindings, self.stream = \
                 allocate_buffers(self.engine, grid_sizes)
         except Exception as e:
-            self.cuda_ctx.pop()
-            del self.cuda_ctx
             raise RuntimeError('fail to allocate CUDA resources') from e
+        finally:
+            if self.cuda_ctx:
+                self.cuda_ctx.pop()
 
     def __del__(self):
         """Free CUDA memories."""
         del self.outputs
         del self.inputs
-        self.cuda_ctx.pop()
-        del self.cuda_ctx
         del self.stream
 
     def detect(self, img, conf_th=0.3):
@@ -270,12 +274,16 @@ class TrtYOLO(object):
         # Set host input to the image. The do_inference() function
         # will copy the input to the GPU before executing.
         self.inputs[0].host = np.ascontiguousarray(img_resized)
+        if self.cuda_ctx:
+            self.cuda_ctx.push()
         trt_outputs = self.inference_fn(
             context=self.context,
             bindings=self.bindings,
             inputs=self.inputs,
             outputs=self.outputs,
             stream=self.stream)
+        if self.cuda_ctx:
+            self.cuda_ctx.pop()
 
         boxes, scores, classes = _postprocess_yolo(
             trt_outputs, img.shape[1], img.shape[0], conf_th)

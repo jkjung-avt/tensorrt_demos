@@ -2,37 +2,38 @@
 
 All demos in this repository, with minor tweaks, should also work on x86_64 platforms with NVIDIA GPU(s).  Here is a list of required modifications if you'd like to run the demos on an x86_64 PC/server.
 
+
+Make sure you have TensorRT installed properly on your x86_64 system.  You could follow NVIDIA's official [Installation Guide :: NVIDIA Deep Learning TensorRT](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html) documentation.
+
 Demo #1 (GoogLeNet) and #2 (MTCNN)
 ----------------------------------
 
-1. When compiling `create_engine.cpp`, set `CUDA_VER`, `INCPATHS` and `LIBPATHS` based on how you've installed CUDA and TensorRT on your system.  For example, I have CUDA 10.0 installed at `/usr/local/cuda` and TensorRT 5.1.5.0 at `/usr/local/TensorRT-5.1.5.0`.  So I'd modify the following lines in `common/Makefile.config`:
+1. Set `TENSORRT_INCS` and `TENSORRT_LIBS` in "common/Makefile.config" correctly for your x86_64 system.  More specifically, you should find the following lines in "common/Mafefile.config" and modify them if needed.
 
    ```
-   ......
-   CUDA_VER=cuda-10.0
-   ......
-   INCPATHS    =-I"/usr/local/TensorRT-5.1.5.0/include" -I"$(CUDA_INSTALL_DIR)/include" -I"/usr/local/include" -I"$(CUDNN_INSTALL_DIR)/include" $(TGT_INCLUDES) -I"../common"
-   LIBPATHS    =-L"/usr/local/TensorRT-5.1.5.0/lib" -L"$(LOCALLIB)" -L"$(CUDA_INSTALL_DIR)/targets/$(TRIPLE)/$(CUDA_LIBDIR)" -L"/usr/local/lib" -L"$(CUDA_INSTALL_DIR)/$(CUDA_LIBDIR)" -L"$(CUDNN_INSTALL_DIR)/$(CUDNN_LIBDIR)" $(TGT_LIBS)
-   ......
+   # These are the directories where I installed TensorRT on my x86_64 PC.
+   TENSORRT_INCS=-I"/usr/local/TensorRT-7.1.3.4/include"
+   TENSORRT_LIBS=-L"/usr/local/TensorRT-7.1.3.4/lib"
    ```
 
-2. Modify `setup.py`.  Add 'include' and 'library' paths for TensorRT.  For example, I had to add these 2 lines in `setup.py`.
+2. Set `library_dirs` and `include_dirs` in "setup.py".  More specifically, you should check and make sure the 2 TensorRT path lines are correct.
 
    ```python
-    ......
-    library_dirs = [
-        '/usr/local/cuda/lib64',
-   +    '/usr/local/TensorRT-5.1.5.0/lib',
-        '/usr/local/lib',
-    ]
-    ......
-    include_dirs = [
-        ......
-        '-I/usr/local/cuda/include',
-   +    '-I/usr/local/TensorRT-5.1.5.0/include',
-        '-I/usr/local/include',
-    ]
-    ......
+   library_dirs = [
+       '/usr/local/cuda/lib64',
+       '/usr/local/TensorRT-7.1.3.4/lib',  # for my x86_64 PC
+       '/usr/local/lib',
+   ]
+   ......
+   include_dirs = [
+       # in case the following numpy include path does not work, you
+       # could replace it manually with, say,
+       # '-I/usr/local/lib/python3.6/dist-packages/numpy/core/include',
+       '-I' + numpy.__path__[0] + '/core/include',
+       '-I/usr/local/cuda/include',
+       '-I/usr/local/TensorRT-7.1.3.4/include',  # for my x86_64 PC
+       '-I/usr/local/include',
+   ]
    ```
 
 3. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md), and the demos should work on x86_64 as well.
@@ -40,14 +41,7 @@ Demo #1 (GoogLeNet) and #2 (MTCNN)
 Demo #3 (SSD)
 -------------
 
-1. Install `tensorrt`, `uff` and `graphsurgeon` python3 packages.  For example, I do the following on my x86_64 PC since I have TensorRT-5.1.5.0 installed at `/usr/local`.
-
-   ```shell
-   $ export TRT_DIR=/usr/local/TensorRT-5.1.5.0
-   $ sudo pip3 install ${TRT_DIR}/python/tensorrt-5.1.5.0-cp36-none-linux_x86_64.whl
-   $ sudo pip3 install ${TRT_DIR}/uff/uff-0.6.3-py2.py3-none-any.whl
-   $ sudo pip3 install ${TRT_DIR}/graphsurgeon/graphsurgeon-0.4.1-py2.py3-none-any.whl
-   ```
+1. Make sure to follow NVIDIA's official [Installation Guide :: NVIDIA Deep Learning TensorRT](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html) documentation and pip3 install "tensorrt", "uff", and "graphsurgeon" packages.
 
 2. Patch `/usr/local/lib/python3.?/dist-packages/graphsurgeon/node_manipulation.py` by adding the following line (around line #42):
 
@@ -60,15 +54,7 @@ Demo #3 (SSD)
         for key, val in kwargs.items():
         ......
    ```
-
-3. Add TensorRT library path into `LD_LIBRARY_PATH` environment variable.  For example, I add the following line at the end of my `${HOME}/.bashrc` and log out/in again.
-
-   ```
-   export LD_LIBRARY_PATH=/usr/local/TensorRT-5.1.5.0/lib\
-                          ${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-   ```
-
-4. Re-build `libflattenconcat.so` from TensorRT's 'python/uff_ssd' sample source code.  For example,
+3. (I think this step is only required for TensorRT 6 or earlier versions.)  Re-build `libflattenconcat.so` from TensorRT's 'python/uff_ssd' sample source code.  For example,
 
    ```shell
    $ mkdir -p ${HOME}/src/TensorRT-5.1.5.0
@@ -82,7 +68,7 @@ Demo #3 (SSD)
    $ cp libflattenconcat.so ${HOME}/project/tensorrt_demos/ssd/
    ```
 
-5. Install PyCUDA.
+4. Install "pycuda".
 
    ```shell
    $ sudo apt-get install -y build-essential python-dev
@@ -109,9 +95,28 @@ Demo #3 (SSD)
    $ python3 -c "import pycuda; print('pycuda version:', pycuda.VERSION)"
    ```
 
-6. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md) but skip `install.sh`.  You should be able to build the SSD TensorRT engines and run them on on x86_64 as well.
+5. Follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md) but skip `install.sh`.  You should be able to build the SSD TensorRT engines and run them on on x86_64 as well.
 
 Demo #4 (YOLOv3) & Demo #5 (YOLOv4)
 -----------------------------------
 
-These 2 demos run on x86 platforms directly.  No modification is required.
+Checkout "plugins/Makefile".  You'll need to make sure in "plugins/Makefile":
+
+* CUDA `compute` is set correctly for your GPU (reference: [CUDA GPUs | NVIDIA Developer]());
+* `TENSORRT_INCS` and `TENSORRT_LIBS` point to the right paths.
+
+```
+......
+else ifeq ($(cpu_arch), x86_64)  # x86_64 PC
+  compute=75
+......
+NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
+               -gencode arch=compute_$(compute),code=compute_$(compute)
+......
+# These are the directories where I installed TensorRT on my x86_64 PC.
+TENSORRT_INCS=-I"/usr/local/TensorRT-7.1.3.4/include"
+TENSORRT_LIBS=-L"/usr/local/TensorRT-7.1.3.4/lib"
+......
+```
+
+Otherwise, you should be able to follow the steps in the original [README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README.md) to get these 2 demos working.

@@ -17,6 +17,8 @@ from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 
+from utils.yolo_with_plugins import TrtYOLO
+
 
 WINDOW_NAME = 'TrtYOLODemo'
 
@@ -29,16 +31,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
     parser.add_argument(
-        '-p', '--with_plugins', action='store_true',
-        help='use a TensorRT engine with yolo plugins')
+        '-c', '--category_num', type=int, default=80,
+        help='number of object categories [80]')
     parser.add_argument(
-        '--model', type=str, required=True,
+        '-m', '--model', type=str, required=True,
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
-    parser.add_argument(
-        '--category_num', type=int, default=80,
-        help='number of object categories [80]')
     args = parser.parse_args()
     return args
 
@@ -101,10 +100,6 @@ def main():
     if h % 32 != 0 or w % 32 != 0:
         raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
-    if args.with_plugins:
-        from utils.yolo_with_plugins import TrtYOLO
-    else:
-        from utils.yolo import TrtYOLO
     trt_yolo = TrtYOLO(args.model, (h, w), args.category_num)
 
     cam.start()

@@ -61,6 +61,8 @@ import numpy as np
 import onnx
 from onnx import helper, TensorProto
 
+from plugins import verify_classes, get_input_wh
+
 
 class DarkNetParser(object):
     """Definition of a parser for DarkNet-based YOLO model."""
@@ -855,13 +857,13 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--model', type=str, required=True,
+        '-c', '--category_num', type=int, default=80,
+        help='number of object categories [80]')
+    parser.add_argument(
+        '-m', '--model', type=str, required=True,
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
-    parser.add_argument(
-        '--category_num', type=int, default=80,
-        help='number of object categories [80]')
     args = parser.parse_args()
     if args.category_num <= 0:
         raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
@@ -874,16 +876,12 @@ def main():
         raise SystemExit('ERROR: file (%s) not found!' % weights_file_path)
     output_file_path = '%s.onnx' % args.model
 
-    yolo_dim = args.model.split('-')[-1]
-    if 'x' in yolo_dim:
-        dim_split = yolo_dim.split('x')
-        if len(dim_split) != 2:
-            raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
-        w, h = int(dim_split[0]), int(dim_split[1])
-    else:
-        h = w = int(yolo_dim)
-    if h % 32 != 0 or w % 32 != 0:
-        raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
+    if not verify_classes(args.model, args.category_num):
+        raise SystemExit('ERROR: bad category_num (%d)' % args.category_num)
+
+    # Derive yolo input width/height from model name.
+    # For example, "yolov4-416x256" -> width=416, height=256
+    w, h = get_input_wh(args.model)
 
     # These are the only layers DarkNetParser will extract parameters
     # from.  The three layers of type 'yolo' are not parsed in detail
