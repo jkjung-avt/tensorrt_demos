@@ -2,13 +2,15 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.
 
-* Run an optimized "yolov4-416" object detector at ~4.4 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~4.7 FPS on Jetson Nano.
+* Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
+* Run an optimized "yolov3-416" object detector at ~4.9 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
 * Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
 * Run an optimized "GoogLeNet" image classifier at "~16 ms per image (inference only)" on Jetson Nano.
 * In addition to Jetson Nano, all demos also work on Jetson TX2, AGX Xavier, Xavier NX ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927) and [link](https://github.com/jkjung-avt/tensorrt_demos/issues/30)), and run much faster!
 * All demos work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
+
+**[2020-08-18 update]**  I have optimized my "Camera" module code.  As a result, the FPS numbers of the TensorRT yolov3/yolov4 models have been improved.  With this particular update, I've also simplified the command-line arguments and the API of the Camera.  Please refer to step 5 of Demo #1 for details.
 
 Table of contents
 -----------------
@@ -59,7 +61,7 @@ In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run
 Demo #1: GoogLeNet
 ------------------
 
-This demo illustrates how to convert a prototxt file and a caffemodel file into a tensorrt engine file, and to classify images with the optimized tensorrt engine.
+This demo illustrates how to convert a prototxt file and a caffemodel file into a TensorRT engine file, and to classify images with the optimized TensorRT engine.
 
 Step-by-step:
 
@@ -118,7 +120,7 @@ Step-by-step:
 Demo #2: MTCNN
 --------------
 
-This demo builds upon the previous one.  It converts 3 sets of prototxt and caffemodel files into 3 tensorrt engines, namely the PNet, RNet and ONet.  Then it combines the 3 engine files to implement MTCNN, a very good face detector.
+This demo builds upon the previous one.  It converts 3 sets of prototxt and caffemodel files into 3 TensorRT engines, namely the PNet, RNet and ONet.  Then it combines the 3 engine files to implement MTCNN, a very good face detector.
 
 Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", follow these steps:
 
@@ -305,19 +307,19 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     28.2    |
-   | yolov3-tiny-416 (FP16) |         0.096         |        0.201       |     21.4    |
-   | yolov3-288 (FP16)      |         0.331         |        0.600       |     7.68    |
-   | yolov3-416 (FP16)      |         0.373         |        0.663       |     4.73    |
-   | yolov3-608 (FP16)      |         0.376         |        0.664       |     2.47    |
-   | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     7.66    |
-   | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |     4.62    |
-   | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |     2.43    |
-   | yolov4-tiny-288 (FP16) |         0.178         |        0.344       |     28.5    |
-   | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     21.3    |
-   | yolov4-288 (FP16)      |         0.371         |        0.590       |     7.41    |
-   | yolov4-416 (FP16)      |         0.453         |        0.698       |     4.45    |
-   | yolov4-608 (FP16)      |         0.483         |        0.735       |     2.28    |
+   | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     35.8    |
+   | yolov3-tiny-416 (FP16) |         0.096         |        0.201       |     25.5    |
+   | yolov3-288 (FP16)      |         0.331         |        0.600       |     8.16    |
+   | yolov3-416 (FP16)      |         0.373         |        0.663       |     4.93    |
+   | yolov3-608 (FP16)      |         0.376         |        0.664       |     2.53    |
+   | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     8.16    |
+   | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |     4.82    |
+   | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |     2.49    |
+   | yolov4-tiny-288 (FP16) |         0.178         |        0.344       |     36.6    |
+   | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     25.5    |
+   | yolov4-288 (FP16)      |         0.371         |        0.590       |     7.93    |
+   | yolov4-416 (FP16)      |         0.453         |        0.698       |     4.62    |
+   | yolov4-608 (FP16)      |         0.483         |        0.735       |     2.35    |
 
 7. Check out my blog posts for implementation details:
 
