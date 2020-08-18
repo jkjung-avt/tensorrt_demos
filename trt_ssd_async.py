@@ -24,7 +24,7 @@ from utils.visualization import BBoxVisualization
 
 
 WINDOW_NAME = 'TrtSsdDemoAsync'
-MAIN_THREAD_TIMEOUT = 30.0  # 30 seconds
+MAIN_THREAD_TIMEOUT = 20.0  # 20 seconds
 INPUT_HW = (300, 300)
 SUPPORTED_MODELS = [
     'ssd_mobilenet_v1_coco',
@@ -98,6 +98,8 @@ class TrtThread(threading.Thread):
         self.running = True
         while self.running:
             img = self.cam.read()
+            if img is None:
+                break
             boxes, confs, clss = self.trt_ssd.detect(img, self.conf_th)
             with self.condition:
                 s_img, s_boxes, s_confs, s_clss = img, boxes, confs, clss
@@ -156,17 +158,16 @@ def loop_and_display(condition, vis):
 def main():
     args = parse_args()
     cam = Camera(args)
-    cam.open()
-    if not cam.is_opened:
+    if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
-
-    cls_dict = get_cls_dict(args.model.split('_')[-1])
 
     cuda.init()  # init pycuda driver
 
-    cam.start()  # let camera start grabbing frames
-    open_window(WINDOW_NAME, args.image_width, args.image_height,
-                'Camera TensorRT SSD Demo for Jetson Nano')
+    cls_dict = get_cls_dict(args.model.split('_')[-1])
+
+    open_window(
+        WINDOW_NAME, 'Camera TensorRT SSD Demo',
+        cam.img_width, cam.img_height)
     vis = BBoxVisualization(cls_dict)
     condition = threading.Condition()
     trt_thread = TrtThread(condition, cam, args.model, conf_th=0.3)
@@ -174,7 +175,6 @@ def main():
     loop_and_display(condition, vis)
     trt_thread.stop()   # stop the child thread
 
-    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
 

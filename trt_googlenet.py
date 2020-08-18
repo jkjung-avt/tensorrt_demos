@@ -88,12 +88,13 @@ def loop_and_classify(cam, net, labels, do_cropping):
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
         img = cam.read()
-        if img is not None:
-            top_probs, top_labels = classify(img, net, labels, do_cropping)
-            show_top_preds(img, top_probs, top_labels)
-            if show_help:
-                show_help_text(img, help_text)
-            cv2.imshow(WINDOW_NAME, img)
+        if img is None:
+            break
+        top_probs, top_labels = classify(img, net, labels, do_cropping)
+        show_top_preds(img, top_probs, top_labels)
+        if show_help:
+            show_help_text(img, help_text)
+        cv2.imshow(WINDOW_NAME, img)
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
             break
@@ -108,19 +109,17 @@ def main():
     args = parse_args()
     labels = np.loadtxt('googlenet/synset_words.txt', str, delimiter='\t')
     cam = Camera(args)
-    cam.open()
-    if not cam.is_opened:
+    if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
 
     # initialize the tensorrt googlenet engine
     net = PyTrtGooglenet(DEPLOY_ENGINE, ENGINE_SHAPE0, ENGINE_SHAPE1)
 
-    cam.start()
-    open_window(WINDOW_NAME, args.image_width, args.image_height,
-                'Camera TensorRT GoogLeNet Demo for Jetson Nano')
+    open_window(
+        WINDOW_NAME, 'Camera TensorRT GoogLeNet Demo',
+        cam.img_width, cam.img_height)
     loop_and_classify(cam, net, labels, args.crop_center)
 
-    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
 

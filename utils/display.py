@@ -6,11 +6,12 @@
 import cv2
 
 
-def open_window(window_name, width, height, title):
+def open_window(window_name, title, width=None, height=None):
     """Open the display window."""
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, width, height)
     cv2.setWindowTitle(window_name, title)
+    if width and height:
+        cv2.resizeWindow(window_name, width, height)
 
 
 def show_help_text(img, help_text):

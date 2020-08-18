@@ -58,16 +58,17 @@ def loop_and_detect(cam, trt_ssd, conf_th, vis):
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
         img = cam.read()
-        if img is not None:
-            boxes, confs, clss = trt_ssd.detect(img, conf_th)
-            img = vis.draw_bboxes(img, boxes, confs, clss)
-            img = show_fps(img, fps)
-            cv2.imshow(WINDOW_NAME, img)
-            toc = time.time()
-            curr_fps = 1.0 / (toc - tic)
-            # calculate an exponentially decaying average of fps number
-            fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
-            tic = toc
+        if img is None:
+            break
+        boxes, confs, clss = trt_ssd.detect(img, conf_th)
+        img = vis.draw_bboxes(img, boxes, confs, clss)
+        img = show_fps(img, fps)
+        cv2.imshow(WINDOW_NAME, img)
+        toc = time.time()
+        curr_fps = 1.0 / (toc - tic)
+        # calculate an exponentially decaying average of fps number
+        fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
+        tic = toc
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
             break
@@ -79,20 +80,18 @@ def loop_and_detect(cam, trt_ssd, conf_th, vis):
 def main():
     args = parse_args()
     cam = Camera(args)
-    cam.open()
-    if not cam.is_opened:
+    if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
 
     cls_dict = get_cls_dict(args.model.split('_')[-1])
     trt_ssd = TrtSSD(args.model, INPUT_HW)
 
-    cam.start()
-    open_window(WINDOW_NAME, args.image_width, args.image_height,
-                'Camera TensorRT SSD Demo for Jetson Nano')
+    open_window(
+        WINDOW_NAME, 'Camera TensorRT SSD Demo',
+        cam.img_width, cam.img_height)
     vis = BBoxVisualization(cls_dict)
     loop_and_detect(cam, trt_ssd, conf_th=0.3, vis=vis)
 
-    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
 

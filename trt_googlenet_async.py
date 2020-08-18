@@ -26,7 +26,7 @@ ENGINE_SHAPE1 = (1000, 1, 1)
 RESIZED_SHAPE = (224, 224)
 
 WINDOW_NAME = 'TrtGooglenetDemo'
-MAIN_THREAD_TIMEOUT = 30.0  # 30 seconds
+MAIN_THREAD_TIMEOUT = 10.0  # 10 seconds
 
 # 'shared' global variables
 s_img, s_probs, s_labels = None, None, None
@@ -99,6 +99,8 @@ class TrtGooglenetThread(threading.Thread):
         self.running = True
         while self.running:
             img = self.cam.read()
+            if img is None:
+                break
             top_probs, top_labels = classify(
                 img, self.net, self.labels, self.do_cropping)
             with self.condition:
@@ -162,20 +164,18 @@ def main():
     args = parse_args()
     labels = np.loadtxt('googlenet/synset_words.txt', str, delimiter='\t')
     cam = Camera(args)
-    cam.open()
-    if not cam.is_opened:
+    if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
 
-    cam.start()  # let camera start grabbing frames
-    open_window(WINDOW_NAME, args.image_width, args.image_height,
-                'Camera TensorRT GoogLeNet Demo for Jetson Nano')
+    open_window(
+        WINDOW_NAME, 'Camera TensorRT GoogLeNet Demo',
+        cam.img_width, cam.img_height)
     condition = threading.Condition()
     trt_thread = TrtGooglenetThread(condition, cam, labels, args.crop_center)
     trt_thread.start()  # start the child thread
     loop_and_display(condition)
     trt_thread.stop()   # stop the child thread
 
-    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
 

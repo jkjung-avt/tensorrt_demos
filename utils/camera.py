@@ -24,38 +24,29 @@ USB_GSTREAMER = True
 
 def add_camera_args(parser):
     """Add parser augument for camera options."""
-    parser.add_argument('--file', dest='use_file',
-                        help='use a video file as input (remember to '
-                        'also set --filename)',
-                        action='store_true')
-    parser.add_argument('--image', dest='use_image',
-                        help='use an image file as input (remember to '
-                        'also set --filename)',
-                        action='store_true')
-    parser.add_argument('--filename', dest='filename',
-                        help='video file name, e.g. test.mp4',
-                        default=None, type=str)
-    parser.add_argument('--rtsp', dest='use_rtsp',
-                        help='use IP CAM (remember to also set --uri)',
-                        action='store_true')
-    parser.add_argument('--uri', dest='rtsp_uri',
-                        help='RTSP URI, e.g. rtsp://192.168.1.64:554',
-                        default=None, type=str)
-    parser.add_argument('--latency', dest='rtsp_latency',
-                        help='latency in ms for RTSP [200]',
-                        default=200, type=int)
-    parser.add_argument('--usb', dest='use_usb',
-                        help='use USB webcam (remember to also set --vid)',
-                        action='store_true')
-    parser.add_argument('--vid', dest='video_dev',
-                        help='device # of USB webcam (/dev/video?) [0]',
-                        default=0, type=int)
-    parser.add_argument('--width', dest='image_width',
-                        help='image width [640]',
-                        default=640, type=int)
-    parser.add_argument('--height', dest='image_height',
-                        help='image height [480]',
-                        default=480, type=int)
+    parser.add_argument('--image', type=str, default=None,
+                        help='image file name, e.g. dog.jpg')
+    parser.add_argument('--video', type=str, default=None,
+                        help='video file name, e.g. traffic.mp4')
+    parser.add_argument('--video_looping', action='store_true',
+                        help='loop around the video file [False]')
+    parser.add_argument('--rtsp', type=str, default=None,
+                        help=('RTSP H.264 stream, e.g. '
+                              'rtsp://admin:123456@192.168.1.64:554'))
+    parser.add_argument('--rtsp_latency', type=int, default=200,
+                        help='RTSP latency in ms [200]')
+    parser.add_argument('--usb', type=int, default=None,
+                        help='USB webcam device id (/dev/video?) [None]')
+    parser.add_argument('--onboard', type=int, default=None,
+                        help='Jetson onboard camera [None]')
+    parser.add_argument('--copy_frame', action='store_true',
+                        help=('copy video frame internally [False]'))
+    parser.add_argument('--do_resize', action='store_true',
+                        help=('resize image/video [False]'))
+    parser.add_argument('--width', type=int, default=640,
+                        help='image width [640]')
+    parser.add_argument('--height', type=int, default=480,
+                        help='image height [480]')
     return parser
 
 
@@ -129,7 +120,7 @@ def grab_img(cam):
     while cam.thread_running:
         _, cam.img_handle = cam.cap.read()
         if cam.img_handle is None:
-            logging.warning('grab_img(): cap.read() returns None...')
+            logging.warning('Camera: cap.read() returns None...')
             break
     cam.thread_running = False
 
@@ -137,8 +128,8 @@ def grab_img(cam):
 class Camera():
     """Camera class which supports reading images from theses video sources:
 
-    1. Video file
-    2. Image (jpg, png, etc.) file, repeating indefinitely
+    1. Image (jpg, png, etc.) file, repeating indefinitely
+    2. Video file
     3. RTSP (IP CAM)
     4. USB webcam
     5. Jetson onboard camera
@@ -147,87 +138,120 @@ class Camera():
     def __init__(self, args):
         self.args = args
         self.is_opened = False
-        self.use_thread = False
+        self.video_file = ''
+        self.video_looping = args.video_looping
         self.thread_running = False
         self.img_handle = None
-        self.img_width = 0
-        self.img_height = 0
+        self.copy_frame = args.copy_frame
+        self.do_resize = args.do_resize
+        self.img_width = args.width
+        self.img_height = args.height
         self.cap = None
         self.thread = None
+        self._open()  # try to open the camera
 
-    def open(self):
+    def _open(self):
         """Open camera based on command line arguments."""
-        assert self.cap is None, 'Camera is already opened!'
-        args = self.args
-        if args.use_file:
-            self.cap = cv2.VideoCapture(args.filename)
-            # ignore image width/height settings here
-            self.use_thread = False
-        elif args.use_image:
-            self.cap = 'OK'
-            self.img_handle = cv2.imread(args.filename)
-            # ignore image width/height settings here
+        if self.cap is not None:
+            raise RuntimeError('camera is already opened!')
+        a = self.args
+        if a.image:
+            logging.info('Camera: using a image file %s' % a.image)
+            self.cap = 'image'
+            self.img_handle = cv2.imread(a.image)
             if self.img_handle is not None:
+                if self.do_resize:
+                    self.img_handle = cv2.resize(
+                        self.img_handle, (a.width, a.height))
                 self.is_opened = True
                 self.img_height, self.img_width, _ = self.img_handle.shape
-            self.use_thread = False
-        elif args.use_rtsp:
-            self.cap = open_cam_rtsp(
-                args.rtsp_uri,
-                args.image_width,
-                args.image_height,
-                args.rtsp_latency
-            )
-            self.use_thread = True
-        elif args.use_usb:
-            self.cap = open_cam_usb(
-                args.video_dev,
-                args.image_width,
-                args.image_height
-            )
-            self.use_thread = True
-        else:  # by default, use the jetson onboard camera
-            self.cap = open_cam_onboard(
-                args.image_width,
-                args.image_height
-            )
-            self.use_thread = True
-        if self.cap != 'OK':
-            if self.cap.isOpened():
-                # Try to grab the 1st image and determine width and height
-                _, img = self.cap.read()
-                if img is not None:
-                    self.img_height, self.img_width, _ = img.shape
-                    self.is_opened = True
+        elif a.video:
+            logging.info('Camera: using a video file %s' % a.video)
+            self.video_file = a.video
+            self.cap = cv2.VideoCapture(a.video)
+            self._start()
+        elif a.rtsp:
+            logging.info('Camera: using RTSP stream %s' % a.rtsp)
+            self.cap = open_cam_rtsp(a.rtsp, a.width, a.height, a.rtsp_latency)
+            self._start()
+        elif a.usb is not None:
+            logging.info('Camera: using USB webcam /dev/video%d' % a.usb)
+            self.cap = open_cam_usb(a.usb, a.width, a.height)
+            self._start()
+        elif a.onboard:
+            logging.info('Camera: using Jetson onboard camera')
+            self.cap = open_cam_onboard(a.width, a.height)
+            self._start()
+        else:
+            raise RuntimeError('no camera type specified!')
 
-    def start(self):
-        assert not self.thread_running
-        if self.use_thread:
+    def isOpened(self):
+        return self.is_opened
+
+    def _start(self):
+        if not self.cap.isOpened():
+            logging.warning('Camera: starting while cap is not opened!')
+            return
+
+        # Try to grab the 1st image and determine width and height
+        _, self.img_handle = self.cap.read()
+        if self.img_handle is None:
+            logging.warning('Camera: cap.read() returns no image!')
+            self.is_opened = False
+            return
+
+        self.is_opened = True
+        if self.video_file:
+            if not self.do_resize:
+                self.img_height, self.img_width, _ = self.img_handle.shape
+        else:
+            self.img_height, self.img_width, _ = self.img_handle.shape
+            # start the child thread if not using a video file source
+            # i.e. rtsp, usb or onboard
+            assert not self.thread_running
             self.thread_running = True
             self.thread = threading.Thread(target=grab_img, args=(self,))
             self.thread.start()
 
-    def stop(self):
-        self.thread_running = False
-        if self.use_thread:
+    def _stop(self):
+        if self.thread_running:
+            self.thread_running = False
             self.thread.join()
 
     def read(self):
-        if self.args.use_file:
+        """Read a frame from the camera object.
+
+        Returns None if the camera runs out of image or error.
+        """
+        if not self.is_opened:
+            return None
+
+        if self.video_file:
             _, img = self.cap.read()
             if img is None:
-                #logging.warning('grab_img(): cap.read() returns None...')
-                # looping around
-                self.cap.release()
-                self.cap = cv2.VideoCapture(self.args.filename)
+                logging.info('Camera: reaching end of video file')
+                if self.video_looping:
+                    self.cap.release()
+                    self.cap = cv2.VideoCapture(self.video_file)
                 _, img = self.cap.read()
+            if img is not None and self.do_resize:
+                img = cv2.resize(img, (self.img_width, self.img_height))
             return img
-        elif self.args.use_image:
+        elif self.cap == 'image':
             return np.copy(self.img_handle)
         else:
-            return self.img_handle
+            if self.copy_frame:
+                return self.img_handle.copy()
+            else:
+                return self.img_handle
 
     def release(self):
-        assert not self.thread_running
-        if self.cap != 'OK':
+        self._stop()
+        try:
             self.cap.release()
+        except:
+            pass
+        self.is_opened = False
+
+    def __del__(self):
+        self.release()
