@@ -180,8 +180,9 @@ namespace nvinfer1
 
     // CalDetection(): This kernel processes 1 yolo layer calculation.  It
     // distributes calculations so that 1 GPU thread would be responsible
-    // for each grid/anchor cobination.
-    // NOTE: The output (x, y, w, h) are pixel values (NOT between 0 and 1).
+    // for each grid/anchor combination.
+    // NOTE: The output (x, y, w, h) are between 0.0 and 1.0
+    //       (relative to orginal image width and height).
     __global__ void CalDetection(const float *input, float *output, int yolo_width, int yolo_height, int num_anchors,
                                  const float *anchors, int num_classes, int input_w, int input_h)
     {
