@@ -71,22 +71,18 @@ def loop_and_detect(cam, mtcnn, minsize):
 def main():
     args = parse_args()
     cam = Camera(args)
-    cam.open()
-    if not cam.is_opened:
+    if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
 
     mtcnn = TrtMtcnn()
 
-    cam.start()
-    open_window(WINDOW_NAME, args.image_width, args.image_height,
-                'Camera TensorRT MTCNN Demo for Jetson Nano')
+    open_window(
+        WINDOW_NAME, 'Camera TensorRT MTCNN Demo for Jetson Nano',
+        cam.img_width, cam.img_height)
     loop_and_detect(cam, mtcnn, args.minsize)
 
-    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
-
-    del(mtcnn)
 
 
 if __name__ == '__main__':
