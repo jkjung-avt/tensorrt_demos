@@ -216,7 +216,7 @@ class Camera():
     def _stop(self):
         if self.thread_running:
             self.thread_running = False
-            self.thread.join()
+            #self.thread.join()
 
     def read(self):
         """Read a frame from the camera object.
