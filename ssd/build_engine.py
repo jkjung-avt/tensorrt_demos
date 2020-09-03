@@ -81,6 +81,18 @@ MODEL_SPECS = {
         'max_size': 0.95,
         'input_order': [0, 2, 1],  # order of loc_data, conf_data, priorbox_data
     },
+    'ssdlite_mobilenet_v2_coco': {
+        'input_pb':   os.path.abspath(os.path.join(
+                          DIR_NAME, 'ssdlite_mobilenet_v2_coco.pb')),
+        'tmp_uff':    os.path.abspath(os.path.join(
+                          DIR_NAME, 'ssdlite_mobilenet_v2_coco.uff')),
+        'output_bin': os.path.abspath(os.path.join(
+                          DIR_NAME, 'TRT_ssdlite_mobilenet_v2_coco.bin')),
+        'num_classes': 91,
+        'min_size': 0.2,
+        'max_size': 0.95,
+        'input_order': [0, 2, 1],  # order of loc_data, conf_data, priorbox_data
+    },
 }
 INPUT_DIMS = (3, 300, 300)
 DEBUG_UFF = False
