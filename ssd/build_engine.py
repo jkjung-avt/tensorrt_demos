@@ -25,7 +25,7 @@ MODEL_SPECS = {
         'input_pb':   os.path.abspath(os.path.join(
                           DIR_NAME, 'ssd_mobilenet_v1_coco.pb')),
         'tmp_uff':    os.path.abspath(os.path.join(
-                          DIR_NAME, 'tmp_v1_coco.uff')),
+                          DIR_NAME, 'ssd_mobilenet_v1_coco.uff')),
         'output_bin': os.path.abspath(os.path.join(
                           DIR_NAME, 'TRT_ssd_mobilenet_v1_coco.bin')),
         'num_classes': 91,
@@ -37,7 +37,7 @@ MODEL_SPECS = {
         'input_pb':   os.path.abspath(os.path.join(
                           DIR_NAME, 'ssd_mobilenet_v1_egohands.pb')),
         'tmp_uff':    os.path.abspath(os.path.join(
-                          DIR_NAME, 'tmp_v1_egohands.uff')),
+                          DIR_NAME, 'ssd_mobilenet_v1_egohands.uff')),
         'output_bin': os.path.abspath(os.path.join(
                           DIR_NAME, 'TRT_ssd_mobilenet_v1_egohands.bin')),
         'num_classes': 2,
@@ -49,7 +49,7 @@ MODEL_SPECS = {
         'input_pb':   os.path.abspath(os.path.join(
                           DIR_NAME, 'ssd_mobilenet_v2_coco.pb')),
         'tmp_uff':    os.path.abspath(os.path.join(
-                          DIR_NAME, 'tmp_v2_coco.uff')),
+                          DIR_NAME, 'ssd_mobilenet_v2_coco.uff')),
         'output_bin': os.path.abspath(os.path.join(
                           DIR_NAME, 'TRT_ssd_mobilenet_v2_coco.bin')),
         'num_classes': 91,
@@ -61,11 +61,23 @@ MODEL_SPECS = {
         'input_pb':   os.path.abspath(os.path.join(
                           DIR_NAME, 'ssd_mobilenet_v2_egohands.pb')),
         'tmp_uff':    os.path.abspath(os.path.join(
-                          DIR_NAME, 'tmp_v2_egohands.uff')),
+                          DIR_NAME, 'ssd_mobilenet_v2_egohands.uff')),
         'output_bin': os.path.abspath(os.path.join(
                           DIR_NAME, 'TRT_ssd_mobilenet_v2_egohands.bin')),
         'num_classes': 2,
         'min_size': 0.05,
+        'max_size': 0.95,
+        'input_order': [0, 2, 1],  # order of loc_data, conf_data, priorbox_data
+    },
+    'ssd_inception_v2_coco': {
+        'input_pb':   os.path.abspath(os.path.join(
+                          DIR_NAME, 'ssd_inception_v2_coco.pb')),
+        'tmp_uff':    os.path.abspath(os.path.join(
+                          DIR_NAME, 'ssd_inception_v2_coco.uff')),
+        'output_bin': os.path.abspath(os.path.join(
+                          DIR_NAME, 'TRT_ssd_inception_v2_coco.bin')),
+        'num_classes': 91,
+        'min_size': 0.2,
         'max_size': 0.95,
         'input_order': [0, 2, 1],  # order of loc_data, conf_data, priorbox_data
     },
@@ -194,6 +206,11 @@ def add_plugin(graph, model, spec):
             op='FlattenConcat_TRT'
         )
 
+    namespace_for_removal = [
+        'ToFloat',
+        'image_tensor',
+        'Preprocessor/map/TensorArrayStack_1/TensorArrayGatherV3',
+    ]
     namespace_plugin_map = {
         'MultipleGridAnchorGenerator': PriorBox,
         'Postprocessor': NMS,
@@ -207,6 +224,8 @@ def add_plugin(graph, model, spec):
         'concat_1': concat_box_conf
     }
 
+    graph.remove(graph.find_nodes_by_path(['Preprocessor/map/TensorArrayStack_1/TensorArrayGatherV3']), remove_exclusive_dependencies=False)  # for 'ssd_inception_v2_coco'
+
     graph.collapse_namespaces(namespace_plugin_map)
     graph = replace_addv2(graph)
     graph = replace_fusedbnv3(graph)
@@ -215,6 +234,8 @@ def add_plugin(graph, model, spec):
         graph.find_nodes_by_name('Input')[0].input.remove('image_tensor:0')
     if 'Input' in graph.find_nodes_by_name('NMS')[0].input:
         graph.find_nodes_by_name('NMS')[0].input.remove('Input')
+    # Remove the Squeeze to avoid "Assertion 'isPlugin(layerName)' failed"
+    graph.forward_inputs(graph.find_node_inputs_by_name(graph.graph_outputs[0], 'Squeeze'))
     if 'anchors' in [node.name for node in graph.graph_outputs]:
         graph.remove('anchors', remove_exclusive_dependencies=False)
     if len(graph.find_nodes_by_op('GridAnchor_TRT')[0].input) < 1:
