@@ -12,6 +12,7 @@ import os
 import ctypes
 import argparse
 
+import numpy as np
 import uff
 import tensorrt as trt
 import graphsurgeon as gs
@@ -73,6 +74,45 @@ INPUT_DIMS = (3, 300, 300)
 DEBUG_UFF = False
 
 
+def replace_addv2(graph):
+    """Replace all 'AddV2' in the graph with 'Add'.
+
+    'AddV2' is not supported by UFF parser.
+
+    Reference:
+    1. https://github.com/jkjung-avt/tensorrt_demos/issues/113#issuecomment-629900809
+    """
+    for node in graph.find_nodes_by_op('AddV2'):
+        gs.update_node(node, op='Add')
+    return graph
+
+
+def replace_fusedbnv3(graph):
+    """Replace all 'FusedBatchNormV3' in the graph with 'FusedBatchNorm'.
+
+    'FusedBatchNormV3' is not supported by UFF parser.
+
+    Reference:
+    1. https://devtalk.nvidia.com/default/topic/1066445/tensorrt/tensorrt-6-0-1-tensorflow-1-14-no-conversion-function-registered-for-layer-fusedbatchnormv3-yet/post/5403567/#5403567
+    2. https://github.com/jkjung-avt/tensorrt_demos/issues/76#issuecomment-607879831
+    """
+    for node in graph.find_nodes_by_op('FusedBatchNormV3'):
+        gs.update_node(node, op='FusedBatchNorm')
+    return graph
+
+
+def add_anchor_input(graph):
+    """Add the missing const input for the GridAnchor node.
+
+    Reference:
+    1. https://www.minds.ai/post/deploying-ssd-mobilenet-v2-on-the-nvidia-jetson-and-nano-platforms
+    """
+    data = np.array([1, 1], dtype=np.float32)
+    anchor_input = gs.create_node('AnchorInput', 'Const', value=data)
+    graph.append(anchor_input)
+    graph.find_nodes_by_op('GridAnchor_TRT')[0].input.insert(0, 'AnchorInput')
+    return graph
+
 def add_plugin(graph, model, spec):
     """add_plugin
 
@@ -86,21 +126,21 @@ def add_plugin(graph, model, spec):
     maxSize = spec['max_size']
     inputOrder = spec['input_order']
 
-    all_assert_nodes = graph.find_nodes_by_op("Assert")
+    all_assert_nodes = graph.find_nodes_by_op('Assert')
     graph.remove(all_assert_nodes, remove_exclusive_dependencies=True)
 
-    all_identity_nodes = graph.find_nodes_by_op("Identity")
+    all_identity_nodes = graph.find_nodes_by_op('Identity')
     graph.forward_inputs(all_identity_nodes)
 
     Input = gs.create_plugin_node(
-        name="Input",
-        op="Placeholder",
+        name='Input',
+        op='Placeholder',
         shape=(1,) + INPUT_DIMS
     )
 
     PriorBox = gs.create_plugin_node(
-        name="MultipleGridAnchorGenerator",
-        op="GridAnchor_TRT",
+        name='MultipleGridAnchorGenerator',
+        op='GridAnchor_TRT',
         minSize=minSize,  # was 0.2
         maxSize=maxSize,  # was 0.95
         aspectRatios=[1.0, 2.0, 0.5, 3.0, 0.33],
@@ -110,8 +150,8 @@ def add_plugin(graph, model, spec):
     )
 
     NMS = gs.create_plugin_node(
-        name="NMS",
-        op="NMS_TRT",
+        name='NMS',
+        op='NMS_TRT',
         shareLocation=1,
         varianceEncodedInTarget=0,
         backgroundLabelId=0,
@@ -126,52 +166,64 @@ def add_plugin(graph, model, spec):
     )
 
     concat_priorbox = gs.create_node(
-        "concat_priorbox",
-        op="ConcatV2",
+        'concat_priorbox',
+        op='ConcatV2',
         axis=2
     )
 
     if trt.__version__[0] >= '7':
         concat_box_loc = gs.create_plugin_node(
-            "concat_box_loc",
-            op="FlattenConcat_TRT",
+            'concat_box_loc',
+            op='FlattenConcat_TRT',
             axis=1,
             ignoreBatch=0
         )
         concat_box_conf = gs.create_plugin_node(
-            "concat_box_conf",
-            op="FlattenConcat_TRT",
+            'concat_box_conf',
+            op='FlattenConcat_TRT',
             axis=1,
             ignoreBatch=0
         )
     else:
         concat_box_loc = gs.create_plugin_node(
-            "concat_box_loc",
-            op="FlattenConcat_TRT"
+            'concat_box_loc',
+            op='FlattenConcat_TRT'
         )
         concat_box_conf = gs.create_plugin_node(
-            "concat_box_conf",
-            op="FlattenConcat_TRT"
+            'concat_box_conf',
+            op='FlattenConcat_TRT'
         )
 
     namespace_plugin_map = {
-        "MultipleGridAnchorGenerator": PriorBox,
-        "Postprocessor": NMS,
-        "Preprocessor": Input,
-        "ToFloat": Input,
-        "Cast": Input, #added for models trained with tf 1.15
-        "image_tensor": Input,
-        "MultipleGridAnchorGenerator/Concatenate": concat_priorbox,  # for 'ssd_mobilenet_v1_coco'
-        "Concatenate": concat_priorbox,  # for other models
-        "concat": concat_box_loc,
-        "concat_1": concat_box_conf
+        'MultipleGridAnchorGenerator': PriorBox,
+        'Postprocessor': NMS,
+        'Preprocessor': Input,
+        'ToFloat': Input,
+        'Cast': Input,  # added for models trained with tf 1.15+
+        'image_tensor': Input,
+        'MultipleGridAnchorGenerator/Concatenate': concat_priorbox,  # for 'ssd_mobilenet_v1_coco'
+        'Concatenate': concat_priorbox,  # for other models
+        'concat': concat_box_loc,
+        'concat_1': concat_box_conf
     }
 
     graph.collapse_namespaces(namespace_plugin_map)
-    graph.remove(graph.graph_outputs, remove_exclusive_dependencies=False)
-    graph.find_nodes_by_op("NMS_TRT")[0].input.remove("Input")
-    if model == 'ssd_mobilenet_v1_coco':
-        graph.find_nodes_by_name("Input")[0].input.remove("image_tensor:0")
+    graph = replace_addv2(graph)
+    graph = replace_fusedbnv3(graph)
+
+    if 'image_tensor:0' in graph.find_nodes_by_name('Input')[0].input:
+        graph.find_nodes_by_name('Input')[0].input.remove('image_tensor:0')
+    if 'Input' in graph.find_nodes_by_name('NMS')[0].input:
+        graph.find_nodes_by_name('NMS')[0].input.remove('Input')
+    if 'anchors' in [node.name for node in graph.graph_outputs]:
+        graph.remove('anchors', remove_exclusive_dependencies=False)
+    if len(graph.find_nodes_by_op('GridAnchor_TRT')[0].input) < 1:
+        graph = add_anchor_input(graph)
+    if 'NMS' not in [node.name for node in graph.graph_outputs]:
+        graph.remove(graph.graph_outputs, remove_exclusive_dependencies=False)
+        if 'NMS' not in [node.name for node in graph.graph_outputs]:
+            # We expect 'NMS' to be one of the outputs
+            raise RuntimeError('bad graph_outputs')
 
     return graph
 
