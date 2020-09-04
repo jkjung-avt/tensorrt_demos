@@ -120,7 +120,7 @@ def grab_img(cam):
     while cam.thread_running:
         _, cam.img_handle = cam.cap.read()
         if cam.img_handle is None:
-            logging.warning('Camera: cap.read() returns None...')
+            #logging.warning('Camera: cap.read() returns None...')
             break
     cam.thread_running = False
 
