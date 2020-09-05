@@ -178,7 +178,7 @@ class Camera():
             logging.info('Camera: using USB webcam /dev/video%d' % a.usb)
             self.cap = open_cam_usb(a.usb, a.width, a.height)
             self._start()
-        elif a.onboard:
+        elif a.onboard is not None:
             logging.info('Camera: using Jetson onboard camera')
             self.cap = open_cam_onboard(a.width, a.height)
             self._start()
