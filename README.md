@@ -315,11 +315,11 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     8.16    |
    | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |     4.82    |
    | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |     2.49    |
-   | yolov4-tiny-288 (FP16) |         0.178         |        0.344       |     36.6    |
+   | yolov4-tiny-288 (FP16) |         0.179         |        0.343       |     36.6    |
    | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     25.5    |
-   | yolov4-288 (FP16)      |         0.371         |        0.590       |     7.93    |
-   | yolov4-416 (FP16)      |         0.453         |        0.698       |     4.62    |
-   | yolov4-608 (FP16)      |         0.483         |        0.735       |     2.35    |
+   | yolov4-288 (FP16)      |         0.375         |        0.591       |     7.93    |
+   | yolov4-416 (FP16)      |         0.458         |        0.699       |     4.62    |
+   | yolov4-608 (FP16)      |         0.487         |        0.736       |     2.35    |
 
 7. Check out my blog posts for implementation details:
 
