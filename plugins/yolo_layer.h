@@ -38,7 +38,7 @@ namespace nvinfer1
     class YoloLayerPlugin: public IPluginV2IOExt
     {
         public:
-            YoloLayerPlugin(int yolo_width, int yolo_height, int num_anchors, float* anchors, int num_classes, int input_width, int input_height);
+            YoloLayerPlugin(int yolo_width, int yolo_height, int num_anchors, float* anchors, int num_classes, int input_width, int input_height, float scale_x_y);
             YoloLayerPlugin(const void* data, size_t length);
 
             ~YoloLayerPlugin() override = default;
@@ -99,6 +99,7 @@ namespace nvinfer1
             float *mAnchors;  // allocated on GPU
             int mNumClasses;
             int mInputWidth, mInputHeight;
+            float mScaleXY;
 
             const char* mPluginNamespace;
     };

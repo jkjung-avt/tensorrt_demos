@@ -36,7 +36,7 @@ void read(const char*& buffer, T& val)
 
 namespace nvinfer1
 {
-    YoloLayerPlugin::YoloLayerPlugin(int yolo_width, int yolo_height, int num_anchors, float* anchors, int num_classes, int input_width, int input_height)
+    YoloLayerPlugin::YoloLayerPlugin(int yolo_width, int yolo_height, int num_anchors, float* anchors, int num_classes, int input_width, int input_height, float scale_x_y)
     {
         mYoloWidth   = yolo_width;
         mYoloHeight  = yolo_height;
@@ -45,6 +45,7 @@ namespace nvinfer1
         mNumClasses  = num_classes;
         mInputWidth  = input_width;
         mInputHeight = input_height;
+        mScaleXY     = scale_x_y;
 
         CHECK(cudaMalloc(&mAnchors, MAX_ANCHORS * 2 * sizeof(float)));
         CHECK(cudaMemcpy(mAnchors, mAnchorsHost, mNumAnchors * 2 * sizeof(float), cudaMemcpyHostToDevice));
@@ -62,6 +63,7 @@ namespace nvinfer1
         read(d, mNumClasses);
         read(d, mInputWidth);
         read(d, mInputHeight);
+        read(d, mScaleXY);
 
         CHECK(cudaMalloc(&mAnchors, MAX_ANCHORS * 2 * sizeof(float)));
         CHECK(cudaMemcpy(mAnchors, mAnchorsHost, mNumAnchors * 2 * sizeof(float), cudaMemcpyHostToDevice));
@@ -81,6 +83,7 @@ namespace nvinfer1
         write(d, mNumClasses);
         write(d, mInputWidth);
         write(d, mInputHeight);
+        write(d, mScaleXY);
 
         assert(d == a + getSerializationSize());
     }
@@ -91,7 +94,8 @@ namespace nvinfer1
                sizeof(mYoloWidth) + sizeof(mYoloHeight) + \
                sizeof(mNumAnchors) + MAX_ANCHORS * 2 * sizeof(float) + \
                sizeof(mNumClasses) + \
-               sizeof(mInputWidth) + sizeof(mInputHeight);
+               sizeof(mInputWidth) + sizeof(mInputHeight) + \
+               sizeof(mScaleXY);
     }
 
     int YoloLayerPlugin::initialize()
@@ -171,12 +175,17 @@ namespace nvinfer1
     // Clone the plugin
     IPluginV2IOExt* YoloLayerPlugin::clone() const
     {
-        YoloLayerPlugin *p = new YoloLayerPlugin(mYoloWidth, mYoloHeight, mNumAnchors, (float*) mAnchorsHost, mNumClasses, mInputWidth, mInputHeight);
+        YoloLayerPlugin *p = new YoloLayerPlugin(mYoloWidth, mYoloHeight, mNumAnchors, (float*) mAnchorsHost, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
         p->setPluginNamespace(mPluginNamespace);
         return p;
     }
 
     inline __device__ float sigmoidGPU(float x) { return 1.0f / (1.0f + __expf(-x)); }
+
+    inline __device__ float scale_sigmoidGPU(float x, float scale)
+    {
+        return scale * sigmoidGPU(x) - (scale - 1.0f) * 0.5f;
+    }
 
     // CalDetection(): This kernel processes 1 yolo layer calculation.  It
     // distributes calculations so that 1 GPU thread would be responsible
@@ -184,7 +193,7 @@ namespace nvinfer1
     // NOTE: The output (x, y, w, h) are between 0.0 and 1.0
     //       (relative to orginal image width and height).
     __global__ void CalDetection(const float *input, float *output, int yolo_width, int yolo_height, int num_anchors,
-                                 const float *anchors, int num_classes, int input_w, int input_h)
+                                 const float *anchors, int num_classes, int input_w, int input_h, float scale_x_y)
     {
         int idx = threadIdx.x + blockDim.x * blockIdx.x;
         Detection* det = ((Detection*) output) + idx;
@@ -213,10 +222,10 @@ namespace nvinfer1
         int row = idx / yolo_width;
         int col = idx % yolo_width;
 
-        det->bbox[0] = (col + sigmoidGPU(cur_input[idx + 0 * total_grids])) / yolo_width;                // [0, 1]
-        det->bbox[1] = (row + sigmoidGPU(cur_input[idx + 1 * total_grids])) / yolo_height;               // [0, 1]
-        det->bbox[2] = __expf(cur_input[idx + 2 * total_grids]) * anchors[2 * anchor_idx] / input_w;     // [0, 1]
-        det->bbox[3] = __expf(cur_input[idx + 3 * total_grids]) * anchors[2 * anchor_idx + 1] / input_h; // [0, 1]
+        det->bbox[0] = (col + scale_sigmoidGPU(cur_input[idx + 0 * total_grids], scale_x_y)) / yolo_width;   // [0, 1]
+        det->bbox[1] = (row + scale_sigmoidGPU(cur_input[idx + 1 * total_grids], scale_x_y)) / yolo_height;  // [0, 1]
+        det->bbox[2] = __expf(cur_input[idx + 2 * total_grids]) * anchors[2 * anchor_idx] / input_w;         // [0, 1]
+        det->bbox[3] = __expf(cur_input[idx + 3 * total_grids]) * anchors[2 * anchor_idx + 1] / input_h;     // [0, 1]
 
         det->bbox[0] -= det->bbox[2] / 2;  // shift from center to top-left
         det->bbox[1] -= det->bbox[3] / 2;
@@ -233,7 +242,7 @@ namespace nvinfer1
         //CHECK(cudaMemset(output, 0, num_elements * sizeof(Detection)));
 
         CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount>>>
-            (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight);
+            (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
     }
 
     int YoloLayerPlugin::enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream)
@@ -273,6 +282,7 @@ namespace nvinfer1
         float anchors[MAX_ANCHORS * 2];
         int num_classes;
         int input_width, input_height;
+        float scale_x_y = 1.0;
 
         for (int i = 0; i < fc->nbFields; ++i)
         {
@@ -312,13 +322,19 @@ namespace nvinfer1
                 assert(fields[i].type == PluginFieldType::kFLOAT32);
                 memcpy(anchors, static_cast<const float*>(fields[i].data), num_anchors * 2 * sizeof(float));
             }
+            else if (!strcmp(attrName, "scaleXY"))
+            {
+                assert(fields[i].type == PluginFieldType::kFLOAT32);
+                scale_x_y = *(static_cast<const float*>(fields[i].data));
+            }
         }
         assert(yolo_width > 0 && yolo_height > 0);
         assert(anchors[0] > 0.0f && anchors[1] > 0.0f);
         assert(num_classes > 0);
         assert(input_width > 0 && input_height > 0);
+        assert(scale_x_y >= 1.0);
 
-        YoloLayerPlugin* obj = new YoloLayerPlugin(yolo_width, yolo_height, num_anchors, anchors, num_classes, input_width, input_height);
+        YoloLayerPlugin* obj = new YoloLayerPlugin(yolo_width, yolo_height, num_anchors, anchors, num_classes, input_width, input_height, scale_x_y);
         obj->setPluginNamespace(mNamespace.c_str());
         return obj;
     }

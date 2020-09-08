@@ -81,6 +81,20 @@ def get_anchors(model_name):
     return anchors
 
 
+def get_scales(model_name):
+    """Get scale_x_y's of all yolo layers from the cfg file."""
+    cfg_file_path = model_name + '.cfg'
+    with open(cfg_file_path, 'r') as f:
+        cfg_lines = f.readlines()
+    yolo_lines = [l.strip() for l in cfg_lines if l.startswith('[yolo]')]
+    scale_lines = [l.strip() for l in cfg_lines if l.startswith('scale_x_y')]
+    if len(scale_lines) == 0:
+        return [1.0] * len(yolo_lines)
+    else:
+        assert len(scale_lines) == len(yolo_lines)
+        return [float(l.split('=')[-1]) for l in scale_lines]
+
+
 def get_plugin_creator(plugin_name, logger):
     """Get the TensorRT plugin creator."""
     trt.init_libnvinfer_plugins(logger, '')
@@ -104,6 +118,9 @@ def add_yolo_plugins(network, model_name, num_classes, logger):
     if network.num_outputs != len(anchors):
         raise ValueError('bad number of network outputs: %d vs. %d' %
                          (network.num_outputs, len(anchors)))
+    scales = get_scales(model_name)
+    if any([s < 1.0 for s in scales]):
+        raise ValueError('bad scale_x_y: %s' % str(scales))
 
     plugin_creator = get_plugin_creator('YoloLayer_TRT', logger)
     if not plugin_creator:
@@ -121,6 +138,7 @@ def add_yolo_plugins(network, model_name, num_classes, logger):
                 trt.PluginField("numClasses", np.array(num_classes, dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("numAnchors", np.array(len(anchors[i]) // 2, dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("anchors", np.ascontiguousarray(anchors[i], dtype=np.float32), trt.PluginFieldType.FLOAT32),
+                trt.PluginField("scaleXY", np.array(scales[i], dtype=np.float32), trt.PluginFieldType.FLOAT32),
             ]))
         ).get_output(0)
 
