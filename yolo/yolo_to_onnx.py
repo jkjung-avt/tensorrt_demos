@@ -519,14 +519,14 @@ class GraphBuilderONNX(object):
         layer_name -- the layer's name (also the corresponding key in layer_configs)
         layer_dict -- a layer parameter dictionary (one element of layer_configs)
         """
-        batch_size = layer_dict['batch']
+        #batch_size = layer_dict['batch']
         channels = layer_dict['channels']
         height = layer_dict['height']
         width = layer_dict['width']
-        self.batch_size = batch_size
+        #self.batch_size = batch_size
         input_tensor = helper.make_tensor_value_info(
             str(layer_name), TensorProto.FLOAT, [
-                batch_size, channels, height, width])
+                self.batch_size, channels, height, width])
         self.input_tensor = input_tensor
         return layer_name, channels
 
