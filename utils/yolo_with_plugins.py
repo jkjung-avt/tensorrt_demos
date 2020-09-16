@@ -12,7 +12,7 @@ import numpy as np
 import cv2
 import tensorrt as trt
 import pycuda.driver as cuda
-
+import os
 
 try:
     ctypes.cdll.LoadLibrary('./plugins/libyolo_layer.so')
@@ -213,18 +213,21 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
 
 def get_yolo_grid_sizes(model_name, h, w):
     """Get grid sizes (w*h) for all yolo layers in the model."""
-    if 'yolov3' in model_name:
-        if 'tiny' in model_name:
+
+    model_inf = model_name.split("-")
+
+    if model_inf[0] == 'yolov3':
+        if model_inf[1] == 'tiny':
             return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
-        else:
-            return [(h // 32) * (w // 32), (h // 16) * (w // 16), (h // 8) * (w // 8)]
-    elif 'yolov4' in model_name:
-        if 'tiny' in model_name:
+        else: # Added by Adriano Santos
+           return [(h // 32) * (w // 32), (h // 16) * (w // 16), (h // 8) * (w // 8)]
+    elif model_inf[0] == 'yolov4':
+        if model_inf[1] == 'tiny':
             return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
         else:
             return [(h // 8) * (w // 8), (h // 16) * (w // 16), (w // 32) * (h // 32)]
     else:
-        raise ValueError('ERROR: unknown model (%s)!' % args.model)
+        raise ValueError('ERROR: unknown model (%s)!' % model_name)
 
 
 class TrtYOLO(object):
@@ -232,6 +235,10 @@ class TrtYOLO(object):
 
     def _load_engine(self):
         TRTbin = 'yolo/%s.trt' % self.model
+
+        if not os.path.exists(TRTbin):
+            print("File not exist.")
+
         with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
@@ -267,7 +274,7 @@ class TrtYOLO(object):
         del self.inputs
         del self.stream
 
-    def detect(self, img, conf_th=0.3):
+    def detect(self, img, conf_th=0.5, nms_threshold=0.5):
         """Detect objects in the input image."""
         img_resized = _preprocess_yolo(img, self.input_shape)
 
@@ -286,7 +293,7 @@ class TrtYOLO(object):
             self.cuda_ctx.pop()
 
         boxes, scores, classes = _postprocess_yolo(
-            trt_outputs, img.shape[1], img.shape[0], conf_th)
+            trt_outputs, img.shape[1], img.shape[0], conf_th, nms_threshold)
 
         # clip x1, y1, x2, y2 within original image
         boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0, img.shape[1]-1)

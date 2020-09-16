@@ -42,7 +42,7 @@ def parse_args():
     return args
 
 
-def loop_and_detect(cam, trt_yolo, conf_th, vis):
+def loop_and_detect(cam, trt_yolo, conf_th, nms_threshold, vis):
     """Continuously capture images from camera and do object detection.
 
     # Arguments
@@ -60,7 +60,7 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         img = cam.read()
         if img is None:
             break
-        boxes, confs, clss = trt_yolo.detect(img, conf_th)
+        boxes, confs, clss = trt_yolo.detect(img, conf_th, nms_threshold) # Changed by Adriano Santos
         img = vis.draw_bboxes(img, boxes, confs, clss)
         img = show_fps(img, fps)
         cv2.imshow(WINDOW_NAME, img)
@@ -106,7 +106,7 @@ def main():
         WINDOW_NAME, 'Camera TensorRT YOLO Demo',
         cam.img_width, cam.img_height)
     vis = BBoxVisualization(cls_dict)
-    loop_and_detect(cam, trt_yolo, conf_th=0.3, vis=vis)
+    loop_and_detect(cam, trt_yolo, conf_th=0.3, nms_threshold=0.5, vis=vis)
 
     cam.release()
     cv2.destroyAllWindows()

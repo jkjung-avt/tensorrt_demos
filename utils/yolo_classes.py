@@ -102,3 +102,7 @@ def get_cls_dict(category_num):
         return {i: n for i, n in enumerate(COCO_CLASSES_LIST)}
     else:
         return {i: 'CLS%d' % i for i in range(category_num)}
+
+# Added for Adriano Santos
+def get_class_name(index):
+    return COCO_CLASSES_LIST.__getitem__(index)

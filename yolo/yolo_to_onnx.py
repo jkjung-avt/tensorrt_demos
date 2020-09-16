@@ -902,20 +902,33 @@ def main():
     # know the output shape of (in CHW format).
     output_tensor_dims = OrderedDict()
     c = (args.category_num + 5) * 3
-    if 'yolov3' in args.model:
-        if 'tiny' in args.model:
+
+    # Split the model information to select the right configuration to be used
+    model_inf = args.model.split("-")
+    
+    # Changed by Adriano Santos
+    if model_inf[0] == 'yolov3':
+        if model_inf[1] == 'tiny':
             output_tensor_dims['016_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['023_convolutional'] = [c, h // 16, w // 16]
-        elif 'spp' in args.model:
+        elif model_inf[1] == 'tiny3':
+            output_tensor_dims['016_convolutional'] = [c, h // 32, w // 32]
+            output_tensor_dims['023_convolutional'] = [c, h // 16, w // 16]
+            output_tensor_dims['030_convolutional'] = [c, h //  8, w //  8]
+        elif model_inf[1] == 'spp':
             output_tensor_dims['089_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['101_convolutional'] = [c, h // 16, w // 16]
             output_tensor_dims['113_convolutional'] = [c, h //  8, w //  8]
+        elif model_inf[1] == 'spp3':
+            output_tensor_dims['089_convolutional'] = [c, h // 32, w // 32]
+            output_tensor_dims['107_convolutional'] = [c, h // 16, w // 16]
+            output_tensor_dims['125_convolutional'] = [c, h //  8, w //  8]
         else:
             output_tensor_dims['082_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
-    elif 'yolov4' in args.model:
-        if 'tiny' in args.model:
+    elif model_inf[0] == 'yolov4':
+        if model_inf[1] == 'tiny':
             output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
         else:
