@@ -56,7 +56,7 @@ import argparse
 
 import tensorrt as trt
 
-from plugins import add_yolo_plugins
+from plugins import get_input_wh, add_yolo_plugins
 
 
 EXPLICIT_BATCH = []
@@ -65,14 +65,23 @@ if trt.__version__[0] >= '7':
         1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
 
 
-def build_engine(onnx_file_path, category_num=80, verbose=False):
+def build_engine(onnx_file_path, category_num, do_int8, verbose=False):
     """Build a TensorRT engine from an ONNX file."""
+    model_name = onnx_file_path[:-5]
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
         builder.max_workspace_size = 1 << 28
         builder.max_batch_size = 1
-        builder.fp16_mode = True
         #builder.strict_type_constraints = True
+        if do_int8:
+            if not builder.platform_has_fast_int8:
+                raise ValueError('INT8 not supported on this platform')
+            builder.int8_mode = True
+            from calibrator import YOLOEntropyCalibrator
+            builder.int8_calibrator = YOLOEntropyCalibrator(
+                'calib_images', get_input_wh(model_name))
+        else:
+            builder.fp16_mode = builder.platform_has_fast_fp16
 
         # Parse model file
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
@@ -90,7 +99,6 @@ def build_engine(onnx_file_path, category_num=80, verbose=False):
             network.get_input(0).shape = shape
 
         print('Adding yolo_layer plugins...')
-        model_name = onnx_file_path[:-5]
         network = add_yolo_plugins(
             network, model_name, category_num, TRT_LOGGER)
 
@@ -115,13 +123,17 @@ def main():
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
+    parser.add_argument(
+        '--int8', action='store_true',
+        help='build INT8 TensorRT engine')
     args = parser.parse_args()
 
     onnx_file_path = '%s.onnx' % args.model
     if not os.path.isfile(onnx_file_path):
         raise SystemExit('ERROR: file (%s) not found!  You might want to run yolo_to_onnx.py first to generate it.' % onnx_file_path)
     engine_file_path = '%s.trt' % args.model
-    engine = build_engine(onnx_file_path, args.category_num, args.verbose)
+    engine = build_engine(
+        onnx_file_path, args.category_num, args.int8, args.verbose)
     with open(engine_file_path, 'wb') as f:
         f.write(engine.serialize())
     print('Serialized the TensorRT engine to file: %s' % engine_file_path)

@@ -26,6 +26,8 @@ yolo/yolo*.weights
 yolo/yolo*.onnx
 yolo/yolo*.trt
 yolo/*.json
+yolo/calib_images/
+yolo/calib_yolo.bin
 
 plugins/*.o
 plugins/*.so
