@@ -70,18 +70,18 @@ def build_engine(onnx_file_path, category_num, do_int8, verbose=False):
     model_name = onnx_file_path[:-5]
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
-        builder.max_workspace_size = 1 << 28
+        builder.max_workspace_size = 1 << 30
         builder.max_batch_size = 1
+        builder.fp16_mode = True  # Alternative: builder.platform_has_fast_fp16
         #builder.strict_type_constraints = True
         if do_int8:
             if not builder.platform_has_fast_int8:
                 raise ValueError('INT8 not supported on this platform')
             builder.int8_mode = True
             from calibrator import YOLOEntropyCalibrator
+            net_w, net_h = get_input_wh(model_name)
             builder.int8_calibrator = YOLOEntropyCalibrator(
-                'calib_images', get_input_wh(model_name))
-        else:
-            builder.fp16_mode = builder.platform_has_fast_fp16
+                'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
 
         # Parse model file
         print('Loading ONNX file from path {}...'.format(onnx_file_path))
@@ -92,8 +92,8 @@ def build_engine(onnx_file_path, category_num, do_int8, verbose=False):
                     print(parser.get_error(error))
                 return None
         if trt.__version__[0] >= '7':
-            # The actual yolo*.onnx is generated with batch size 64.
-            # Reshape input to batch size 1
+            # The actual yolo*.onnx might have been generated with batch
+            # size 64.  We force batch size to 1 here.
             shape = list(network.get_input(0).shape)
             shape[0] = 1
             network.get_input(0).shape = shape

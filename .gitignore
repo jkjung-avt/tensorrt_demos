@@ -27,7 +27,7 @@ yolo/yolo*.onnx
 yolo/yolo*.trt
 yolo/*.json
 yolo/calib_images/
-yolo/calib_yolo.bin
+yolo/calib_*.bin
 
 plugins/*.o
 plugins/*.so

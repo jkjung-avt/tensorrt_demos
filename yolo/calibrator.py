@@ -92,31 +92,29 @@ class YOLOEntropyCalibrator(trt.IInt8EntropyCalibrator2):
     calibration data for YOLO models accordingly.
     """
 
-    def __init__(self, img_dir, img_shape, cache_file='calib_yolo.bin',
-                 batch_size=1):
+    def __init__(self, img_dir, net_hw, cache_file, batch_size=1):
         if not os.path.isdir(img_dir):
             raise FileNotFoundError('%s does not exist' % img_dir)
-        if len(img_shape) != 2 or img_shape[0] % 32 or img_shape[1] % 32:
-            raise ValueError('bad shape: %s' % str(img_shape))
+        if len(net_hw) != 2 or net_hw[0] % 32 or net_hw[1] % 32:
+            raise ValueError('bad net shape: %s' % str(net_hw))
 
-        trt.IInt8EntropyCalibrator2.__init__(self)
+        super().__init__()  # trt.IInt8EntropyCalibrator2.__init__(self)
 
         self.img_dir = img_dir
-        self.img_shape = img_shape
+        self.net_hw = net_hw
         self.cache_file = cache_file
         self.batch_size = batch_size
+        self.blob_size = 3 * net_hw[0] * net_hw[1] * np.dtype('float32').itemsize * batch_size
 
         self.jpgs = [f for f in os.listdir(img_dir) if f.endswith('.jpg')]
-        # The number 500 is NVIDIA's suggestion.  See here:
+        # The number "500" is NVIDIA's suggestion.  See here:
         # https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#optimizing_int8_c
         if len(self.jpgs) < 500:
             print('WARNING: found less than 500 images in %s!' % img_dir)
         self.current_index = 0
 
         # Allocate enough memory for a whole batch.
-        self.device_input = cuda.mem_alloc(
-            3 * img_shape[0] * img_shape[1] * np.dtype('float32').itemsize *
-            self.batch_size)
+        self.device_input = cuda.mem_alloc(self.blob_size)
 
     def __del__(self):
         del self.device_input  # free CUDA memory
@@ -135,8 +133,9 @@ class YOLOEntropyCalibrator(trt.IInt8EntropyCalibrator2):
                 self.img_dir, self.jpgs[self.current_index + i])
             img = cv2.imread(img_path)
             assert img is not None, 'failed to read %s' % img_path
-            batch.append(_preprocess_yolo(img, self.img_shape))
+            batch.append(_preprocess_yolo(img, self.net_hw))
         batch = np.stack(batch)
+        assert batch.nbytes == self.blob_size
 
         cuda.memcpy_htod(self.device_input, np.ascontiguousarray(batch))
         self.current_index += self.batch_size
