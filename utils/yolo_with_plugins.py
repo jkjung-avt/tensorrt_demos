@@ -53,7 +53,7 @@ def _nms_boxes(detections, nms_threshold):
     y_coord = detections[:, 1]
     width = detections[:, 2]
     height = detections[:, 3]
-    box_confidences = detections[:, 4]
+    box_confidences = detections[:, 4] * detections[:, 6]
 
     areas = width * height
     ordered = box_confidences.argsort()[::-1]
