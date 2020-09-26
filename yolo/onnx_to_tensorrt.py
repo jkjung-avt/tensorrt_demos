@@ -65,27 +65,14 @@ if trt.__version__[0] >= '7':
         1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
 
 
-def build_engine(onnx_file_path, category_num, do_int8, verbose=False):
+def build_engine(onnx_path, category_num, do_int8, dla_core, verbose=False):
     """Build a TensorRT engine from an ONNX file."""
-    model_name = onnx_file_path[:-5]
+    model_name = onnx_path[:-5]
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
-        builder.max_workspace_size = 1 << 30
-        builder.max_batch_size = 1
-        builder.fp16_mode = True  # Alternative: builder.platform_has_fast_fp16
-        #builder.strict_type_constraints = True
-        if do_int8:
-            if not builder.platform_has_fast_int8:
-                raise ValueError('INT8 not supported on this platform')
-            builder.int8_mode = True
-            from calibrator import YOLOEntropyCalibrator
-            net_w, net_h = get_input_wh(model_name)
-            builder.int8_calibrator = YOLOEntropyCalibrator(
-                'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
-
         # Parse model file
-        print('Loading ONNX file from path {}...'.format(onnx_file_path))
-        with open(onnx_file_path, 'rb') as model:
+        print('Loading ONNX file from path {}...'.format(onnx_path))
+        with open(onnx_path, 'rb') as model:
             if not parser.parse(model.read()):
                 print('ERROR: Failed to parse the ONNX file.')
                 for error in range(parser.num_errors):
@@ -104,7 +91,35 @@ def build_engine(onnx_file_path, category_num, do_int8, verbose=False):
 
         print('Building an engine.  This would take a while...')
         print('(Use "--verbose" to enable verbose logging.)')
-        engine = builder.build_cuda_engine(network)
+        if dla_core >= 0:
+            builder.max_batch_size = 1
+            config = builder.create_builder_config()
+            config.set_flag(trt.BuilderFlag.FP16)
+            config.set_flag(trt.BuilderFlag.INT8)
+            if not builder.platform_has_fast_int8:
+                raise ValueError('INT8 not supported on this platform')
+            from calibrator import YOLOEntropyCalibrator
+            net_w, net_h = get_input_wh(model_name)
+            config.int8_calibrator = YOLOEntropyCalibrator(
+                'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
+            config.default_device_type = trt.DeviceType.DLA
+            config.DLA_core = dla_core
+            print('Using DLA core %d...' % dla_core)
+            engine = builder.build_engine(network, config)
+        else:
+            builder.max_workspace_size = 1 << 30
+            builder.max_batch_size = 1
+            builder.fp16_mode = True  # alternative: builder.platform_has_fast_fp16
+            if do_int8:
+                if not builder.platform_has_fast_int8:
+                    raise ValueError('INT8 not supported on this platform')
+                builder.int8_mode = True
+                from calibrator import YOLOEntropyCalibrator
+                net_w, net_h = get_input_wh(model_name)
+                builder.int8_calibrator = YOLOEntropyCalibrator(
+                    'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
+            engine = builder.build_cuda_engine(network)
+
         print('Completed creating engine.')
         return engine
 
@@ -126,14 +141,17 @@ def main():
     parser.add_argument(
         '--int8', action='store_true',
         help='build INT8 TensorRT engine')
+    parser.add_argument(
+        '--dla_core', type=int, default=-1,
+        help='id of DLA core for inference (0 ~ N-1)')
     args = parser.parse_args()
 
-    onnx_file_path = '%s.onnx' % args.model
-    if not os.path.isfile(onnx_file_path):
-        raise SystemExit('ERROR: file (%s) not found!  You might want to run yolo_to_onnx.py first to generate it.' % onnx_file_path)
+    onnx_path = '%s.onnx' % args.model
+    if not os.path.isfile(onnx_path):
+        raise SystemExit('ERROR: file (%s) not found!  You might want to run yolo_to_onnx.py first to generate it.' % onnx_path)
     engine_file_path = '%s.trt' % args.model
     engine = build_engine(
-        onnx_file_path, args.category_num, args.int8, args.verbose)
+        onnx_path, args.category_num, args.int8, args.dla_core, args.verbose)
     with open(engine_file_path, 'wb') as f:
         f.write(engine.serialize())
     print('Serialized the TensorRT engine to file: %s' % engine_file_path)
