@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# I use this script to create INT8, DLA0 and DLA1 TensorRT engines for
-# various yolov3 and yolov4 models.
+# I use this script to build DLA0 and DLA1 TensorRT engines for various
+# yolov3 and yolov4 models.
 
 set -e
 
@@ -19,12 +19,10 @@ for m in ${models}; do
   fi
 done
 
-# create symbolic links
+# create symbolic links to cfg and onnx files
 for m in ${models}; do
   m_head=${m%-*}
   m_tail=${m##*-}
-  ln -sf ${m}.cfg  ${m_head}-int8-${m_tail}.cfg
-  ln -sf ${m}.onnx ${m_head}-int8-${m_tail}.onnx
   ln -sf ${m}.cfg  ${m_head}-dla0-${m_tail}.cfg
   ln -sf ${m}.onnx ${m_head}-dla0-${m_tail}.onnx
   ln -sf ${m}.cfg  ${m_head}-dla1-${m_tail}.cfg
@@ -33,12 +31,11 @@ done
 
 # build TensorRT engines
 for m in ${models}; do
-  echo
-  echo === ${m} ===
   m_head=${m%-*}
   m_tail=${m##*-}
-  python3 onnx_to_tensorrt.py --int8 -m ${m_head}-int8-${m_tail}
+  echo ; echo === ${m_head}-dla0-${m_tail} === ; echo
   python3 onnx_to_tensorrt.py --int8 --dla 0 -m ${m_head}-dla0-${m_tail}
+  echo ; echo === ${m_head}-dla1-${m_tail} === ; echo
   python3 onnx_to_tensorrt.py --int8 --dla 1 -m ${m_head}-dla1-${m_tail}
 done
 
