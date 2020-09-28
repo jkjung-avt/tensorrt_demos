@@ -131,11 +131,6 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
             config.max_workspace_size = 1 << 30
             config.set_flag(trt.BuilderFlag.GPU_FALLBACK)
             config.set_flag(trt.BuilderFlag.FP16)
-            if do_int8:
-                from calibrator import YOLOEntropyCalibrator
-                config.set_flag(trt.BuilderFlag.INT8)
-                config.int8_calibrator = YOLOEntropyCalibrator(
-                    'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
             profile = builder.create_optimization_profile()
             profile.set_shape(
                 '000_net',                          # input tensor name
@@ -143,6 +138,13 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
                 (MAX_BATCH_SIZE, 3, net_h, net_w),  # opt shape
                 (MAX_BATCH_SIZE, 3, net_h, net_w))  # max shape
             config.add_optimization_profile(profile)
+            if do_int8:
+                from calibrator import YOLOEntropyCalibrator
+                config.set_flag(trt.BuilderFlag.INT8)
+                config.int8_calibrator = YOLOEntropyCalibrator(
+                    'calib_images', (net_h, net_w),
+                    'calib_%s.bin' % model_name)
+                config.set_calibration_profile(profile)
             if dla_core >= 0:
                 config.default_device_type = trt.DeviceType.DLA
                 config.DLA_core = dla_core
