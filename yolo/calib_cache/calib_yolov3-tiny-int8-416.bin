@@ -1,0 +1,47 @@
+TRT-7103-EntropyCalibration2
+000_net: 3c010a14
+001_convolutional: 3d77cc4d
+001_convolutional_bn: 3eb97554
+001_convolutional_lrelu: 3e3cfaf6
+002_maxpool: 3e3cfaf6
+003_convolutional: 3fd20362
+003_convolutional_bn: 3f05ab3e
+003_convolutional_lrelu: 3dba5110
+004_maxpool: 3dba5110
+005_convolutional: 3f0ff935
+005_convolutional_bn: 3e98332b
+005_convolutional_lrelu: 3dc89fbc
+006_maxpool: 3dc89fbc
+007_convolutional: 3f13aa2f
+007_convolutional_bn: 3e6a8bc5
+007_convolutional_lrelu: 3daf3f0b
+008_maxpool: 3daf3f0b
+009_convolutional: 3e9a71e8
+009_convolutional_bn: 3e277a8e
+009_convolutional_lrelu: 3d8e5618
+010_maxpool: 3d8b6f69
+011_convolutional: 3e32c610
+011_convolutional_bn: 3e0d719f
+011_convolutional_lrelu: 3d3e0683
+012_maxpool: 3d3e0683
+013_convolutional: 3dc55cef
+013_convolutional_bn: 3ec090b7
+013_convolutional_lrelu: 3e1a4216
+014_convolutional: 3e5f4d5c
+014_convolutional_bn: 3d86be13
+014_convolutional_lrelu: 3cff8f32
+015_convolutional: 3d7e0dfb
+015_convolutional_bn: 3dc57801
+015_convolutional_lrelu: 3d5eb027
+016_convolutional: 3e535004
+019_convolutional: 3d28d5ce
+019_convolutional_bn: 3dad20cf
+019_convolutional_lrelu: 3d6086c9
+020_upsample: 3d8e5618
+021_route: 3d8e5618
+022_convolutional: 3e3be517
+022_convolutional_bn: 3db901c1
+022_convolutional_lrelu: 3d58aa42
+023_convolutional: 3e46f24e
+(Unnamed Layer* 43) [PluginV2IOExt]_output_0: 3efa468d
+(Unnamed Layer* 44) [PluginV2IOExt]_output_0: 3ee1f1e4
