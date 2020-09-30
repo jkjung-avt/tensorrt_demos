@@ -79,9 +79,10 @@ def set_net_batch(network, batch_size):
     The ONNX file might have been generated with a different batch size,
     say, 64.
     """
-    shape = list(network.get_input(0).shape)
-    shape[0] = batch_size
-    network.get_input(0).shape = shape
+    if trt.__version__[0] >= '7':
+        shape = list(network.get_input(0).shape)
+        shape[0] = batch_size
+        network.get_input(0).shape = shape
     return network
 
 
