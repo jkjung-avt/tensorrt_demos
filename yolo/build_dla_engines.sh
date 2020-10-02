@@ -34,9 +34,9 @@ for m in ${models}; do
   m_head=${m%-*}
   m_tail=${m##*-}
   echo ; echo === ${m_head}-dla0-${m_tail} === ; echo
-  python3 onnx_to_tensorrt.py --int8 --dla 0 -m ${m_head}-dla0-${m_tail}
+  python3 onnx_to_tensorrt.py --int8 --dla_core 0 -m ${m_head}-dla0-${m_tail}
   echo ; echo === ${m_head}-dla1-${m_tail} === ; echo
-  python3 onnx_to_tensorrt.py --int8 --dla 1 -m ${m_head}-dla1-${m_tail}
+  python3 onnx_to_tensorrt.py --int8 --dla_core 1 -m ${m_head}-dla1-${m_tail}
 done
 
 echo
