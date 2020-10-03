@@ -409,7 +409,7 @@ Please make sure you have gone through the steps of [Demo #5](#yolov4) and are a
    | yolov4-tiny-416  |    57    |    60    |     X    |     X    |
    | yolov4-608       |   13.8   |   20.5   |   8.97   |   8.97   |
 
-   And the following are **"mAP @<br>IoU=0.5:0.95" / "mAP @<br>IoU=0.5"** of those TensorRT engines.
+   And the following are **"mAP@IoU=0.5:0.95" / "mAP@IoU=0.5"** of those TensorRT engines.
 
    | TensorRT engine  |       FP16      |       INT8      |       DLA0      |       DLA1      |
    |:-----------------|:---------------:|:---------------:|:---------------:|:---------------:|
