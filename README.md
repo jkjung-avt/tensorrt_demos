@@ -21,6 +21,7 @@ Table of contents
 * [Demo #3: SSD](#ssd)
 * [Demo #4: YOLOv3](#yolov3)
 * [Demo #5: YOLOv4](#yolov4)
+* [Demo #6: Using INT8 and DLA core](#int8_and_dla)
 
 <a name="prerequisite"></a>
 Prerequisite
@@ -33,6 +34,8 @@ More specifically, the target Jetson system must have TensorRT libraries install
 * Demo #1 and Demo #2: works for TensorRT 3.x+,
 * Demo #3: requires TensoRT 5.x+,
 * Demo #4 and Demo #5: requires TensorRT 6.x+.
+* Demo #6 part 1: INT8 requires TensorRT 6.x+ and only works on GPUs with CUDA compute 6.1+.
+* Demo #6 part 2: DLA core requires TensorRT 7.x+ (is only tested on Jetson Xavier NX).
 
 You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (JetPack-4.2.2) was present on one of my Jetson Nano DevKits.
 
@@ -281,6 +284,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 5. Test the TensorRT "yolov4-416" engine with the "dog.jpg" image.
 
    ```shell
+   $ cd ${HOME}/project/tensorrt_demos
    $ wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/dog.jpg -O ${HOME}/Pictures/dog.jpg
    $ python3 trt_yolo.py --image ${HOME}/Pictures/dog.jpg \
                          -m yolov4-416
@@ -308,18 +312,18 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
    |:-----------------------|:---------------------:|:------------------:|:-----------:|
    | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     35.8    |
-   | yolov3-tiny-416 (FP16) |         0.096         |        0.201       |     25.5    |
-   | yolov3-288 (FP16)      |         0.331         |        0.600       |     8.16    |
-   | yolov3-416 (FP16)      |         0.373         |        0.663       |     4.93    |
-   | yolov3-608 (FP16)      |         0.376         |        0.664       |     2.53    |
+   | yolov3-tiny-416 (FP16) |         0.096         |        0.202       |     25.5    |
+   | yolov3-288 (FP16)      |         0.331         |        0.601       |     8.16    |
+   | yolov3-416 (FP16)      |         0.373         |        0.664       |     4.93    |
+   | yolov3-608 (FP16)      |         0.376         |        0.665       |     2.53    |
    | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     8.16    |
-   | yolov3-spp-416 (FP16)  |         0.391         |        0.663       |     4.82    |
-   | yolov3-spp-608 (FP16)  |         0.409         |        0.685       |     2.49    |
-   | yolov4-tiny-288 (FP16) |         0.179         |        0.343       |     36.6    |
-   | yolov4-tiny-416 (FP16) |         0.195         |        0.386       |     25.5    |
-   | yolov4-288 (FP16)      |         0.375         |        0.591       |     7.93    |
-   | yolov4-416 (FP16)      |         0.458         |        0.699       |     4.62    |
-   | yolov4-608 (FP16)      |         0.487         |        0.736       |     2.35    |
+   | yolov3-spp-416 (FP16)  |         0.391         |        0.664       |     4.82    |
+   | yolov3-spp-608 (FP16)  |         0.410         |        0.685       |     2.49    |
+   | yolov4-tiny-288 (FP16) |         0.179         |        0.344       |     36.6    |
+   | yolov4-tiny-416 (FP16) |         0.196         |        0.387       |     25.5    |
+   | yolov4-288 (FP16)      |         0.376         |        0.591       |     7.93    |
+   | yolov4-416 (FP16)      |         0.459         |        0.700       |     4.62    |
+   | yolov4-608 (FP16)      |         0.488         |        0.736       |     2.35    |
 
 7. Check out my blog posts for implementation details:
 
@@ -327,6 +331,99 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
    * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
    * For adapting the code to your own custom trained yolov3/yolov4 models: [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/)
+
+<a name="int8_and_dla"></a>
+Demo #6: Using INT8 and DLA core
+--------------------------------
+
+NVIDIA introduced [INT8 TensorRT inferencing](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf) since CUDA compute 6.1+.  For the embedded Jetson product line, INT8 is available on Jetson AGX Xavier and Xavier NX.  In addition, NVIDIA further introduced [Deep Learning Accelerator (NVDLA)](http://nvdla.org/) on Jetson Xavier NX.  I tested both features on my Jetson Xavier NX DevKit, and shared the source code in this repo.
+
+Please make sure you have gone through the steps of [Demo #5](#yolov4) and are able to run TensorRT yolov3/yolov4 engines successfully, before following along:
+
+1. In order to use INT8 TensorRT, you'll first have to prepare some images for "calibration".  These images for calibration should cover all distributions of possible image inputs at inference time.  According to [official documentation](https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#optimizing_int8_c), 500 of such images are suggested by NVIDIA.  As an example, I used 1,000 images from the COCO "val2017" dataset for that purpose.  Note that I've previously downloaded the "val2017" images for [mAP evaluation](README_mAP.md).
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/yolo
+   $ mkdir calib_images
+   ### randomly pick and copy over 1,000 images from "val207"
+   $ for jpg in $(ls -1 ${HOME}/data/coco/images/val2017/*.jpg | sort -R | head -1000); do \
+       cp ${HOME}/data/coco/images/val2017/${jpg} calib_images/; \
+     done
+   ```
+
+   When this is done, the 1,000 images for calibration should be present in the "${HOME}/project/tensorrt_demos/yolo/calib_images/" directory.
+
+2. Build the INT8 TensorRT engine.  I use the "yolov3-608" model in the example commands below.  (I've also created a "build_int8_engines.sh" script to facilitate building multiple INT8 engines at once.)  Note that building the INT8 TensorRT engine on Jetson Xavier NX takes quite long.  By enabling verbose logging ("-v"), you would be able to monitor the progress more closely.
+
+   ```
+   $ ln -s yolov3-608.cfg yolov3-int8-608.cfg
+   $ ln -s yolov3-608.onnx yolov3-int8-608.onnx
+   $ python3 onnx_to_tensorrt.py -v --int8 -m yolov3-int8-608
+   ```
+
+3. (Optional) Build the TensorRT engines for the DLA cores.  I use the "yolov3-608" model as example again.  (I've also created a "build_dla_engines.sh" script for building multiple DLA engines at once.)
+
+   ```
+   $ ln -s yolov3-608.cfg yolov3-dla0-608.cfg
+   $ ln -s yolov3-608.onnx yolov3-dla0-608.onnx
+   $ python3 onnx_to_tensorrt.py -v --int8 --dla_core 0 -m yolov3-dla0-608
+   $ ln -s yolov3-608.cfg yolov3-dla1-608.cfg
+   $ ln -s yolov3-608.onnx yolov3-dla1-608.onnx
+   $ python3 onnx_to_tensorrt.py -v --int8 --dla_core 1 -m yolov3-int8-608
+   ```
+
+4. Test the INT8 TensorRT engine with the "dog.jpg" image.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_yolo.py --image ${HOME}/Pictures/dog.jpg \
+                         -m yolov3-int8-608
+   ```
+
+   (Optional) Also test the DLA0 and DLA1 TensorRT engines.
+
+   ```shell
+   $ python3 trt_yolo.py --image ${HOME}/Pictures/dog.jpg \
+                         -m yolov3-dla0-608
+   $ python3 trt_yolo.py --image ${HOME}/Pictures/dog.jpg \
+                         -m yolov3-dla1-608
+   ```
+
+5. Evaluate mAP of the INT8 and DLA TensorRT engines.
+
+   ```shell
+   $ python3 eval_yolo.py -m yolov3-int8-608
+   $ python3 eval_yolo.py -m yolov3-dla0-608
+   $ python3 eval_yolo.py -m yolov3-dla1-608
+   ```
+
+6. I tested the 5 original yolov3/yolov4 models on my Jetson Xavier NX DevKit with JetPack-4.4 (TensorRT 7.1.3.4).  Here are the results.
+
+   The following **FPS numbers** were measured under "15W 6CORE" mode, with CPU/GPU clocks set to maximum value (`sudo jetson_clocks`).
+
+   | TensorRT engine  |   FP16   |   INT8   |   DLA0   |   DLA1   |
+   |:-----------------|:--------:|:--------:|:--------:|:--------:|
+   | yolov3-tiny-416  |    58    |    65    |    42    |    42    |
+   | yolov3-608       |   15.2   |   23.1   |   14.9   |   14.9   |
+   | yolov3-spp-608   |   15.0   |   22.7   |   14.7   |   14.7   |
+   | yolov4-tiny-416  |    57    |    60    |     X    |     X    |
+   | yolov4-608       |   13.8   |   20.5   |   8.97   |   8.97   |
+
+   And the following are **"mAP @<br>IoU=0.5:0.95" / "mAP @<br>IoU=0.5"** of those TensorRT engines.
+
+   | TensorRT engine  |       FP16      |       INT8      |       DLA0      |       DLA1      |
+   |:-----------------|:---------------:|:---------------:|:---------------:|:---------------:|
+   | yolov3-tiny-416  |  0.096 / 0.202  |  0.094 / 0.198  |  0.096 / 0.199  |  0.096 / 0.199  |
+   | yolov3-608       |  0.376 / 0.665  |  0.378 / 0.670  |  0.378 / 0.670  |  0.378 / 0.670  |
+   | yolov3-spp-608   |  0.410 / 0.685  |  0.407 / 0.681  |  0.404 / 0.676  |  0.404 / 0.676  |
+   | yolov4-tiny-416  |  0.196 / 0.387  |  0.190 / 0.376  |        X        |        X        |
+   | yolov4-608       |  0.488 / 0.736  | *0.317 / 0.507* |  0.474 / 0.727  |  0.473 / 0.726  |
+
+7. Issues:
+
+   * For some reason, I'm not able to build DLA TensorRT engines for the "yolov4-tiny-416" model.  I have [reported the issue](https://forums.developer.nvidia.com/t/problem-building-tensorrt-engines-for-dla-core/155749) to NVIDIA.
+   * There is no method in TensorRT 7.1 Python API to specifically set DLA core at inference time.  I also [reported this issue](https://forums.developer.nvidia.com/t/no-method-in-tensorrt-python-api-for-setting-dla-core-for-inference/155874) to NVIDIA.  When testing, I simply deserialize the TensorRT engines onto Jetson Xavier NX.  I'm not 100% sure whether the engine is really executed on DLA core 0 or DLA core 1.
+   * mAP of the INT8 TensorRT engine of the "yolov4-608" model is not good.  Originally, I thought it was [an issue of TensorRT library's handling of "Concat" nodes](https://forums.developer.nvidia.com/t/concat-in-caffe-parser-is-wrong-when-working-with-int8-calibration/142639/3?u=jkjung13).  But after some more investigation, I saw that was not the case.  Currently, I'm still not sure what the problem is...
 
 Licenses
 --------
