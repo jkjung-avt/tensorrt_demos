@@ -298,7 +298,9 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
 7. (Optional) Test other models than "yolov4-416".
 
-8. Similar to step 5 of Demo #3, I created an "eval_yolo.py" for evaluating mAP of the TensorRT yolov3/yolov4 engines.  Refer to [README_mAP.md](README_mAP.md) for details.
+8. (Optional) If you would like to stream TensorRT YOLO detection output over the network and view the results on a remote host, check out my [trt_yolo_mjpeg.py example](https://github.com/jkjung-avt/tensorrt_demos/issues/226).
+
+9. Similar to step 5 of Demo #3, I created an "eval_yolo.py" for evaluating mAP of the TensorRT yolov3/yolov4 engines.  Refer to [README_mAP.md](README_mAP.md) for details.
 
    ```shell
    $ python3 eval_yolo.py -m yolov3-tiny-288
@@ -325,7 +327,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    | yolov4-416 (FP16)      |         0.459         |        0.700       |     4.62    |
    | yolov4-608 (FP16)      |         0.488         |        0.736       |     2.35    |
 
-7. Check out my blog posts for implementation details:
+10. Check out my blog posts for implementation details:
 
    * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
    * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
