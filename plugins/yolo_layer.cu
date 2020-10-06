@@ -110,7 +110,12 @@ namespace nvinfer1
 
     Dims YoloLayerPlugin::getOutputDimensions(int index, const Dims* inputs, int nbInputDims)
     {
-        //output the result to channel
+        assert(index == 0);
+        assert(nbInputDims == 1);
+        assert(inputs[0].d[0] == (mNumClasses + 5) * mNumAnchors);
+        assert(inputs[0].d[1] == mYoloHeight);
+        assert(inputs[0].d[2] == mYoloWidth);
+        // output detection results to the channel dimension
         int totalsize = mYoloWidth * mYoloHeight * mNumAnchors * sizeof(Detection) / sizeof(float);
         return Dims3(totalsize, 1, 1);
     }
