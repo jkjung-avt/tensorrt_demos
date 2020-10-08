@@ -246,7 +246,7 @@ namespace nvinfer1
 
         //CHECK(cudaMemset(output, 0, num_elements * sizeof(Detection)));
 
-        CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount>>>
+        CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount, 0, stream>>>
             (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
     }
 
