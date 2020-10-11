@@ -72,7 +72,7 @@ Step-by-step:
 
    ```shell
    $ cd ${HOME}/project
-   $ git clone https://github.com/jkjung-avt/tensorrt_demos
+   $ git clone https://github.com/jkjung-avt/tensorrt_demos.git
    $ cd tensorrt_demos
    ```
 
@@ -296,6 +296,10 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
 6. The "trt_yolo.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
 
+   For example, I tested my own custom trained ["yolov4-crowdhuman-416x416"](https://github.com/jkjung-avt/yolov4_crowdhuman) TensorRT engine with the "Avengers: Infinity War" movie trailer:
+
+   [![Testing with the Avengers: Infinity War trailer](https://raw.githubusercontent.com/jkjung-avt/yolov4_crowdhuman/master/doc/infinity_war.jpg)](https://youtu.be/7Qr_Fq18FgM)
+
 7. (Optional) Test other models than "yolov4-416".
 
 8. (Optional) If you would like to stream TensorRT YOLO detection output over the network and view the results on a remote host, check out my [trt_yolo_mjpeg.py example](https://github.com/jkjung-avt/tensorrt_demos/issues/226).
@@ -332,6 +336,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    * [TensorRT ONNX YOLOv3](https://jkjung-avt.github.io/tensorrt-yolov3/)
    * [TensorRT YOLOv4](https://jkjung-avt.github.io/tensorrt-yolov4/)
    * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
+   * For training your own custom yolov4 model: [Custom YOLOv4 Model on Google Colab](https://jkjung-avt.github.io/colab-yolov4/)
    * For adapting the code to your own custom trained yolov3/yolov4 models: [TensorRT YOLOv3 For Custom Trained Models](https://jkjung-avt.github.io/trt-yolov3-custom/)
 
 <a name="int8_and_dla"></a>
