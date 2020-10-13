@@ -222,7 +222,7 @@ def get_yolo_grid_sizes(model_name, h, w):
         if 'tiny' in model_name:
             return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
         else:
-            return [(h // 8) * (w // 8), (h // 16) * (w // 16), (w // 32) * (h // 32)]
+            return [(h // 8) * (w // 8), (h // 16) * (w // 16), (h // 32) * (w // 32)]
     else:
         raise ValueError('ERROR: unknown model (%s)!' % args.model)
 
