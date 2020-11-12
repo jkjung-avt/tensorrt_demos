@@ -144,13 +144,14 @@ class HostDeviceMem(object):
         return self.__str__()
 
 
-def allocate_buffers(engine, grid_sizes):
+def allocate_buffers(engine):
     """Allocates all host/device in/out buffers required for an engine."""
     inputs = []
     outputs = []
     bindings = []
     output_idx = 0
     stream = cuda.Stream()
+    assert 3 <= len(engine) <= 4  # expect 1 input, plus 2 or 3 outpus
     for binding in engine:
         size = trt.volume(engine.get_binding_shape(binding)) * \
                engine.max_batch_size
@@ -166,7 +167,7 @@ def allocate_buffers(engine, grid_sizes):
         else:
             # each grid has 3 anchors, each anchor generates a detection
             # output of 7 float32 values
-            assert size == grid_sizes[output_idx] * 3 * 7 * engine.max_batch_size
+            assert size % 7 == 0
             outputs.append(HostDeviceMem(host_mem, device_mem))
             output_idx += 1
     return inputs, outputs, bindings, stream
@@ -251,10 +252,8 @@ class TrtYOLO(object):
 
         try:
             self.context = self.engine.create_execution_context()
-            grid_sizes = get_yolo_grid_sizes(
-                self.model, self.input_shape[0], self.input_shape[1])
             self.inputs, self.outputs, self.bindings, self.stream = \
-                allocate_buffers(self.engine, grid_sizes)
+                allocate_buffers(self.engine)
         except Exception as e:
             raise RuntimeError('fail to allocate CUDA resources') from e
         finally:
