@@ -326,7 +326,7 @@ class TrtRNet(object):
                                        (2, 1, 1),
                                        (4, 1, 1))
 
-    def detect(self, img, boxes, max_batch=256, threshold=0.7):
+    def detect(self, img, boxes, max_batch=256, threshold=0.6):
         """Detect faces using RNet
 
         # Arguments
