@@ -78,7 +78,7 @@ namespace nvinfer1
 
             const char* getPluginNamespace() const override;
 
-            DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes, int nbInputs) const override;
+            DataType getOutputDataType(int index, const DataType* inputTypes, int nbInputs) const override;
 
             bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const override;
 
@@ -102,6 +102,9 @@ namespace nvinfer1
             float mScaleXY;
 
             const char* mPluginNamespace;
+
+        protected:
+            using IPluginV2IOExt::configurePlugin;
     };
 
     class YoloPluginCreator : public IPluginCreator
