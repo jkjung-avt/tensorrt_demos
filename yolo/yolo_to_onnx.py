@@ -637,14 +637,14 @@ class GraphBuilderONNX(object):
                 'Softplus',
                 inputs=inputs,
                 outputs=[layer_name_softplus],
-                name=layer_name_softplus,
+                name=layer_name_softplus
             )
             self._nodes.append(softplus_node)
             tanh_node = helper.make_node(
                 'Tanh',
                 inputs=[layer_name_softplus],
                 outputs=[layer_name_tanh],
-                name=layer_name_tanh,
+                name=layer_name_tanh
             )
             self._nodes.append(tanh_node)
 
@@ -653,16 +653,29 @@ class GraphBuilderONNX(object):
                 'Mul',
                 inputs=inputs,
                 outputs=[layer_name_mish],
-                name=layer_name_mish,
+                name=layer_name_mish
             )
             self._nodes.append(mish_node)
 
             inputs = [layer_name_mish]
             layer_name_output = layer_name_mish
+        elif layer_dict['activation'] == 'logistic':
+            layer_name_lgx = layer_name + '_lgx'
+
+            lgx_node = helper.make_node(
+                'Sigmoid',
+                inputs=inputs,
+                outputs=[layer_name_lgx],
+                name=layer_name_lgx
+            )
+            self._nodes.append(lgx_node)
+            inputs = [layer_name_lgx]
+            layer_name_output = layer_name_lgx
         elif layer_dict['activation'] == 'linear':
             pass
         else:
-            print('Activation not supported.')
+            print('_make_conv_node(): %s activation not supported!' %
+                  layer_dict['activation'])
 
         self.param_dict[layer_name] = conv_params
         return layer_name_output, filters
@@ -915,7 +928,11 @@ def main():
             output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
     elif 'yolov4' in args.model:
-        if 'tiny' in args.model:
+        if 'yolov4x-mish' in args.model:
+            output_tensor_dims['168_convolutional'] = [c, h //  8, w //  8]
+            output_tensor_dims['185_convolutional'] = [c, h // 16, w // 16]
+            output_tensor_dims['202_convolutional'] = [c, h // 32, w // 32]
+        elif 'tiny' in args.model:
             output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
         else:
