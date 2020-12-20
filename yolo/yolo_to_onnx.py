@@ -374,7 +374,6 @@ class WeightLoader(object):
         elif param_category == 'conv':
             if suffix == 'weights':
                 param_shape = [channels_out, channels_in, filter_h, filter_w]
-                #print(param_shape)
             elif suffix == 'bias':
                 param_shape = [channels_out]
         param_size = np.product(np.array(param_shape))
@@ -448,7 +447,6 @@ class GraphBuilderONNX(object):
             _, layer_type = layer_name.split('_', 1)
             params = self.param_dict[layer_name]
             if layer_type == 'convolutional':
-                #print('%s  ' % layer_name, end='')
                 initializer_layer, inputs_layer = weight_loader.load_conv_weights(
                     params)
                 initializer.extend(initializer_layer)
@@ -505,11 +503,7 @@ class GraphBuilderONNX(object):
                 major_node_specs = MajorNodeSpecs(major_node_output_name,
                                                   major_node_output_channels)
             else:
-                print(
-                    'Layer of type %s not supported, skipping ONNX node generation.' %
-                    layer_type)
-                major_node_specs = MajorNodeSpecs(layer_name,
-                                                  None)
+                raise TypeError('layer of type %s not supported' % layer_type)
         return major_node_specs
 
     def _make_input_tensor(self, layer_name, layer_dict):
@@ -674,8 +668,7 @@ class GraphBuilderONNX(object):
         elif layer_dict['activation'] == 'linear':
             pass
         else:
-            print('_make_conv_node(): %s activation not supported!' %
-                  layer_dict['activation'])
+            raise TypeError('%s activation not supported' % layer_dict['activation'])
 
         self.param_dict[layer_name] = conv_params
         return layer_name_output, filters
@@ -929,9 +922,9 @@ def main():
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
     elif 'yolov4' in args.model:
         if 'yolov4x-mish' in args.model:
-            output_tensor_dims['168_convolutional'] = [c, h //  8, w //  8]
-            output_tensor_dims['185_convolutional'] = [c, h // 16, w // 16]
-            output_tensor_dims['202_convolutional'] = [c, h // 32, w // 32]
+            output_tensor_dims['168_convolutional_lgx'] = [c, h //  8, w //  8]
+            output_tensor_dims['185_convolutional_lgx'] = [c, h // 16, w // 16]
+            output_tensor_dims['202_convolutional_lgx'] = [c, h // 32, w // 32]
         elif 'tiny' in args.model:
             output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
