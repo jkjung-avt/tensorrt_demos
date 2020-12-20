@@ -120,6 +120,9 @@ class DarkNetParser(object):
         remainder -- a string with all raw text after the previously parsed layer
         """
         remainder = remainder.split('[', 1)
+        while len(remainder[0]) > 0 and remainder[0][-1] == '#':
+            # handling commented-out layers
+            remainder = remainder[1].split('[', 1)
         if len(remainder) == 2:
             remainder = remainder[1]
         else:
@@ -925,6 +928,10 @@ def main():
             output_tensor_dims['168_convolutional_lgx'] = [c, h //  8, w //  8]
             output_tensor_dims['185_convolutional_lgx'] = [c, h // 16, w // 16]
             output_tensor_dims['202_convolutional_lgx'] = [c, h // 32, w // 32]
+        elif 'yolov4-csp' in args.model:
+            output_tensor_dims['144_convolutional_lgx'] = [c, h //  8, w //  8]
+            output_tensor_dims['159_convolutional_lgx'] = [c, h // 16, w // 16]
+            output_tensor_dims['174_convolutional_lgx'] = [c, h // 32, w // 32]
         elif 'tiny' in args.model:
             output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]

@@ -270,7 +270,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    $ make
    ```
 
-4. Download the pre-trained yolov3/yolov4 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  I use "yolov4-416" as example below.  (Supported models: "yolov3-tiny-288", "yolov3-tiny-416", "yolov3-288", "yolov3-416", "yolov3-608", "yolov3-spp-288", "yolov3-spp-416", "yolov3-spp-608", "yolov4-tiny-288", "yolov4-tiny-416", "yolov4-288", "yolov4-416", "yolov4-608", and [custom models](https://jkjung-avt.github.io/trt-yolov3-custom/) such as "yolov4-416x256".)
+4. Download the pre-trained yolov3/yolov4 COCO models and convert the targeted model to ONNX and then to TensorRT engine.  I use "yolov4-416" as example below.  (Supported models: "yolov3-tiny-288", "yolov3-tiny-416", "yolov3-288", "yolov3-416", "yolov3-608", "yolov3-spp-288", "yolov3-spp-416", "yolov3-spp-608", "yolov4-tiny-288", "yolov4-tiny-416", "yolov4-288", "yolov4-416", "yolov4-608", "yolov4-csp-256", "yolov4-csp-512", "yolov4x-mish-320", "yolov4x-mish-640", and [custom models](https://jkjung-avt.github.io/trt-yolov3-custom/) such as "yolov4-416x256".)
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos/yolo
@@ -315,21 +315,25 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    I evaluated all these TensorRT yolov3/yolov4 engines with COCO "val2017" data and got the following results.  I also checked the FPS (frames per second) numbers on my Jetson Nano DevKit with JetPack-4.4 (TensorRT 7).
 
-   | TensorRT engine        | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
-   |:-----------------------|:---------------------:|:------------------:|:-----------:|
-   | yolov3-tiny-288 (FP16) |         0.077         |        0.158       |     35.8    |
-   | yolov3-tiny-416 (FP16) |         0.096         |        0.202       |     25.5    |
-   | yolov3-288 (FP16)      |         0.331         |        0.601       |     8.16    |
-   | yolov3-416 (FP16)      |         0.373         |        0.664       |     4.93    |
-   | yolov3-608 (FP16)      |         0.376         |        0.665       |     2.53    |
-   | yolov3-spp-288 (FP16)  |         0.339         |        0.594       |     8.16    |
-   | yolov3-spp-416 (FP16)  |         0.391         |        0.664       |     4.82    |
-   | yolov3-spp-608 (FP16)  |         0.410         |        0.685       |     2.49    |
-   | yolov4-tiny-288 (FP16) |         0.179         |        0.344       |     36.6    |
-   | yolov4-tiny-416 (FP16) |         0.196         |        0.387       |     25.5    |
-   | yolov4-288 (FP16)      |         0.376         |        0.591       |     7.93    |
-   | yolov4-416 (FP16)      |         0.459         |        0.700       |     4.62    |
-   | yolov4-608 (FP16)      |         0.488         |        0.736       |     2.35    |
+   | TensorRT engine         | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
+   |:------------------------|:---------------------:|:------------------:|:-----------:|
+   | yolov3-tiny-288 (FP16)  |         0.077         |        0.158       |     35.8    |
+   | yolov3-tiny-416 (FP16)  |         0.096         |        0.202       |     25.5    |
+   | yolov3-288 (FP16)       |         0.331         |        0.601       |     8.16    |
+   | yolov3-416 (FP16)       |         0.373         |        0.664       |     4.93    |
+   | yolov3-608 (FP16)       |         0.376         |        0.665       |     2.53    |
+   | yolov3-spp-288 (FP16)   |         0.339         |        0.594       |     8.16    |
+   | yolov3-spp-416 (FP16)   |         0.391         |        0.664       |     4.82    |
+   | yolov3-spp-608 (FP16)   |         0.410         |        0.685       |     2.49    |
+   | yolov4-tiny-288 (FP16)  |         0.179         |        0.344       |     36.6    |
+   | yolov4-tiny-416 (FP16)  |         0.196         |        0.387       |     25.5    |
+   | yolov4-288 (FP16)       |         0.376         |        0.591       |     7.93    |
+   | yolov4-416 (FP16)       |         0.459         |        0.700       |     4.62    |
+   | yolov4-608 (FP16)       |         0.488         |        0.736       |     2.35    |
+   | yolov4-csp-256 (FP16)   |         0.344         |        0.515       |      --     |
+   | yolov4-csp-512 (FP16)   |         0.425         |        0.619       |      --     |
+   | yolov4x-mish-320 (FP16) |         0.400         |        0.583       |      --     |
+   | yolov4x-mish-640 (FP16) |         0.443         |        0.641       |      --     |
 
 10. Check out my blog posts for implementation details:
 
