@@ -23,8 +23,11 @@ else
   $(error Unkown CPU architecture: neither "aarch" nor "x86_64")
 endif
 
-NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
-               -gencode arch=compute_$(compute),code=compute_$(compute)
+#NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
+#               -gencode arch=compute_$(compute),code=compute_$(compute)
+
+# Let nvcc determine cuda compute automatically
+NVCCFLAGS=
 
 # These are the directories where I installed TensorRT on my x86_64 PC.
 TENSORRT_INCS=-I"/usr/local/TensorRT-7.1.3.4/include"
