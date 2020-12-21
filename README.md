@@ -330,10 +330,10 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    | yolov4-288 (FP16)       |         0.376         |        0.591       |     7.93    |
    | yolov4-416 (FP16)       |         0.459         |        0.700       |     4.62    |
    | yolov4-608 (FP16)       |         0.488         |        0.736       |     2.35    |
-   | yolov4-csp-256 (FP16)   |         0.344         |        0.515       |      --     |
-   | yolov4-csp-512 (FP16)   |         0.425         |        0.619       |      --     |
-   | yolov4x-mish-320 (FP16) |         0.400         |        0.583       |      --     |
-   | yolov4x-mish-640 (FP16) |         0.443         |        0.641       |      --     |
+   | yolov4-csp-256 (FP16)   |         0.344         |        0.515       |     12.8    |
+   | yolov4-csp-512 (FP16)   |         0.425         |        0.619       |     4.26    |
+   | yolov4x-mish-320 (FP16) |         0.400         |        0.583       |     4.79    |
+   | yolov4x-mish-640 (FP16) |         0.443         |        0.641       |     1.46    |
 
 10. Check out my blog posts for implementation details:
 
