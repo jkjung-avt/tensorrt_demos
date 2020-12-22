@@ -34,6 +34,9 @@ def parse_args():
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
     parser.add_argument(
+        '-l', '--letter_box', action='store_true',
+        help='inference with letterboxed image [False]')
+    parser.add_argument(
         '-p', '--mjpeg_port', type=int, default=8080,
         help='MJPEG server port [8080]')
     args = parser.parse_args()
@@ -90,7 +93,7 @@ def main():
     if h % 32 != 0 or w % 32 != 0:
         raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
-    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num)
+    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
 
     vis = BBoxVisualization(cls_dict)
     mjpeg_server = MjpegServer(port=args.mjpeg_port)
