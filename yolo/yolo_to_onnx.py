@@ -120,6 +120,9 @@ class DarkNetParser(object):
         remainder -- a string with all raw text after the previously parsed layer
         """
         remainder = remainder.split('[', 1)
+        while len(remainder[0]) > 0 and remainder[0][-1] == '#':
+            # handling commented-out layers
+            remainder = remainder[1].split('[', 1)
         if len(remainder) == 2:
             remainder = remainder[1]
         else:
@@ -374,7 +377,6 @@ class WeightLoader(object):
         elif param_category == 'conv':
             if suffix == 'weights':
                 param_shape = [channels_out, channels_in, filter_h, filter_w]
-                #print(param_shape)
             elif suffix == 'bias':
                 param_shape = [channels_out]
         param_size = np.product(np.array(param_shape))
@@ -448,7 +450,6 @@ class GraphBuilderONNX(object):
             _, layer_type = layer_name.split('_', 1)
             params = self.param_dict[layer_name]
             if layer_type == 'convolutional':
-                #print('%s  ' % layer_name, end='')
                 initializer_layer, inputs_layer = weight_loader.load_conv_weights(
                     params)
                 initializer.extend(initializer_layer)
@@ -505,11 +506,7 @@ class GraphBuilderONNX(object):
                 major_node_specs = MajorNodeSpecs(major_node_output_name,
                                                   major_node_output_channels)
             else:
-                print(
-                    'Layer of type %s not supported, skipping ONNX node generation.' %
-                    layer_type)
-                major_node_specs = MajorNodeSpecs(layer_name,
-                                                  None)
+                raise TypeError('layer of type %s not supported' % layer_type)
         return major_node_specs
 
     def _make_input_tensor(self, layer_name, layer_dict):
@@ -637,14 +634,14 @@ class GraphBuilderONNX(object):
                 'Softplus',
                 inputs=inputs,
                 outputs=[layer_name_softplus],
-                name=layer_name_softplus,
+                name=layer_name_softplus
             )
             self._nodes.append(softplus_node)
             tanh_node = helper.make_node(
                 'Tanh',
                 inputs=[layer_name_softplus],
                 outputs=[layer_name_tanh],
-                name=layer_name_tanh,
+                name=layer_name_tanh
             )
             self._nodes.append(tanh_node)
 
@@ -653,16 +650,28 @@ class GraphBuilderONNX(object):
                 'Mul',
                 inputs=inputs,
                 outputs=[layer_name_mish],
-                name=layer_name_mish,
+                name=layer_name_mish
             )
             self._nodes.append(mish_node)
 
             inputs = [layer_name_mish]
             layer_name_output = layer_name_mish
+        elif layer_dict['activation'] == 'logistic':
+            layer_name_lgx = layer_name + '_lgx'
+
+            lgx_node = helper.make_node(
+                'Sigmoid',
+                inputs=inputs,
+                outputs=[layer_name_lgx],
+                name=layer_name_lgx
+            )
+            self._nodes.append(lgx_node)
+            inputs = [layer_name_lgx]
+            layer_name_output = layer_name_lgx
         elif layer_dict['activation'] == 'linear':
             pass
         else:
-            print('Activation not supported.')
+            raise TypeError('%s activation not supported' % layer_dict['activation'])
 
         self.param_dict[layer_name] = conv_params
         return layer_name_output, filters
@@ -915,7 +924,15 @@ def main():
             output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
     elif 'yolov4' in args.model:
-        if 'tiny' in args.model:
+        if 'yolov4x-mish' in args.model:
+            output_tensor_dims['168_convolutional_lgx'] = [c, h //  8, w //  8]
+            output_tensor_dims['185_convolutional_lgx'] = [c, h // 16, w // 16]
+            output_tensor_dims['202_convolutional_lgx'] = [c, h // 32, w // 32]
+        elif 'yolov4-csp' in args.model:
+            output_tensor_dims['144_convolutional_lgx'] = [c, h //  8, w //  8]
+            output_tensor_dims['159_convolutional_lgx'] = [c, h // 16, w // 16]
+            output_tensor_dims['174_convolutional_lgx'] = [c, h // 32, w // 32]
+        elif 'tiny' in args.model:
             output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
             output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
         else:

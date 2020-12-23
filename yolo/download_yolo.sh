@@ -22,6 +22,14 @@ wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/y
 wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4.cfg -q --show-progress --no-clobber
 wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights -q --show-progress --no-clobber
 
+# yolov4-csp
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-csp.cfg -q --show-progress --no-clobber
+wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4-csp.weights -q --show-progress --no-clobber
+
+# yolov4x-mish
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4x-mish.cfg -q --show-progress --no-clobber
+wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4x-mish.weights -q --show-progress --no-clobber
+
 echo
 echo "Creating yolov3-tiny-288.cfg and yolov3-tiny-288.weights"
 cat yolov3-tiny.cfg | sed -e '8s/width=416/width=288/' | sed -e '9s/height=416/height=288/' > yolov3-tiny-288.cfg
@@ -70,6 +78,20 @@ ln -sf yolov4.weights yolov4-416.weights
 echo "Creating yolov4-608.cfg and yolov4-608.weights"
 cat yolov4.cfg | sed -e '2s/batch=64/batch=1/' > yolov4-608.cfg
 ln -sf yolov4.weights yolov4-608.weights
+
+echo "Creating yolov4-csp-256.cfg and yolov4-csp-256.weights"
+cat yolov4-csp.cfg | sed -e '6s/batch=64/batch=1/' | sed -e '8s/width=512/width=256/' | sed -e '9s/height=512/height=256/' > yolov4-csp-256.cfg
+ln -sf yolov4-csp.weights yolov4-csp-256.weights
+echo "Creating yolov4-csp-512.cfg and yolov4x-csp-512.weights"
+cat yolov4-csp.cfg | sed -e '6s/batch=64/batch=1/' > yolov4-csp-512.cfg
+ln -sf yolov4-csp.weights yolov4-csp-512.weights
+
+echo "Creating yolov4x-mish-320.cfg and yolov4x-mish-320.weights"
+cat yolov4x-mish.cfg | sed -e '6s/batch=64/batch=1/' | sed -e '8s/width=640/width=320/' | sed -e '9s/height=640/height=320/' > yolov4x-mish-320.cfg
+ln -sf yolov4x-mish.weights yolov4x-mish-320.weights
+echo "Creating yolov4x-mish-640.cfg and yolov4x-mish-640.weights"
+cat yolov4x-mish.cfg | sed -e '6s/batch=64/batch=1/' > yolov4x-mish-640.cfg
+ln -sf yolov4x-mish.weights yolov4x-mish-640.weights
 
 echo
 echo "Done."

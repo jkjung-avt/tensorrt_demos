@@ -17,14 +17,17 @@ ifeq ($(cpu_arch), aarch64)  # Jetson
     $(error Cannot determine cuda compute automatically, so please modify Makefile manually)
   endif
 else ifeq ($(cpu_arch), x86_64)  # x86_64 PC
-  $(warning "compute=75" is for GeForce RTX-2080 Ti.  Please make sure CUDA compute is set correctly for your system in the Makefile.)
+  #$(warning "compute=75" is for GeForce RTX-2080 Ti.  Please make sure CUDA compute is set correctly for your system in the Makefile.)
   compute=75
 else
   $(error Unkown CPU architecture: neither "aarch" nor "x86_64")
 endif
 
-NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
-               -gencode arch=compute_$(compute),code=compute_$(compute)
+#NVCCFLAGS=-m64 -gencode arch=compute_$(compute),code=sm_$(compute) \
+#               -gencode arch=compute_$(compute),code=compute_$(compute)
+
+# Let nvcc determine cuda compute automatically
+NVCCFLAGS=
 
 # These are the directories where I installed TensorRT on my x86_64 PC.
 TENSORRT_INCS=-I"/usr/local/TensorRT-7.1.3.4/include"

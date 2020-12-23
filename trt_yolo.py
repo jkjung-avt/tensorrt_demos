@@ -38,6 +38,9 @@ def parse_args():
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
               'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
+    parser.add_argument(
+        '-l', '--letter_box', action='store_true',
+        help='inference with letterboxed image [False]')
     args = parser.parse_args()
     return args
 
@@ -100,7 +103,7 @@ def main():
     if h % 32 != 0 or w % 32 != 0:
         raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
-    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num)
+    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
 
     open_window(
         WINDOW_NAME, 'Camera TensorRT YOLO Demo',

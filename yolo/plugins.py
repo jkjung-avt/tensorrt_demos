@@ -95,6 +95,20 @@ def get_scales(model_name):
         return [float(l.split('=')[-1]) for l in scale_lines]
 
 
+def get_new_coords(model_name):
+    """Get new_coords flag of yolo layers from the cfg file."""
+    cfg_file_path = model_name + '.cfg'
+    with open(cfg_file_path, 'r') as f:
+        cfg_lines = f.readlines()
+    yolo_lines = [l.strip() for l in cfg_lines if l.startswith('[yolo]')]
+    newc_lines = [l.strip() for l in cfg_lines if l.startswith('new_coords')]
+    if len(newc_lines) == 0:
+        return 0
+    else:
+        assert len(newc_lines) == len(yolo_lines)
+        return int(newc_lines[-1].split('=')[-1])
+
+
 def get_plugin_creator(plugin_name, logger):
     """Get the TensorRT plugin creator."""
     trt.init_libnvinfer_plugins(logger, '')
@@ -121,6 +135,7 @@ def add_yolo_plugins(network, model_name, num_classes, logger):
     scales = get_scales(model_name)
     if any([s < 1.0 for s in scales]):
         raise ValueError('bad scale_x_y: %s' % str(scales))
+    new_coords = get_new_coords(model_name)
 
     plugin_creator = get_plugin_creator('YoloLayer_TRT', logger)
     if not plugin_creator:
@@ -128,13 +143,17 @@ def add_yolo_plugins(network, model_name, num_classes, logger):
     old_tensors = [network.get_output(i) for i in range(network.num_outputs)]
     new_tensors = [None] * network.num_outputs
     for i, old_tensor in enumerate(old_tensors):
+        assert input_width  % yolo_whs[i][0] == 0
+        assert input_height % yolo_whs[i][1] == 0
+        input_multiplier = input_width // yolo_whs[i][0]
+        assert input_height // yolo_whs[i][1] == input_multiplier
         new_tensors[i] = network.add_plugin_v2(
             [old_tensor],
             plugin_creator.create_plugin('YoloLayer_TRT', trt.PluginFieldCollection([
                 trt.PluginField("yoloWidth", np.array(yolo_whs[i][0], dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("yoloHeight", np.array(yolo_whs[i][1], dtype=np.int32), trt.PluginFieldType.INT32),
-                trt.PluginField("inputWidth", np.array(input_width, dtype=np.int32), trt.PluginFieldType.INT32),
-                trt.PluginField("inputHeight", np.array(input_height, dtype=np.int32), trt.PluginFieldType.INT32),
+                trt.PluginField("inputMultiplier", np.array(input_multiplier, dtype=np.int32), trt.PluginFieldType.INT32),
+                trt.PluginField("newCoords", np.array(new_coords, dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("numClasses", np.array(num_classes, dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("numAnchors", np.array(len(anchors[i]) // 2, dtype=np.int32), trt.PluginFieldType.INT32),
                 trt.PluginField("anchors", np.ascontiguousarray(anchors[i], dtype=np.float32), trt.PluginFieldType.FLOAT32),
