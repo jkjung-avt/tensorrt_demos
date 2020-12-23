@@ -424,8 +424,8 @@ Please make sure you have gone through the steps of [Demo #5](#yolov4) and are a
    | yolov3-spp-608   |   15.0   |   22.7   |   14.7   |   14.7   |
    | yolov4-tiny-416  |    57    |    60    |     X    |     X    |
    | yolov4-608       |   13.8   |   20.5   |   8.97   |   8.97   |
-   | yolov4-csp-512   |    --    |    --    |    --    |    --    |
-   | yolov4x-mish-640 |    --    |    --    |    --    |    --    |
+   | yolov4-csp-512   |   19.8   |   27.8   |    --    |    --    |
+   | yolov4x-mish-640 |   9.01   |   14.1   |    --    |    --    |
 
    And the following are **"mAP@IoU=0.5:0.95" / "mAP@IoU=0.5"** of those TensorRT engines.
 
