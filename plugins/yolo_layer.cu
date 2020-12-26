@@ -200,40 +200,45 @@ namespace nvinfer1
     // for each grid/anchor combination.
     // NOTE: The output (x, y, w, h) are between 0.0 and 1.0
     //       (relative to orginal image width and height).
-    __global__ void CalDetection(const float *input, float *output, int yolo_width, int yolo_height, int num_anchors,
-                                 const float *anchors, int num_classes, int input_w, int input_h, float scale_x_y)
+    __global__ void CalDetection(const float *input, float *output,
+                                 int batch_size,
+                                 int yolo_width, int yolo_height,
+                                 int num_anchors, const float *anchors,
+                                 int num_classes, int input_w, int input_h,
+                                 float scale_x_y)
     {
         int idx = threadIdx.x + blockDim.x * blockIdx.x;
         Detection* det = ((Detection*) output) + idx;
         int total_grids = yolo_width * yolo_height;
-        if (idx >= total_grids * num_anchors) return;
+        if (idx >= batch_size * total_grids * num_anchors) return;
 
-        int anchor_idx = idx / total_grids;
-        idx = idx - total_grids * anchor_idx;
         int info_len = 5 + num_classes;
-        const float* cur_input = input + anchor_idx * (info_len * total_grids);
+        //int batch_idx = idx / (total_grids * num_anchors);
+        int group_idx = idx / total_grids;
+        int anchor_idx = group_idx % num_anchors;
+        const float* cur_input = input + group_idx * (info_len * total_grids) + (idx % total_grids);
 
         int class_id;
         float max_cls_logit = -CUDART_INF_F;  // minus infinity
         for (int i = 5; i < info_len; ++i) {
-            float l = cur_input[idx + i * total_grids];
+            float l = *(cur_input + i * total_grids);
             if (l > max_cls_logit) {
                 max_cls_logit = l;
                 class_id = i - 5;
             }
         }
         float max_cls_prob = sigmoidGPU(max_cls_logit);
-        float box_prob = sigmoidGPU(cur_input[idx + 4 * total_grids]);
+        float box_prob = sigmoidGPU(*(cur_input + 4 * total_grids));
         //if (max_cls_prob < IGNORE_THRESH || box_prob < IGNORE_THRESH)
         //    return;
 
-        int row = idx / yolo_width;
-        int col = idx % yolo_width;
+        int row = (idx % total_grids) / yolo_width;
+        int col = (idx % total_grids) % yolo_width;
 
-        det->bbox[0] = (col + scale_sigmoidGPU(cur_input[idx + 0 * total_grids], scale_x_y)) / yolo_width;   // [0, 1]
-        det->bbox[1] = (row + scale_sigmoidGPU(cur_input[idx + 1 * total_grids], scale_x_y)) / yolo_height;  // [0, 1]
-        det->bbox[2] = __expf(cur_input[idx + 2 * total_grids]) * anchors[2 * anchor_idx] / input_w;         // [0, 1]
-        det->bbox[3] = __expf(cur_input[idx + 3 * total_grids]) * anchors[2 * anchor_idx + 1] / input_h;     // [0, 1]
+        det->bbox[0] = (col + scale_sigmoidGPU(*(cur_input + 0 * total_grids), scale_x_y)) / yolo_width;    // [0, 1]
+        det->bbox[1] = (row + scale_sigmoidGPU(*(cur_input + 1 * total_grids), scale_x_y)) / yolo_height;   // [0, 1]
+        det->bbox[2] = __expf(*(cur_input + 2 * total_grids)) * *(anchors + 2 * anchor_idx + 0) / input_w;  // [0, 1]
+        det->bbox[3] = __expf(*(cur_input + 3 * total_grids)) * *(anchors + 2 * anchor_idx + 1) / input_h;  // [0, 1]
 
         det->bbox[0] -= det->bbox[2] / 2;  // shift from center to top-left
         det->bbox[1] -= det->bbox[3] / 2;
@@ -253,39 +258,44 @@ namespace nvinfer1
         return x * x;
     }
 
-    __global__ void CalDetection_NewCoords(const float *input, float *output, int yolo_width, int yolo_height, int num_anchors,
-                                           const float *anchors, int num_classes, int input_w, int input_h, float scale_x_y)
+    __global__ void CalDetection_NewCoords(const float *input, float *output,
+                                           int batch_size,
+                                           int yolo_width, int yolo_height,
+                                           int num_anchors, const float *anchors,
+                                           int num_classes, int input_w, int input_h,
+                                           float scale_x_y)
     {
         int idx = threadIdx.x + blockDim.x * blockIdx.x;
         Detection* det = ((Detection*) output) + idx;
         int total_grids = yolo_width * yolo_height;
-        if (idx >= total_grids * num_anchors) return;
+        if (idx >= batch_size * total_grids * num_anchors) return;
 
-        int anchor_idx = idx / total_grids;
-        idx = idx - total_grids * anchor_idx;
         int info_len = 5 + num_classes;
-        const float* cur_input = input + anchor_idx * (info_len * total_grids);
+        //int batch_idx = idx / (total_grids * num_anchors);
+        int group_idx = idx / total_grids;
+        int anchor_idx = group_idx % num_anchors;
+        const float* cur_input = input + group_idx * (info_len * total_grids) + (idx % total_grids);
 
         int class_id;
         float max_cls_prob = -CUDART_INF_F;  // minus infinity
         for (int i = 5; i < info_len; ++i) {
-            float l = cur_input[idx + i * total_grids];
+            float l = *(cur_input + i * total_grids);
             if (l > max_cls_prob) {
                 max_cls_prob = l;
                 class_id = i - 5;
             }
         }
-        float box_prob = cur_input[idx + 4 * total_grids];
+        float box_prob = *(cur_input + 4 * total_grids);
         //if (max_cls_prob < IGNORE_THRESH || box_prob < IGNORE_THRESH)
         //    return;
 
-        int row = idx / yolo_width;
-        int col = idx % yolo_width;
+        int row = (idx % total_grids) / yolo_width;
+        int col = (idx % total_grids) % yolo_width;
 
-        det->bbox[0] = (col + scale(cur_input[idx + 0 * total_grids], scale_x_y)) / yolo_width;               // [0, 1]
-        det->bbox[1] = (row + scale(cur_input[idx + 1 * total_grids], scale_x_y)) / yolo_height;              // [0, 1]
-        det->bbox[2] = square(cur_input[idx + 2 * total_grids]) * 4 * anchors[2 * anchor_idx] / input_w;      // [0, 1]
-        det->bbox[3] = square(cur_input[idx + 3 * total_grids]) * 4 * anchors[2 * anchor_idx + 1] / input_h;  // [0, 1]
+        det->bbox[0] = (col + scale(*(cur_input + 0 * total_grids), scale_x_y)) / yolo_width;                   // [0, 1]
+        det->bbox[1] = (row + scale(*(cur_input + 1 * total_grids), scale_x_y)) / yolo_height;                  // [0, 1]
+        det->bbox[2] = square(*(cur_input + 2 * total_grids)) * 4 * *(anchors + 2 * anchor_idx + 0) / input_w;  // [0, 1]
+        det->bbox[3] = square(*(cur_input + 3 * total_grids)) * 4 * *(anchors + 2 * anchor_idx + 1) / input_h;  // [0, 1]
 
         det->bbox[0] -= det->bbox[2] / 2;  // shift from center to top-left
         det->bbox[1] -= det->bbox[3] / 2;
@@ -303,10 +313,10 @@ namespace nvinfer1
 
         if (mNewCoords) {
             CalDetection_NewCoords<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount, 0, stream>>>
-                (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
+                (inputs[0], output, batchSize, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
         } else {
             CalDetection<<<(num_elements + mThreadCount - 1) / mThreadCount, mThreadCount, 0, stream>>>
-                (inputs[0], output, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
+                (inputs[0], output, batchSize, mYoloWidth, mYoloHeight, mNumAnchors, (const float*) mAnchors, mNumClasses, mInputWidth, mInputHeight, mScaleXY);
         }
     }
 
