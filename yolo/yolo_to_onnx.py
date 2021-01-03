@@ -148,7 +148,8 @@ class DarkNetParser(object):
         layer_dict = dict(type=layer_type)
         if layer_type in self.supported_layers:
             for param_line in layer_param_lines:
-                if param_line[0] == '#':
+                param_line = param_line.lstrip().split('#')[0]
+                if not param_line:
                     continue
                 param_type, param_value = self._parse_params(param_line)
                 layer_dict[param_type] = param_value
