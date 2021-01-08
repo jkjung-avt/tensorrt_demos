@@ -3,7 +3,7 @@
 This script helps making inference object detection video with
 TensorRT optimized YOLO engine.
 "cv"means "create video"
-made by BigJoon
+made by BigJoon (ref. jkjung-avt)
 """
 
 
