@@ -22,7 +22,6 @@ from utils.visualization import BBoxVisualization
 from utils.yolo_with_plugins import TrtYOLO
 
 
-#WINDOW_NAME = 'TrtYOLODemo'
 
 
 def parse_args():
