@@ -111,45 +111,43 @@ def _postprocess_yolo(trt_outputs, img_w, img_h, conf_th, nms_threshold,
     # Returns
         boxes, scores, classes (after NMS)
     """
-    # concatenate outputs of all yolo layers
-    detections = np.concatenate(
-        [o.reshape(-1, 7) for o in trt_outputs], axis=0)
+    # filter low-conf detections and concatenate results of all yolo layers
+    detections = []
+    for o in trt_outputs:
+        dets = o.reshape((-1, 7))
+        dets = dets[dets[:, 4] * dets[:, 6] >= conf_th]
+        detections.append(dets)
+    detections = np.concatenate(detections, axis=0)
 
-    # drop detections with score lower than conf_th
-    box_scores = detections[:, 4] * detections[:, 6]
-    pos = np.where(box_scores >= conf_th)
-    detections = detections[pos]
-
-    # scale x, y, w, h from [0, 1] to pixel values
-    old_h, old_w = img_h, img_w
-    offset_h, offset_w = 0, 0
-    if letter_box:
-        if (img_w / input_shape[1]) >= (img_h / input_shape[0]):
-            old_h = int(input_shape[0] * img_w / input_shape[1])
-            offset_h = (old_h - img_h) // 2
-        else:
-            old_w = int(input_shape[1] * img_h / input_shape[0])
-            offset_w = (old_w - img_w) // 2
-
-    detections[:, 0] *= old_w
-    detections[:, 1] *= old_h
-    detections[:, 2] *= old_w
-    detections[:, 3] *= old_h
-
-    # NMS
-    nms_detections = np.zeros((0, 7), dtype=detections.dtype)
-    for class_id in set(detections[:, 5]):
-        idxs = np.where(detections[:, 5] == class_id)
-        cls_detections = detections[idxs]
-        keep = _nms_boxes(cls_detections, nms_threshold)
-        nms_detections = np.concatenate(
-            [nms_detections, cls_detections[keep]], axis=0)
-
-    if len(nms_detections) == 0:
+    if len(detections) == 0:
         boxes = np.zeros((0, 4), dtype=np.int)
-        scores = np.zeros((0, 1), dtype=np.float32)
-        classes = np.zeros((0, 1), dtype=np.float32)
+        scores = np.zeros((0,), dtype=np.float32)
+        classes = np.zeros((0,), dtype=np.float32)
     else:
+        box_scores = detections[:, 4] * detections[:, 6]
+
+        # scale x, y, w, h from [0, 1] to pixel values
+        old_h, old_w = img_h, img_w
+        offset_h, offset_w = 0, 0
+        if letter_box:
+            if (img_w / input_shape[1]) >= (img_h / input_shape[0]):
+                old_h = int(input_shape[0] * img_w / input_shape[1])
+                offset_h = (old_h - img_h) // 2
+            else:
+                old_w = int(input_shape[1] * img_h / input_shape[0])
+                offset_w = (old_w - img_w) // 2
+        detections[:, 0:4] *= np.array(
+            [old_w, old_h, old_w, old_h], dtype=np.float32)
+
+        # NMS
+        nms_detections = np.zeros((0, 7), dtype=detections.dtype)
+        for class_id in set(detections[:, 5]):
+            idxs = np.where(detections[:, 5] == class_id)
+            cls_detections = detections[idxs]
+            keep = _nms_boxes(cls_detections, nms_threshold)
+            nms_detections = np.concatenate(
+                [nms_detections, cls_detections[keep]], axis=0)
+
         xx = nms_detections[:, 0].reshape(-1, 1)
         yy = nms_detections[:, 1].reshape(-1, 1)
         if letter_box:
