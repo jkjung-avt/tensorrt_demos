@@ -58,9 +58,10 @@ I use Python 3.6 as my primary test environment.  I think other versions of pyth
 
 In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
 
-* [JetPack-4.3 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.3/)
-* [JetPack-4.4 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.4/)
+* [JetPack-4.5](https://jkjung-avt.github.io/jetpack-4.5/)
 * [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/)
+* [JetPack-4.4 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.4/)
+* [JetPack-4.3 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.3/)
 
 <a name="googlenet"></a>
 Demo #1: GoogLeNet
