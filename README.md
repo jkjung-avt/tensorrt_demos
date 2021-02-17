@@ -284,6 +284,8 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    The last step ("onnx_to_tensorrt.py") takes a little bit more than half an hour to complete on my Jetson Nano DevKit.  When that is done, the optimized TensorRT engine would be saved as "yolov4-416.trt".
 
+   In case "onnx_to_tensorrt.py" fails (process "Killed" by Linux kernel), it could likely be that the Jetson platform runs out of memory during conversion of the TensorRT engine.  This problem might be solved by adding a larger swap file to the system.  Reference: [Process killed in onnx_to_tensorrt.py Demo#5](https://github.com/jkjung-avt/tensorrt_demos/issues/344).
+
 5. Test the TensorRT "yolov4-416" engine with the "dog.jpg" image.
 
    ```shell
