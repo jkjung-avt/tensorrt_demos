@@ -16,8 +16,7 @@ from utils.camera import add_camera_args, Camera
 from utils.display import show_fps
 from utils.visualization import BBoxVisualization
 from utils.mjpeg import MjpegServer
-
-from utils.yolo_with_plugins import TrtYOLO
+from utils.yolo_with_plugins import get_input_shape, TrtYOLO
 
 
 def parse_args():
@@ -82,20 +81,10 @@ def main():
         raise SystemExit('ERROR: failed to open camera!')
 
     cls_dict = get_cls_dict(args.category_num)
-    yolo_dim = args.model.split('-')[-1]
-    if 'x' in yolo_dim:
-        dim_split = yolo_dim.split('x')
-        if len(dim_split) != 2:
-            raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
-        w, h = int(dim_split[0]), int(dim_split[1])
-    else:
-        h = w = int(yolo_dim)
-    if h % 32 != 0 or w % 32 != 0:
-        raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
-
+    vis = BBoxVisualization(cls_dict)
+    h, w = get_input_shape(args.model)
     trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
 
-    vis = BBoxVisualization(cls_dict)
     mjpeg_server = MjpegServer(port=args.mjpeg_port)
     print('MJPEG server started...')
     try:

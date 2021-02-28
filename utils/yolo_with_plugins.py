@@ -22,6 +22,31 @@ except OSError as e:
                      'subdirectory?') from e
 
 
+def get_input_shape(model_name):
+    """Infer input tensor shape of the model based on name.
+
+    For example,
+        'yolov4-tiny-416': (416, 416)
+        'yolov4-custom-416x256': (256, 416)
+
+    # Args
+        model_name
+    """
+    yolo_dim = model_name.split('-')[-1]
+    if not yolo_dim or not yolo_dim[0].isdigit():
+        raise ValueError('bad dim spec in model name (%s)!' % model_name)
+    if 'x' in yolo_dim:
+        dim_split = yolo_dim.split('x')
+        if len(dim_split) != 2:
+            raise ValueError('bad yolo_dim (%s)!' % yolo_dim)
+        w, h = int(dim_split[0]), int(dim_split[1])
+    else:
+        h = w = int(yolo_dim)
+    if h % 32 != 0 or w % 32 != 0:
+        raise ValueError('yolo_dim not multiples of 32 (%s)!' % yolo_dim)
+    return h, w
+
+
 def _preprocess_yolo(img, input_shape, letter_box=False):
     """Preprocess an image before TRT YOLO inferencing.
 
@@ -241,22 +266,6 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
     stream.synchronize()
     # Return only the host outputs.
     return [out.host for out in outputs]
-
-
-def get_yolo_grid_sizes(model_name, h, w):
-    """Get grid sizes (w*h) for all yolo layers in the model."""
-    if 'yolov3' in model_name:
-        if 'tiny' in model_name:
-            return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
-        else:
-            return [(h // 32) * (w // 32), (h // 16) * (w // 16), (h // 8) * (w // 8)]
-    elif 'yolov4' in model_name:
-        if 'tiny' in model_name:
-            return [(h // 32) * (w // 32), (h // 16) * (w // 16)]
-        else:
-            return [(h // 8) * (w // 8), (h // 16) * (w // 16), (h // 32) * (w // 32)]
-    else:
-        raise ValueError('ERROR: unknown model (%s)!' % args.model)
 
 
 class TrtYOLO(object):
