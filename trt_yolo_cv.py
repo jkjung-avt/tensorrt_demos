@@ -94,9 +94,9 @@ def main():
     if h % 32 != 0 or w % 32 != 0:
         raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
 
-    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, letter_box)
+    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
     vis = BBoxVisualization(cls_dict)
-    loop_and_detect(cap, trt_yolo, conf_th=0.3, vis=vis, args.output)
+    loop_and_detect(cap, trt_yolo, conf_th=0.3, vis=vis, output=args.output)
 
     cap.release()
 
