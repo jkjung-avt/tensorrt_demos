@@ -148,18 +148,19 @@ class DarkNetParser(object):
         layer_param_lines = [l.lstrip() for l in layer_param_lines if l.lstrip()]
         # don't parse yolo layers
         if layer_type == 'yolo':  layer_param_lines = []
+        skip_params = ['steps', 'scales'] if layer_type == 'net' else []
         layer_name = str(self.layer_counter).zfill(3) + '_' + layer_type
         layer_dict = dict(type=layer_type)
         for param_line in layer_param_lines:
             param_line = param_line.split('#')[0]
             if not param_line:  continue
             assert '[' not in param_line
-            param_type, param_value = self._parse_params(param_line)
+            param_type, param_value = self._parse_params(param_line, skip_params)
             layer_dict[param_type] = param_value
         self.layer_counter += 1
         return layer_dict, layer_name, remainder
 
-    def _parse_params(self, param_line):
+    def _parse_params(self, param_line, skip_params=None):
         """Identifies the parameters contained in one of the cfg file and returns
         them in the required format for each parameter type, e.g. as a list, an int or a float.
 
@@ -170,7 +171,7 @@ class DarkNetParser(object):
         param_type, param_value_raw = param_line.split('=')
         assert param_value_raw
         param_value = None
-        if param_type in ['steps', 'scales']:
+        if skip_params and param_type in skip_params:
             param_type = None
         elif param_type == 'layers':
             layer_indexes = list()
