@@ -45,7 +45,7 @@ def parse_args():
     return args
 
 
-def loop_and_detect(cap, trt_yolo, conf_th, vis, output):
+def loop_and_detect(cap, trt_yolo, conf_th, vis, writer):
     """Continuously capture images from camera and do object detection.
 
     # Arguments
@@ -53,24 +53,18 @@ def loop_and_detect(cap, trt_yolo, conf_th, vis, output):
       trt_yolo: the TRT YOLO object detector instance.
       conf_th: confidence/score threshold for object detection.
       vis: for visualization.
-      output: output video file name.
+      writer: the VideoWriter object for the output video.
     """
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-    out = cv2.VideoWriter(
-        output,
-        cv2.VideoWriter_fourcc(*'mp4v'), 30, (frame_width, frame_height))
 
     while True:
         ret, frame = cap.read()
         if frame is None:  break
         boxes, confs, clss = trt_yolo.detect(frame, conf_th)
         frame = vis.draw_bboxes(frame, boxes, confs, clss)
-        out.write(frame)
+        writer.write(frame)
         print('.', end='', flush=True)
 
     print('\nDone.')
-    out.release()
 
 
 def main():
@@ -83,14 +77,19 @@ def main():
     cap = cv2.VideoCapture(args.video)
     if not cap.isOpened():
         raise SystemExit('ERROR: failed to open the input video file!')
+    frame_width, frame_height = int(cap.get(3)), int(cap.get(4))
+    writer = cv2.VideoWriter(
+        args.output,
+        cv2.VideoWriter_fourcc(*'mp4v'), 30, (frame_width, frame_height))
 
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
     h, w = get_input_shape(args.model)
     trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
 
-    loop_and_detect(cap, trt_yolo, conf_th=0.3, vis=vis, output=args.output)
+    loop_and_detect(cap, trt_yolo, conf_th=0.3, vis=vis, writer=writer)
 
+    writer.release()
     cap.release()
 
 
