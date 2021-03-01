@@ -138,7 +138,7 @@ class DarkNetParser(object):
         if layer_type not in self.supported_layers:
             raise ValueError('%s layer not supported!' % layer_type)
 
-        out = remainder.split('[', 1)
+        out = remainder.split('\n[', 1)
         if len(out) == 2:
             layer_param_block, remainder = out[0], '[' + out[1]
         else:
@@ -153,6 +153,7 @@ class DarkNetParser(object):
         for param_line in layer_param_lines:
             param_line = param_line.split('#')[0]
             if not param_line:  continue
+            assert '[' not in param_line
             param_type, param_value = self._parse_params(param_line)
             layer_dict[param_type] = param_value
         self.layer_counter += 1
@@ -169,7 +170,9 @@ class DarkNetParser(object):
         param_type, param_value_raw = param_line.split('=')
         assert param_value_raw
         param_value = None
-        if param_type == 'layers':
+        if param_type in ['steps', 'scales']:
+            param_type = None
+        elif param_type == 'layers':
             layer_indexes = list()
             for index in param_value_raw.split(','):
                 layer_indexes.append(int(index))
