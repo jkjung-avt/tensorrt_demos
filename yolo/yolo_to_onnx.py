@@ -121,38 +121,40 @@ class DarkNetParser(object):
         """
         remainder = remainder.split('[', 1)
         while len(remainder[0]) > 0 and remainder[0][-1] == '#':
-            # handling commented-out layers
+            # '#[...' case (the left bracket is proceeded by a pound sign),
+            # assuming this layer is commented out, so go find the next '['
             remainder = remainder[1].split('[', 1)
         if len(remainder) == 2:
             remainder = remainder[1]
         else:
+            # no left bracket found in remainder
             return None, None, None
         remainder = remainder.split(']', 1)
         if len(remainder) == 2:
             layer_type, remainder = remainder
         else:
-            return None, None, None
-        if remainder.replace(' ', '')[0] == '#':
-            remainder = remainder.split('\n', 1)[1]
+            # no right bracket
+            raise ValueError('no closing bracket!')
+        if layer_type not in self.supported_layers:
+            raise ValueError('%s layer not supported!' % layer_type)
 
-        out = remainder.split('\n\n', 1)
+        out = remainder.split('[', 1)
         if len(out) == 2:
-            layer_param_block, remainder = out[0], out[1]
+            layer_param_block, remainder = out[0], '[' + out[1]
         else:
             layer_param_block, remainder = out[0], ''
-        if layer_type == 'yolo':
-            layer_param_lines = []
-        else:
-            layer_param_lines = layer_param_block.split('\n')[1:]
+        layer_param_lines = layer_param_block.split('\n')
+        # remove empty lines
+        layer_param_lines = [l.lstrip() for l in layer_param_lines if l.lstrip()]
+        # don't parse yolo layers
+        if layer_type == 'yolo':  layer_param_lines = []
         layer_name = str(self.layer_counter).zfill(3) + '_' + layer_type
         layer_dict = dict(type=layer_type)
-        if layer_type in self.supported_layers:
-            for param_line in layer_param_lines:
-                param_line = param_line.lstrip().split('#')[0]
-                if not param_line:
-                    continue
-                param_type, param_value = self._parse_params(param_line)
-                layer_dict[param_type] = param_value
+        for param_line in layer_param_lines:
+            param_line = param_line.split('#')[0]
+            if not param_line:  continue
+            param_type, param_value = self._parse_params(param_line)
+            layer_dict[param_type] = param_value
         self.layer_counter += 1
         return layer_dict, layer_name, remainder
 
@@ -165,6 +167,7 @@ class DarkNetParser(object):
         """
         param_line = param_line.replace(' ', '')
         param_type, param_value_raw = param_line.split('=')
+        assert param_value_raw
         param_value = None
         if param_type == 'layers':
             layer_indexes = list()
