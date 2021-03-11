@@ -932,7 +932,11 @@ def main():
             output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
             output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
     elif 'yolov4' in args.model:
-        if 'yolov4x-mish' in args.model:
+        if 'tiny-3l' in args.model:
+            output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
+            output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
+            output_tensor_dims['044_convolutional'] = [c, h // 8, w // 8]
+        elif 'yolov4x-mish' in args.model:
             output_tensor_dims['168_convolutional_lgx'] = [c, h //  8, w //  8]
             output_tensor_dims['185_convolutional_lgx'] = [c, h // 16, w // 16]
             output_tensor_dims['202_convolutional_lgx'] = [c, h // 32, w // 32]
