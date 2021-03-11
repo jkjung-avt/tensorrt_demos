@@ -64,6 +64,9 @@ from onnx import helper, TensorProto
 from plugins import verify_classes, get_input_wh
 
 
+MAX_BATCH_SIZE = 1
+
+
 class DarkNetParser(object):
     """Definition of a parser for DarkNet-based YOLO model."""
 
@@ -418,7 +421,7 @@ class GraphBuilderONNX(object):
         self.alpha_lrelu = 0.1
         self.param_dict = OrderedDict()
         self.major_node_specs = list()
-        self.batch_size = 1
+        self.batch_size = MAX_BATCH_SIZE
         self.route_spec = 0  # keeping track of the current active 'route'
 
     def build_onnx_graph(
