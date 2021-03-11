@@ -59,9 +59,6 @@ import tensorrt as trt
 from plugins import get_input_wh, add_yolo_plugins
 
 
-MAX_BATCH_SIZE = 1
-
-
 def load_onnx(model_name):
     """Read the ONNX file."""
     onnx_path = '%s.onnx' % model_name
@@ -86,7 +83,7 @@ def set_net_batch(network, batch_size):
     return network
 
 
-def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
+def build_engine(model_name, category_num, do_int8, dla_core, max_batch_size, verbose=False):
     """Build a TensorRT engine from ONNX using the older API."""
     net_w, net_h = get_input_wh(model_name)
 
@@ -106,7 +103,7 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
             for error in range(parser.num_errors):
                 print(parser.get_error(error))
             return None
-        network = set_net_batch(network, MAX_BATCH_SIZE)
+        network = set_net_batch(network, max_batch_size)
 
         print('Adding yolo_layer plugins...')
         network = add_yolo_plugins(
@@ -117,7 +114,7 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
         if trt.__version__[0] < '7':  # older API: build_cuda_engine()
             if dla_core >= 0:
                 raise RuntimeError('DLA core not supported by old API')
-            builder.max_batch_size = MAX_BATCH_SIZE
+            builder.max_batch_size = max_batch_size
             builder.max_workspace_size = 1 << 30
             builder.fp16_mode = True  # alternative: builder.platform_has_fast_fp16
             if do_int8:
@@ -127,7 +124,7 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
                     'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
             engine = builder.build_cuda_engine(network)
         else:  # new API: build_engine() with builder config
-            builder.max_batch_size = MAX_BATCH_SIZE
+            builder.max_batch_size = max_batch_size
             config = builder.create_builder_config()
             config.max_workspace_size = 1 << 30
             config.set_flag(trt.BuilderFlag.GPU_FALLBACK)
@@ -135,9 +132,9 @@ def build_engine(model_name, category_num, do_int8, dla_core, verbose=False):
             profile = builder.create_optimization_profile()
             profile.set_shape(
                 '000_net',                          # input tensor name
-                (MAX_BATCH_SIZE, 3, net_h, net_w),  # min shape
-                (MAX_BATCH_SIZE, 3, net_h, net_w),  # opt shape
-                (MAX_BATCH_SIZE, 3, net_h, net_w))  # max shape
+                (max_batch_size, 3, net_h, net_w),  # min shape
+                (max_batch_size, 3, net_h, net_w),  # opt shape
+                (max_batch_size, 3, net_h, net_w))  # max shape
             config.add_optimization_profile(profile)
             if do_int8:
                 from calibrator import YOLOEntropyCalibrator
@@ -168,6 +165,9 @@ def main():
         '-c', '--category_num', type=int, default=80,
         help='number of object categories [80]')
     parser.add_argument(
+        '-b', '--max_batch_size', type=int, default=1,
+        help='maximum batch size to be set for the tensorrt model')
+    parser.add_argument(
         '-m', '--model', type=str, required=True,
         help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
               '[{dimension}], where dimension could be a single '
@@ -181,7 +181,7 @@ def main():
     args = parser.parse_args()
 
     engine = build_engine(
-        args.model, args.category_num, args.int8, args.dla_core, args.verbose)
+        args.model, args.category_num, args.int8, args.dla_core, args.max_batch_size, args.verbose)
     if engine is None:
         raise SystemExit('ERROR: failed to build the TensorRT engine!')
 
