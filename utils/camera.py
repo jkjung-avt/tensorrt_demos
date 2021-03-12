@@ -37,6 +37,8 @@ def add_camera_args(parser):
                         help='RTSP latency in ms [200]')
     parser.add_argument('--usb', type=int, default=None,
                         help='USB webcam device id (/dev/video?) [None]')
+    parser.add_argument('--gstr', type=str, default=None,
+                        help='GStreamer string [None]')
     parser.add_argument('--onboard', type=int, default=None,
                         help='Jetson onboard camera [None]')
     parser.add_argument('--copy_frame', action='store_true',
@@ -82,6 +84,16 @@ def open_cam_usb(dev, width, height):
         return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
     else:
         return cv2.VideoCapture(dev)
+
+
+def open_cam_gstr(gstr, width, height):
+    """Open camera using a GStreamer string.
+
+    Example:
+    gstr = 'v4l2src device=/dev/video0 ! video/x-raw, width=(int){width}, height=(int){height} ! videoconvert ! appsink'
+    """
+    gst_str = gstr.format(width=width, height=height)
+    return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
 
 def open_cam_onboard(width, height):
@@ -177,6 +189,10 @@ class Camera():
         elif a.usb is not None:
             logging.info('Camera: using USB webcam /dev/video%d' % a.usb)
             self.cap = open_cam_usb(a.usb, a.width, a.height)
+            self._start()
+        elif a.gstr is not None:
+            logging.info('Camera: using GStreamer string "%s"' % a.gstr)
+            self.cap = open_cam_gstr(a.gstr, a.width, a.height)
             self._start()
         elif a.onboard is not None:
             logging.info('Camera: using Jetson onboard camera')
