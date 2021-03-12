@@ -209,8 +209,15 @@ def allocate_buffers(engine):
     stream = cuda.Stream()
     assert 3 <= len(engine) <= 4  # expect 1 input, plus 2 or 3 outpus
     for binding in engine:
-        size = trt.volume(engine.get_binding_shape(binding)) * \
-               engine.max_batch_size
+        binding_dims = engine.get_binding_shape(binding)
+        if len(binding_dims) == 4:
+            # explicit batch case (TensorRT 7+)
+            size = trt.volume(binding_dims)
+        elif len(binding_dims) == 3:
+            # implicit batch case (TensorRT 6 or older)
+            size = trt.volume(binding_dims) * engine.max_batch_size
+        else:
+            raise ValueError('bad dims of binding %s: %s' % (binding, str(binding_dims)))
         dtype = trt.nptype(engine.get_binding_dtype(binding))
         # Allocate host and device buffers
         host_mem = cuda.pagelocked_empty(size, dtype)
