@@ -41,7 +41,7 @@ def get_yolo_whs(model_name, w, h):
             return [[w // 32, h // 32], [w // 16, h // 16], [w // 8, h // 8]]
     elif 'yolov4' in model_name:
         if 'tiny-3l' in model_name:
-            return [(h // 32) * (w // 32), (h // 16) * (w // 16), (h // 8) * (w // 8)]
+            return [[w // 32, h // 32], [w // 16, h // 16], [w // 8, h // 8]]
         elif 'tiny' in model_name:
             return [[w // 32, h // 32], [w // 16, h // 16]]
         else:
