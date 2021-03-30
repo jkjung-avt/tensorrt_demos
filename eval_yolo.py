@@ -116,7 +116,7 @@ def main():
     cocoEval.params.imgIds = imgIds
     cocoEval.evaluate()
     cocoEval.accumulate()
-    print(cocoEval.summarize())
+    cocoEval.summarize()
 
 
 if __name__ == '__main__':
