@@ -37,5 +37,6 @@ yolo/calib_*.bin
 plugins/*.o
 plugins/*.so
 
+modnet/*.ckpt
 modnet/*.onnx
 modnet/*.engine
