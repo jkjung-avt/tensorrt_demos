@@ -10,6 +10,7 @@ import tensorrt as trt
 import pycuda.driver as cuda
 
 
+# Code in this module is only for TensorRT 7+
 if trt.__version__[0] < '7':
     raise SystemExit('TensorRT version < 7')
 
@@ -52,7 +53,7 @@ class HostDeviceMem(object):
         self.device = device_mem
 
     def __str__(self):
-        return "Host:\n" + str(self.host) + "\nDevice:\n" + str(self.device)
+        return 'Host:\n' + str(self.host) + '\nDevice:\n' + str(self.device)
 
     def __repr__(self):
         return self.__str__()
@@ -128,7 +129,7 @@ class TrtMODNet(object):
         finally:
             if self.cuda_ctx:
                 self.cuda_ctx.pop()
-        dims = self.context.get_binding_shape(0)
+        dims = self.context.get_binding_shape(0)  # 'input'
         self.input_shape = (dims[2], dims[3])
 
     def _load_engine(self):
@@ -137,12 +138,6 @@ class TrtMODNet(object):
         engine_path = 'modnet/modnet.engine'
         with open(engine_path, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
-
-    def __del__(self):
-        """Free CUDA memories."""
-        del self.outputs
-        del self.inputs
-        del self.stream
 
     def infer(self, img):
         """Infer an image.
