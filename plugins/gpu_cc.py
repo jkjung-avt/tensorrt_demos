@@ -9,7 +9,7 @@ import ctypes
 
 CUDA_SUCCESS = 0
 
-def get_cuda_computes():
+def get_gpu_archs():
     libnames = ('libcuda.so', 'libcuda.dylib', 'cuda.dll')
     for libname in libnames:
         try:
@@ -47,7 +47,7 @@ def get_cuda_computes():
         if cuda.cuDeviceComputeCapability(ctypes.byref(cc_major), ctypes.byref(cc_minor), device) == CUDA_SUCCESS:
             gpu_archs.add(str(cc_major.value) + str(cc_minor.value))
 
-    return ' '.join(list(gpu_archs))
+    return list(gpu_archs)
 
 if __name__ == '__main__':
-    print(get_cuda_computes())
+    print(' '.join(get_gpu_archs()))
