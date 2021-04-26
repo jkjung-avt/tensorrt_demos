@@ -3,23 +3,18 @@ LD=ld
 CXXFLAGS=-Wall -std=c++11 -g -O
 
 NVCC=nvcc
+PYTHON=python
 
 # space separated compute values ex: computes=70 75. If not present will fetch device's CC
 computes=
 
 ifeq ($(computes), )
-  device=$(strip $(shell deviceQuery | grep 'CUDA Capability'))
-  $(info device: $(device))
-
-  compute=$(subst .,,$(lastword $(device)))
-  $(info compute: $(compute))
-
-  NVCCFLAGS= -gencode arch=compute_$(compute),code=[sm_$(compute),compute_$(compute)]
-  $(info NVCCFLAGS: $(NVCCFLAGS))
-else
-  NVCCFLAGS= $(foreach compute, $(computes),-gencode arch=compute_$(compute),code=[sm_$(compute),compute_$(compute)])
-  $(info NVCCFLAGS: $(NVCCFLAGS))
+  computes= $(shell python gpu_cc.py)
+  $(info ----computes: $(computes))
 endif
+
+NVCCFLAGS= $(foreach compute, $(computes),-gencode arch=compute_$(compute),code=[sm_$(compute),compute_$(compute)])
+$(info NVCCFLAGS: $(NVCCFLAGS))
 
 # These are the directories where I installed TensorRT on my x86_64 PC.
 TENSORRT_INCS=-I"/usr/local/TensorRT-7.1.3.4/include"
