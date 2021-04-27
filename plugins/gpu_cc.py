@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-# ported from https: // gist.github.com/f0k/63a664160d016a491b2cbea15913d549
+# ported from https://gist.github.com/f0k/63a664160d016a491b2cbea15913d549
 '''
 
 import ctypes
