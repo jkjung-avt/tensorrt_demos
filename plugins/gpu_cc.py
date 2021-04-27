@@ -35,13 +35,13 @@ def get_gpu_archs():
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
         # print('cuInit failed with error code %d: %s' % (result, error_str.value.decode()))
-        return
+        return []
 
     result = cuda.cuDeviceGetCount(ctypes.byref(n_gpus))
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
         # print('cuDeviceGetCount failed with error code %d: %s' % (result, error_str.value.decode()))
-        return
+        return []
 
     for i in range(n_gpus.value):
         if cuda.cuDeviceComputeCapability(ctypes.byref(cc_major), ctypes.byref(cc_minor), device) == CUDA_SUCCESS:
