@@ -3,14 +3,13 @@ LD=ld
 CXXFLAGS=-Wall -std=c++11 -g -O
 
 NVCC=nvcc
-PYTHON=python
 
 # space separated compute values ex: computes=70 75. If not present will fetch device's CC
 computes=
 
 ifeq ($(computes), )
   computes= $(shell python gpu_cc.py)
-  $(info ----computes: $(computes))
+  $(info computes: $(computes))
 endif
 
 NVCCFLAGS= $(foreach compute, $(computes),-gencode arch=compute_$(compute),code=[sm_$(compute),compute_$(compute)])
