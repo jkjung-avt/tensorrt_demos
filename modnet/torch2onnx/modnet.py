@@ -116,7 +116,7 @@ class LRBranch(nn.Module):
 
 
 class HRBranch(nn.Module):
-    """ High Resolution Branch of MODNet"""
+    """High Resolution Branch of MODNet"""
 
     def __init__(self, hr_channels, enc_channels):
         super(HRBranch, self).__init__()
@@ -195,19 +195,16 @@ class FusionBranch(nn.Module):
 #------------------------------------------------------------------------------
 
 class MODNet(nn.Module):
-    """ Architecture of MODNet
-    """
+    """Architecture of MODNet"""
 
-    def __init__(self, in_channels=3, hr_channels=32, backbone_arch='mobilenetv2', backbone_pretrained=True):
+    def __init__(self, in_channels=3, hr_channels=32, backbone_arch='mobilenetv2', backbone_pretrained=False):
         super(MODNet, self).__init__()
 
         self.in_channels = in_channels
         self.hr_channels = hr_channels
         self.backbone_arch = backbone_arch
-        self.backbone_pretrained = backbone_pretrained
 
         self.backbone = SUPPORTED_BACKBONES[self.backbone_arch](self.in_channels)
-
         self.lr_branch = LRBranch(self.backbone)
         self.hr_branch = HRBranch(self.hr_channels, self.backbone.enc_channels)
         self.f_branch = FusionBranch(self.hr_channels, self.backbone.enc_channels)
@@ -218,23 +215,14 @@ class MODNet(nn.Module):
             elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.InstanceNorm2d):
                 self._init_norm(m)
 
-        if self.backbone_pretrained:
+        if backbone_pretrained:
             self.backbone.load_pretrained_ckpt()
 
     def forward(self, img):
         lr8x, [enc2x, enc4x] = self.lr_branch(img)
         hr2x = self.hr_branch(img, enc2x, enc4x, lr8x)
         pred_matte = self.f_branch(img, lr8x, hr2x)
-
         return pred_matte
-
-    def freeze_norm(self):
-        norm_types = [nn.BatchNorm2d, nn.InstanceNorm2d]
-        for m in self.modules():
-            for n in norm_types:
-                if isinstance(m, n):
-                    m.eval()
-                    continue
 
     def _init_conv(self, conv):
         nn.init.kaiming_uniform_(
