@@ -36,6 +36,9 @@ if __name__ == '__main__':
         '--height', type=int, default=480,
         help='image width of the converted ONNX model [480]')
     parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='enable verbose logging [False]')
+    parser.add_argument(
         'input_ckpt', type=str, help='the input PyTorch checkpoint file path')
     parser.add_argument(
         'output_onnx', type=str, help='the output ONNX file path')
@@ -45,17 +48,16 @@ if __name__ == '__main__':
         raise SystemExit('ERROR: file (%s) not found!' % args.input_ckpt)
 
     # define model & load checkpoint
-    modnet = MODNet(backbone_pretrained=False)
-    modnet = torch.nn.DataParallel(modnet).cuda()
-    state_dict = torch.load(args.input_ckpt)
-    modnet.load_state_dict(state_dict)
+    modnet = torch.nn.DataParallel(MODNet()).cuda()
+    modnet.load_state_dict(torch.load(args.input_ckpt))
     modnet.eval()
 
-    # prepare dummy_img
-    dummy_img = Variable(torch.randn(BATCH_SIZE, 3, args.height, args.width)).cuda()
+    # prepare dummy input
+    dummy_img = torch.rand(BATCH_SIZE, 3, args.height, args.width) * 2. - 1.
+    dummy_img = dummy_img.cuda()
 
     # export to onnx model
     torch.onnx.export(
         modnet.module, dummy_img, args.output_onnx,
-        export_params=True, opset_version=11,
+        opset_version=11, export_params=True, verbose=args.verbose,
         input_names=['input'], output_names=['output'])
