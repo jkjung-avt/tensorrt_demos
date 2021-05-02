@@ -1,7 +1,10 @@
 """modnet.py
 
-This is a copy of:
+This is a modified version of:
 https://github.com/ZHKKKe/MODNet/blob/master/onnx/modnet_onnx.py
+
+* "scale_factor" replaced by "size" in all F.interpolate()
+* SEBlock takes only 1 "channels" argument
 """
 
 
@@ -16,7 +19,7 @@ SUPPORTED_BACKBONES = {'mobilenetv2': MobileNetV2Backbone}
 
 
 #------------------------------------------------------------------------------
-#  MODNet Basic Modules
+# MODNet Basic Modules
 #------------------------------------------------------------------------------
 
 class IBNorm(nn.Module):
@@ -24,8 +27,8 @@ class IBNorm(nn.Module):
 
     def __init__(self, in_channels):
         super(IBNorm, self).__init__()
-        in_channels = in_channels
-        self.bnorm_channels = int(in_channels / 2)
+        assert in_channels % 2 == 0
+        self.bnorm_channels = in_channels // 2
         self.inorm_channels = in_channels - self.bnorm_channels
 
         self.bnorm = nn.BatchNorm2d(self.bnorm_channels, affine=True)
@@ -64,28 +67,28 @@ class Conv2dIBNormRelu(nn.Module):
 
 
 class SEBlock(nn.Module):
-    """SE Block Proposed in https://arxiv.org/pdf/1709.01507.pdf"""
+    """SE Block as proposed in https://arxiv.org/pdf/1709.01507.pdf"""
 
-    def __init__(self, in_channels, out_channels, reduction=1):
+    def __init__(self, channels, reduction=1):
         super(SEBlock, self).__init__()
+        self.channels = channels
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
-            nn.Linear(in_channels, int(in_channels // reduction), bias=False),
+            nn.Linear(channels, channels // reduction, bias=False),
             nn.ReLU(inplace=True),
-            nn.Linear(int(in_channels // reduction), out_channels, bias=False),
+            nn.Linear(channels // reduction, channels, bias=False),
             nn.Sigmoid()
         )
 
     def forward(self, x):
-        b, c, _, _ = x.size()
-        w = self.pool(x).view(b, c)
-        w = self.fc(w).view(b, c, 1, 1)
-
-        return x * w.expand_as(x)
+        b = x.size()[0]
+        w = self.pool(x).view(b, self.channels)
+        w = self.fc(w).view(b, self.channels, 1, 1)
+        return x * w
 
 
 #------------------------------------------------------------------------------
-#  MODNet Branches
+# MODNet Branches
 #------------------------------------------------------------------------------
 
 class LRBranch(nn.Module):
@@ -97,7 +100,7 @@ class LRBranch(nn.Module):
         enc_channels = backbone.enc_channels
 
         self.backbone = backbone
-        self.se_block = SEBlock(enc_channels[4], enc_channels[4], reduction=4)
+        self.se_block = SEBlock(enc_channels[4], reduction=4)
         self.conv_lr16x = Conv2dIBNormRelu(enc_channels[4], enc_channels[3], 5, stride=1, padding=2)
         self.conv_lr8x = Conv2dIBNormRelu(enc_channels[3], enc_channels[2], 5, stride=1, padding=2)
         self.conv_lr = Conv2dIBNormRelu(enc_channels[2], 1, kernel_size=3, stride=2, padding=1, with_ibn=False, with_relu=False)
@@ -107,9 +110,11 @@ class LRBranch(nn.Module):
         enc2x, enc4x, enc32x = enc_features[0], enc_features[1], enc_features[4]
 
         enc32x = self.se_block(enc32x)
-        lr16x = F.interpolate(enc32x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = enc32x.size()[2:]  # replacing "scale_factor"
+        lr16x = F.interpolate(enc32x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         lr16x = self.conv_lr16x(lr16x)
-        lr8x = F.interpolate(lr16x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = lr16x.size()[2:]   # replacing "scale_factor"
+        lr8x = F.interpolate(lr16x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         lr8x = self.conv_lr8x(lr8x)
 
         return lr8x, [enc2x, enc4x]
@@ -146,8 +151,10 @@ class HRBranch(nn.Module):
         )
 
     def forward(self, img, enc2x, enc4x, lr8x):
-        img2x = F.interpolate(img, scale_factor=1/2, mode='bilinear', align_corners=False)
-        img4x = F.interpolate(img, scale_factor=1/4, mode='bilinear', align_corners=False)
+        h, w = img.size()[2:]  # replacing "scale_factor"
+        assert h % 4 == 0 and w % 4 == 0
+        img2x = F.interpolate(img, size=(h//2, w//2), mode='bilinear', align_corners=False)
+        img4x = F.interpolate(img, size=(h//4, w//4), mode='bilinear', align_corners=False)
 
         enc2x = self.tohr_enc2x(enc2x)
         hr4x = self.conv_enc2x(torch.cat((img2x, enc2x), dim=1))
@@ -155,10 +162,12 @@ class HRBranch(nn.Module):
         enc4x = self.tohr_enc4x(enc4x)
         hr4x = self.conv_enc4x(torch.cat((hr4x, enc4x), dim=1))
 
-        lr4x = F.interpolate(lr8x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = lr8x.size()[2:]  # replacing "scale_factor"
+        lr4x = F.interpolate(lr8x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         hr4x = self.conv_hr4x(torch.cat((hr4x, lr4x, img4x), dim=1))
 
-        hr2x = F.interpolate(hr4x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = hr4x.size()[2:]  # replacing "scale_factor"
+        hr2x = F.interpolate(hr4x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         hr2x = self.conv_hr2x(torch.cat((hr2x, enc2x), dim=1))
 
         return hr2x
@@ -178,12 +187,15 @@ class FusionBranch(nn.Module):
         )
 
     def forward(self, img, lr8x, hr2x):
-        lr4x = F.interpolate(lr8x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = lr8x.size()[2:]  # replacing "scale_factor"
+        lr4x = F.interpolate(lr8x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         lr4x = self.conv_lr4x(lr4x)
-        lr2x = F.interpolate(lr4x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = lr4x.size()[2:]  # replacing "scale_factor"
+        lr2x = F.interpolate(lr4x, size=(h*2, w*2), mode='bilinear', align_corners=False)
 
         f2x = self.conv_f2x(torch.cat((lr2x, hr2x), dim=1))
-        f = F.interpolate(f2x, scale_factor=2, mode='bilinear', align_corners=False)
+        h, w = f2x.size()[2:]   # replacing "scale_factor"
+        f = F.interpolate(f2x, size=(h*2, w*2), mode='bilinear', align_corners=False)
         f = self.conv_f(torch.cat((f, img), dim=1))
         pred_matte = torch.sigmoid(f)
 
@@ -191,7 +203,7 @@ class FusionBranch(nn.Module):
 
 
 #------------------------------------------------------------------------------
-#  MODNet
+# MODNet
 #------------------------------------------------------------------------------
 
 class MODNet(nn.Module):
