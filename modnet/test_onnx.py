@@ -16,7 +16,7 @@ img = cv2.imread('image.jpg')
 img = cv2.resize(img, (640, 480))
 img = img.transpose((2, 0, 1)).astype(np.float32)
 img = (img - 127.5) / 127.5
-img = np.expand_dims(img, axis = 0)
+img = np.expand_dims(img, axis=0)
 
 session = onnxruntime.InferenceSession('modnet.onnx', None)
 input_name = session.get_inputs()[0].name
