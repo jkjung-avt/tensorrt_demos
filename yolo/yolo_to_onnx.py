@@ -49,11 +49,8 @@
 #
 
 
-from __future__ import print_function
-
 import os
 import sys
-import hashlib
 import argparse
 from collections import OrderedDict
 
@@ -61,16 +58,84 @@ import numpy as np
 import onnx
 from onnx import helper, TensorProto
 
-from plugins import verify_classes, get_input_wh
-
 
 MAX_BATCH_SIZE = 1
+
+
+def parse_args():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-c', '--category_num', type=int,
+        help='number of object categories (obsolete)')
+    parser.add_argument(
+        '-m', '--model', type=str, required=True,
+        help=('[yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|'
+              'yolov4-csp|yolov4x-mish]-[{dimension}], where '
+              '{dimension} could be either a single number (e.g. '
+              '288, 416, 608) or 2 numbers, WxH (e.g. 416x256)'))
+    args = parser.parse_args()
+    return args
+
+
+def rreplace(s, old, new, occurrence=1):
+    """Replace old pattern in the string with new from the right."""
+    return new.join(s.rsplit(old, occurrence))
+
+
+def is_pan_arch(cfg_file_path):
+    """Determine whether the yolo model is with PAN architecture."""
+    with open(cfg_file_path, 'r') as f:
+        cfg_lines = [l.strip() for l in f.readlines()]
+    yolos_or_upsamples = [l for l in cfg_lines
+                            if l in ['[yolo]', '[upsample]']]
+    yolo_count = len([l for l in yolos_or_upsamples if l == '[yolo]'])
+    upsample_count = len(yolos_or_upsamples) - yolo_count
+    assert yolo_count == 2 or yolo_count == 3
+    assert upsample_count == yolo_count - 1 or upsample_count == 0
+    # the model is with PAN if an upsample layer appears before the 1st yolo
+    return yolos_or_upsamples[0] == '[upsample]'
+
+
+def get_output_convs(layer_configs):
+    """Find output conv layer names from layer configs.
+
+    The output conv layers are those conv layers immediately proceeding
+    the yolo layers.
+
+    # Arguments
+        layer_configs: output of the DarkNetParser, i.e. a OrderedDict of
+                       the yolo layers.
+    """
+    output_convs = []
+    previous_layer = None
+    for current_layer in layer_configs.keys():
+        if previous_layer is not None and current_layer.endswith('yolo'):
+            assert previous_layer.endswith('convolutional')
+            output_convs.append(previous_layer)
+        previous_layer = current_layer
+    return output_convs
+
+
+def get_category_num(cfg_file_path):
+    """Find number of output classes of the yolo model."""
+    with open(cfg_file_path, 'r') as f:
+        cfg_lines = [l.strip() for l in f.readlines()]
+    classes_lines = [l for l in cfg_lines if l.startswith('classes=')]
+    assert len(set(classes_lines)) == 1
+    return int(classes_lines[-1].split('=')[-1].strip())
+
+
+def get_h_and_w(layer_configs):
+    """Find input height and width of the yolo model from layer configs."""
+    net_config = layer_configs['000_net']
+    return net_config['height'], net_config['width']
 
 
 class DarkNetParser(object):
     """Definition of a parser for DarkNet-based YOLO model."""
 
-    def __init__(self, supported_layers):
+    def __init__(self, supported_layers=None):
         """Initializes a DarkNetParser object.
 
         Keyword argument:
@@ -81,7 +146,9 @@ class DarkNetParser(object):
         # A list of YOLO layers containing dictionaries with all layer
         # parameters:
         self.layer_configs = OrderedDict()
-        self.supported_layers = supported_layers
+        self.supported_layers = supported_layers if supported_layers else \
+                                ['net', 'convolutional', 'maxpool', 'shortcut',
+                                 'route', 'upsample', 'yolo']
         self.layer_counter = 0
 
     def parse_cfg_file(self, cfg_file_path):
@@ -402,7 +469,7 @@ class WeightLoader(object):
 class GraphBuilderONNX(object):
     """Class for creating an ONNX graph from a previously generated list of layer dictionaries."""
 
-    def __init__(self, model_name, output_tensors):
+    def __init__(self, model_name, output_tensors, batch_size):
         """Initialize with all DarkNet default parameters used creating
         YOLO, and specify the output tensors as an OrderedDict for their
         output dimensions with their names as keys.
@@ -421,7 +488,7 @@ class GraphBuilderONNX(object):
         self.alpha_lrelu = 0.1
         self.param_dict = OrderedDict()
         self.major_node_specs = list()
-        self.batch_size = MAX_BATCH_SIZE
+        self.batch_size = batch_size
         self.route_spec = 0  # keeping track of the current active 'route'
 
     def build_onnx_graph(
@@ -858,36 +925,12 @@ class GraphBuilderONNX(object):
         return layer_name + '_dummy', channels
 
 
-def generate_md5_checksum(local_path):
-    """Returns the MD5 checksum of a local file.
-
-    Keyword argument:
-    local_path -- path of the file whose checksum shall be generated
-    """
-    with open(local_path, 'rb') as local_file:
-        data = local_file.read()
-        return hashlib.md5(data).hexdigest()
-
-
 def main():
-    """Run the DarkNet-to-ONNX conversion for YOLO (v3 or v4)."""
     if sys.version_info[0] < 3:
         raise SystemExit('ERROR: This modified version of yolov3_to_onnx.py '
                          'script is only compatible with python3...')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-c', '--category_num', type=int, default=80,
-        help='number of object categories [80]')
-    parser.add_argument(
-        '-m', '--model', type=str, required=True,
-        help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
-              '[{dimension}], where dimension could be a single '
-              'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'))
-    args = parser.parse_args()
-    if args.category_num <= 0:
-        raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
-
+    args = parse_args()
     cfg_file_path = '%s.cfg' % args.model
     if not os.path.isfile(cfg_file_path):
         raise SystemExit('ERROR: file (%s) not found!' % cfg_file_path)
@@ -896,87 +939,34 @@ def main():
         raise SystemExit('ERROR: file (%s) not found!' % weights_file_path)
     output_file_path = '%s.onnx' % args.model
 
-    if not verify_classes(args.model, args.category_num):
-        raise SystemExit('ERROR: bad category_num (%d)' % args.category_num)
-
-    # Derive yolo input width/height from model name.
-    # For example, "yolov4-416x256" -> width=416, height=256
-    w, h = get_input_wh(args.model)
-
-    # These are the only layers DarkNetParser will extract parameters
-    # from.  The three layers of type 'yolo' are not parsed in detail
-    # because they are included in the post-processing later.
-    supported_layers = ['net', 'convolutional', 'maxpool',
-                        'shortcut', 'route', 'upsample', 'yolo']
-
-    # Create a DarkNetParser object, and the use it to generate an
-    # OrderedDict with all layer's configs from the cfg file.
     print('Parsing DarkNet cfg file...')
-    parser = DarkNetParser(supported_layers)
+    parser = DarkNetParser()
     layer_configs = parser.parse_cfg_file(cfg_file_path)
+    category_num = get_category_num(cfg_file_path)
+    output_tensor_names = get_output_convs(layer_configs)
+    # e.g. ['036_convolutional', '044_convolutional', '052_convolutional']
 
-    # We do not need the parser anymore after we got layer_configs.
-    del parser
+    c = (category_num + 5) * 3
+    h, w = get_h_and_w(layer_configs)
+    output_tensor_shapes = [
+        [c, h // 32, w // 32], [c, h // 16, w // 16], [c, h // 8, w // 8]]
+    output_tensor_shapes = output_tensor_shapes[:len(output_tensor_names)]
+    if is_pan_arch(cfg_file_path):
+        output_tensor_shapes.reverse()
+    output_tensor_dims = OrderedDict(
+        zip(output_tensor_names, output_tensor_shapes))
 
-    # In above layer_config, there are three outputs that we need to
-    # know the output shape of (in CHW format).
-    output_tensor_dims = OrderedDict()
-    c = (args.category_num + 5) * 3
-    if 'yolov3' in args.model:
-        if 'tiny' in args.model:
-            output_tensor_dims['016_convolutional'] = [c, h // 32, w // 32]
-            output_tensor_dims['023_convolutional'] = [c, h // 16, w // 16]
-        elif 'spp' in args.model:
-            output_tensor_dims['089_convolutional'] = [c, h // 32, w // 32]
-            output_tensor_dims['101_convolutional'] = [c, h // 16, w // 16]
-            output_tensor_dims['113_convolutional'] = [c, h //  8, w //  8]
-        else:
-            output_tensor_dims['082_convolutional'] = [c, h // 32, w // 32]
-            output_tensor_dims['094_convolutional'] = [c, h // 16, w // 16]
-            output_tensor_dims['106_convolutional'] = [c, h //  8, w //  8]
-    elif 'yolov4' in args.model:
-        if 'tiny-3l' in args.model:
-            output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
-            output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
-            output_tensor_dims['044_convolutional'] = [c, h // 8, w // 8]
-        elif 'yolov4x-mish' in args.model:
-            output_tensor_dims['168_convolutional_lgx'] = [c, h //  8, w //  8]
-            output_tensor_dims['185_convolutional_lgx'] = [c, h // 16, w // 16]
-            output_tensor_dims['202_convolutional_lgx'] = [c, h // 32, w // 32]
-        elif 'yolov4-csp' in args.model:
-            output_tensor_dims['144_convolutional_lgx'] = [c, h //  8, w //  8]
-            output_tensor_dims['159_convolutional_lgx'] = [c, h // 16, w // 16]
-            output_tensor_dims['174_convolutional_lgx'] = [c, h // 32, w // 32]
-        elif 'tiny' in args.model:
-            output_tensor_dims['030_convolutional'] = [c, h // 32, w // 32]
-            output_tensor_dims['037_convolutional'] = [c, h // 16, w // 16]
-        else:
-            output_tensor_dims['139_convolutional'] = [c, h //  8, w //  8]
-            output_tensor_dims['150_convolutional'] = [c, h // 16, w // 16]
-            output_tensor_dims['161_convolutional'] = [c, h // 32, w // 32]
-    else:
-        raise SystemExit('ERROR: unknown model (%s)!' % args.model)
-
-    # Create a GraphBuilderONNX object with the specified output tensor
-    # dimensions.
     print('Building ONNX graph...')
-    builder = GraphBuilderONNX(args.model, output_tensor_dims)
-
-    # Now generate an ONNX graph with weights from the previously parsed
-    # layer configurations and the weights file.
+    builder = GraphBuilderONNX(
+        args.model, output_tensor_dims, MAX_BATCH_SIZE)
     yolo_model_def = builder.build_onnx_graph(
         layer_configs=layer_configs,
         weights_file_path=weights_file_path,
         verbose=True)
 
-    # Once we have the model definition, we do not need the builder anymore.
-    del builder
-
-    # Perform a sanity check on the ONNX model definition.
     print('Checking ONNX model...')
     onnx.checker.check_model(yolo_model_def)
 
-    # Serialize the generated ONNX graph to this file.
     print('Saving ONNX file...')
     onnx.save(yolo_model_def, output_file_path)
 

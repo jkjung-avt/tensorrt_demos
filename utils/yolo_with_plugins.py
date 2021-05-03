@@ -22,31 +22,6 @@ except OSError as e:
                      'subdirectory?') from e
 
 
-def get_input_shape(model_name):
-    """Infer input tensor shape of the model based on name.
-
-    For example,
-        'yolov4-tiny-416': (416, 416)
-        'yolov4-custom-416x256': (256, 416)
-
-    # Args
-        model_name
-    """
-    yolo_dim = model_name.split('-')[-1]
-    if not yolo_dim or not yolo_dim[0].isdigit():
-        raise ValueError('bad dim spec in model name (%s)!' % model_name)
-    if 'x' in yolo_dim:
-        dim_split = yolo_dim.split('x')
-        if len(dim_split) != 2:
-            raise ValueError('bad yolo_dim (%s)!' % yolo_dim)
-        w, h = int(dim_split[0]), int(dim_split[1])
-    else:
-        h = w = int(yolo_dim)
-    if h % 32 != 0 or w % 32 != 0:
-        raise ValueError('yolo_dim not multiples of 32 (%s)!' % yolo_dim)
-    return h, w
-
-
 def _preprocess_yolo(img, input_shape, letter_box=False):
     """Preprocess an image before TRT YOLO inferencing.
 
@@ -200,6 +175,19 @@ class HostDeviceMem(object):
         return self.__str__()
 
 
+def get_input_shape(engine):
+    """Get input shape of the TensorRT YOLO engine."""
+    binding = engine[0]
+    assert engine.binding_is_input(binding)
+    binding_dims = engine.get_binding_shape(binding)
+    if len(binding_dims) == 4:
+        return tuple(binding_dims[2:])
+    elif len(binding_dims) == 3:
+        return tuple(binding_dims[1:])
+    else:
+        raise ValueError('bad dims of binding %s: %s' % (binding, str(binding_dims)))
+
+
 def allocate_buffers(engine):
     """Allocates all host/device in/out buffers required for an engine."""
     inputs = []
@@ -283,11 +271,9 @@ class TrtYOLO(object):
         with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
-    def __init__(self, model, input_shape, category_num=80, letter_box=False,
-                 cuda_ctx=None):
+    def __init__(self, model, category_num=80, letter_box=False, cuda_ctx=None):
         """Initialize TensorRT plugins, engine and conetxt."""
         self.model = model
-        self.input_shape = input_shape
         self.category_num = category_num
         self.letter_box = letter_box
         self.cuda_ctx = cuda_ctx
@@ -298,6 +284,8 @@ class TrtYOLO(object):
                                          else do_inference_v2
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self.engine = self._load_engine()
+
+        self.input_shape = get_input_shape(self.engine)
 
         try:
             self.context = self.engine.create_execution_context()
