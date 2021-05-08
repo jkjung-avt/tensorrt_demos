@@ -1,5 +1,7 @@
+Cython
+numpy
 scikit-build
-opencv-python==4.5.1.48
+opencv-python
 PyImage
 onnx==1.8.1
 onnxruntime==1.6.0
