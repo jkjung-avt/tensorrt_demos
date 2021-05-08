@@ -31,14 +31,14 @@ def _preprocess_modnet(img, input_shape):
     return img
 
 
-def _postprocess_modnet(trt_outputs, output_shape):
+def _postprocess_modnet(output, output_shape):
     """Postprocess TRT MODNet output.
 
     # Args
-        trt_outputs: should be a list of only 1 output
-        output_shape: a tuple of (H, W)
+        output: inferenced output by the TensorRT engine
+        output_shape: (H, W), e.g. (480, 640)
     """
-    matte = (np.squeeze(trt_outputs[0]) * 255).astype('uint8')
+    matte = (output * 255).astype('uint8')
     matte = cv2.resize(
         matte, (output_shape[1], output_shape[0]),
         interpolation=cv2.INTER_AREA)
@@ -117,9 +117,11 @@ class TrtMODNet(object):
             self.cuda_ctx.push()
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         self.engine = self._load_engine()
+        assert self.engine.get_binding_dtype('input') == trt.tensorrt.DataType.FLOAT
 
         try:
             self.context = self.engine.create_execution_context()
+            self.output_shape = self.context.get_binding_shape(1)  # (1, 1, 480, 640)
             self.stream = cuda.Stream()
             self.bindings, self.inputs, self.outputs = allocate_buffers(
                 self.engine, self.context)
@@ -158,4 +160,5 @@ class TrtMODNet(object):
         if self.cuda_ctx:
             self.cuda_ctx.pop()
 
-        return _postprocess_modnet(trt_outputs, img.shape[:2])
+        output = trt_outputs[0].reshape(self.output_shape[-2:])
+        return _postprocess_modnet(output, img.shape[:2])
