@@ -25,7 +25,7 @@ def _preprocess_modnet(img, input_shape):
     # Returns
         preprocessed img: float32 numpy array of shape (3, H, W)
     """
-    img = cv2.resize(img, (input_shape[1], input_shape[0]))
+    img = cv2.resize(img, (input_shape[1], input_shape[0]), cv2.INTER_AREA)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
     img = (img - 127.5) / 127.5
@@ -39,9 +39,8 @@ def _postprocess_modnet(output, output_shape):
         output: inferenced output by the TensorRT engine
         output_shape: (H, W), e.g. (480, 640)
     """
-    matte = (output * 255).astype('uint8')
     matte = cv2.resize(
-        matte, (output_shape[1], output_shape[0]),
+        output, (output_shape[1], output_shape[0]),
         interpolation=cv2.INTER_AREA)
     return matte
 

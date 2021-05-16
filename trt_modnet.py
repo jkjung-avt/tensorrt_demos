@@ -9,6 +9,7 @@ import os
 import time
 import argparse
 
+import numpy as np
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
@@ -52,9 +53,9 @@ def main():
         if img is None:
             break
         matte = modnet.infer(img)
-        img = cv2.bitwise_and(img, cv2.cvtColor(matte, cv2.COLOR_GRAY2BGR))
-        img = show_fps(img, fps)
-        cv2.imshow(WINDOW_NAME, img)
+        matted_img = (img * matte[..., np.newaxis]).astype(np.uint8)
+        matted_img = show_fps(matted_img, fps)
+        cv2.imshow(WINDOW_NAME, matted_img)
         toc = time.time()
         curr_fps = 1.0 / (toc - tic)
         fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)

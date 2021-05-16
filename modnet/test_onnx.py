@@ -13,7 +13,7 @@ import onnx
 import onnxruntime
 
 img = cv2.imread('image.jpg')
-img = cv2.resize(img, (640, 480))
+img = cv2.resize(img, (640, 480), cv2.INTER_AREA)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = img.transpose((2, 0, 1)).astype(np.float32)
 img = (img - 127.5) / 127.5
@@ -23,7 +23,7 @@ session = onnxruntime.InferenceSession('modnet.onnx', None)
 input_name = session.get_inputs()[0].name
 output_name = session.get_outputs()[0].name
 result = session.run([output_name], {input_name: img})
-matte = (np.squeeze(result[0]) * 255).astype('uint8')
-cv2.imshow('Matte', matte)
+matte = np.squeeze(result[0])
+cv2.imshow('Matte', (matte * 255.).astype(np.uint8))
 cv2.waitKey(0)
 cv2.destroyAllWindows()
