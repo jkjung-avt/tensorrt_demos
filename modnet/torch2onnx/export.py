@@ -30,10 +30,10 @@ BATCH_SIZE = 1
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--width', type=int, default=640,
+        '--width', type=int, default=512,
         help='image width of the converted ONNX model [640]')
     parser.add_argument(
-        '--height', type=int, default=480,
+        '--height', type=int, default=288,
         help='image width of the converted ONNX model [480]')
     parser.add_argument(
         '-v', '--verbose', action='store_true',
