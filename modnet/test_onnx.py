@@ -14,6 +14,7 @@ import onnxruntime
 
 img = cv2.imread('image.jpg')
 img = cv2.resize(img, (640, 480))
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = img.transpose((2, 0, 1)).astype(np.float32)
 img = (img - 127.5) / 127.5
 img = np.expand_dims(img, axis=0)

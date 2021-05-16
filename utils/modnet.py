@@ -26,6 +26,7 @@ def _preprocess_modnet(img, input_shape):
         preprocessed img: float32 numpy array of shape (3, H, W)
     """
     img = cv2.resize(img, (input_shape[1], input_shape[0]))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.transpose((2, 0, 1)).astype(np.float32)
     img = (img - 127.5) / 127.5
     return img
