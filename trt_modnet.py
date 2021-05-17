@@ -14,6 +14,7 @@ import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from utils.camera import add_camera_args, Camera
+from utils.background import Background
 from utils.display import open_window, set_display, show_fps
 from utils.modnet import TrtMODNet
 
@@ -56,7 +57,7 @@ def main():
         matte = modnet.infer(img)
         matted_img = (
             img * matte[..., np.newaxis] +
-            bg * (1 - matte[..., np.newaxis]).astype(np.uint8)
+            bg * (1 - matte[..., np.newaxis])).astype(np.uint8)
         matted_img = show_fps(matted_img, fps)
         cv2.imshow(WINDOW_NAME, matted_img)
         toc = time.time()

@@ -53,7 +53,7 @@ class Background():
         # TODO: add demo_mode
         return self._read_frame()
 
-    def _read_raw(self):
+    def _read_frame(self):
         """Read a frame from the Background object."""
         if self.is_video:
             _, frame = self.cap.read()
