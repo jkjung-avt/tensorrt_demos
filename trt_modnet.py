@@ -27,6 +27,9 @@ def parse_args():
             'real-time image matting with TensorRT optimized MODNet')
     parser = argparse.ArgumentParser(description=desc)
     parser = add_camera_args(parser)
+    parser.add_argument(
+        '--background', type=str, default='',
+        help='background image or video file name [None]')
     args = parser.parse_args()
     return args
 
@@ -37,23 +40,23 @@ def main():
     cam = Camera(args)
     if not cam.isOpened():
         raise SystemExit('ERROR: failed to open camera!')
+    bggen = Background(args.background, cam.img_width, cam.img_height)
 
     modnet = TrtMODNet()
     open_window(
-        WINDOW_NAME, 'Camera TensorRT MODNet Demo',
-        cam.img_width, cam.img_height)
+        WINDOW_NAME, 'TensorRT MODNet Demo', cam.img_width, cam.img_height)
 
     full_scrn = False
     fps = 0.0
     tic = time.time()
     while True:
-        if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
-            break
-        img = cam.read()
-        if img is None:
-            break
+        if cv2.getWindowProperty(WINDOW_NAME, 0) < 0: break
+        img, bg = cam.read(), bggen.read()
+        if img is None: break
         matte = modnet.infer(img)
-        matted_img = (img * matte[..., np.newaxis]).astype(np.uint8)
+        matted_img = (
+            img * matte[..., np.newaxis] +
+            bg * (1 - matte[..., np.newaxis]).astype(np.uint8)
         matted_img = show_fps(matted_img, fps)
         cv2.imshow(WINDOW_NAME, matted_img)
         toc = time.time()
