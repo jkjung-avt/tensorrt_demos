@@ -40,7 +40,7 @@ class Background():
         elif src.endswith('.jpg') or src.endswith('.png'):
             self.is_video = False
             self.bg_frame = cv2.resize(cv2.imread(src), (width, height))
-            assert self.bg_frame is not None and self.bg_frame.shape.ndims == 3
+            assert self.bg_frame is not None and self.bg_frame.ndim == 3
         elif src.endswith('.mp4') or src.endswith('.ts'):
             self.is_video = True
             self.cap = cv2.VideoCapture(src)
