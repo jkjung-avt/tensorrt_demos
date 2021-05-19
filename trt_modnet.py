@@ -35,44 +35,91 @@ def parse_args():
     parser.add_argument(
         '--create_video', type=str, default='',
         help='create output video (either .ts or .mp4) [None]')
+    parser.add_argument(
+        '--demo_mode', action='store_true',
+        help='run the program in a special "demo mode" [False]')
     args = parser.parse_args()
     return args
 
 
-def blend_img(img, bg, matte):
-    """Blend foreground and background using the 'matte'.
+class BackgroundBlender():
+    """BackgroundBlender
 
     # Arguments
-        img: uint8 np.array of shape (H, W, 3), the foreground image
-        bg:  uint8 np.array of shape (H, W, 3), the background image
-        matte: float32 np.array of shape (H, W), values between 0.0 and 1.0
+        demo_mode
     """
-    return (img * matte[..., np.newaxis] +
-            bg * (1 - matte[..., np.newaxis])).astype(np.uint8)
+
+    def __init__(self, demo_mode=False):
+        self.demo_mode = demo_mode
+        self.count = 0
+
+    def blend(self, img, bg, matte):
+        """Blend foreground and background using the 'matte'.
+
+        # Arguments
+            img: uint8 np.array of shape (H, W, 3), the foreground image
+            bg:  uint8 np.array of shape (H, W, 3), the background image
+            matte: float32 np.array of shape (H, W), values between 0.0 and 1.0
+        """
+        if self.demo_mode:
+            img, bg, matte = self._mod_for_demo(img, bg, matte)
+        return (img * matte[..., np.newaxis] +
+                bg * (1 - matte[..., np.newaxis])).astype(np.uint8)
+
+    def _mod_for_demo(self, img, bg, matte):
+        """_mod_for_demo
+
+        # Demo script (based on "count")
+              0~ 59: black background left to right
+             60~119: black background only
+            120~179: replaced background left to right
+            180~239: replaced background
+            240~299: original background left to right
+            300~359: original background
+        """
+        img_h, img_w, _ = img.shape
+        if self.count < 120:
+            bg = np.zeros(bg.shape, dtype=np.uint8)
+            if self.count < 60:
+                offset = int(img_w * self.count / 59)
+                matte[:, offset:img_w] = 1.0
+        elif self.count < 240:
+            if self.count < 180:
+                offset = int(img_w * (self.count - 120) / 59)
+                bg[:, offset:img_w, :] = 0
+        else:
+            if self.count < 300:
+                offset = int(img_w * (self.count - 240) / 59)
+                matte[:, 0:offset] = 1.0
+            else:
+                matte[:, :] = 1.0
+        self.count = (self.count + 1) % 360
+        return img, bg, matte
 
 
 class TrtMODNetRunner():
     """TrtMODNetRunner
-
-    TODO: Add a demo mode...
 
     # Arguments
         modnet: TrtMODNet instance
         cam: Camera object (for reading input images)
         bggen: background generator (for reading background images)
         writer: VideoWriter object (for saving output video)
+        demo_mode
     """
 
-    def __init__(self, modnet, cam, bggen, writer=None):
+    def __init__(self, modnet, cam, bggen, writer=None, demo_mode=False):
         self.modnet = modnet
         self.cam = cam
         self.bggen = bggen
         self.writer = writer
+        self.demo_mode = demo_mode
         open_window(
             WINDOW_NAME, 'TensorRT MODNet Demo', cam.img_width, cam.img_height)
 
     def run(self):
         """Get img and bg, infer matte, blend and show img, then repeat."""
+        blender = BackgroundBlender(self.demo_mode)
         fps_calc = FpsCalculator()
         scrn_tog = ScreenToggler()
         while True:
@@ -80,7 +127,7 @@ class TrtMODNetRunner():
             img, bg = self.cam.read(), self.bggen.read()
             if img is None:  break
             matte = self.modnet.infer(img)
-            matted_img = blend_img(img, bg, matte)
+            matted_img = blender.blend(img, bg, matte)
             fps = fps_calc.update()
             matted_img = show_fps(matted_img, fps)
             if self.writer:  self.writer.write(matted_img)
@@ -110,7 +157,7 @@ def main():
     modnet = TrtMODNet()
     bggen = Background(args.background, cam.img_width, cam.img_height)
 
-    runner = TrtMODNetRunner(modnet, cam, bggen, writer)
+    runner = TrtMODNetRunner(modnet, cam, bggen, writer, args.demo_mode)
     runner.run()
 
     if writer:
