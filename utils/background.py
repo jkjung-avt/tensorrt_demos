@@ -17,17 +17,13 @@ class Background():
     2. Video file, looping forever
     3. None -> black background
 
-    In additon, a special "demo mode" is supported.
+    # Arguments
+        src: if not spcified, use black background; else, src should be
+             a filename of an image (jpg/png) or video (mp4/ts)
+        width & height: width & height of the output background image
     """
 
     def __init__(self, src, width, height, demo_mode=False):
-        """__init__
-
-        # Arguments
-            src: if not spcified, use black background; else src should
-                 be a filename of an image (jpg/png) or video (mp4/ts)
-            width & height: width & height of the output background image
-        """
         self.src = src
         self.width = width
         self.height = height
@@ -49,11 +45,6 @@ class Background():
             raise ValueError('unknown src')
 
     def read(self):
-        """Read a frame, with support of demo_mode."""
-        # TODO: add demo_mode
-        return self._read_frame()
-
-    def _read_frame(self):
         """Read a frame from the Background object."""
         if self.is_video:
             _, frame = self.cap.read()

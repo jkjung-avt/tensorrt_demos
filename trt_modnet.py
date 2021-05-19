@@ -6,17 +6,17 @@ TensorRT optimized MODNet engine.
 
 
 import os
-import time
 import argparse
-import subprocess
 
 import numpy as np
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from utils.camera import add_camera_args, Camera
+from utils.writer import get_video_writer
 from utils.background import Background
-from utils.display import open_window, set_display, show_fps
+from utils.display import open_window, show_fps
+from utils.display import FpsCalculator, ScreenToggler
 from utils.modnet import TrtMODNet
 
 
@@ -39,27 +39,6 @@ def parse_args():
     return args
 
 
-def get_video_writer(name, width, height, fps=30):
-    """Get a VideoWriter object for saving output video.
-
-    This function tries to use Jetson's hardware H.264 encoder (omxh264enc)
-    if available, in which case the output video would be a MPEG-2 TS file.
-    Otherwise, it uses cv2's built-in encoding mechanism and saves a MP4
-    file.
-    """
-    gst_elements = str(subprocess.check_output('gst-inspect-1.0'))
-    if 'omxh264dec' in gst_elements:
-        filename = name + '.ts'  # Transport Stream
-        gst_str = ('appsrc ! videoconvert ! omxh264enc ! mpegtsmux ! '
-                   'filesink location=%s') % filename
-        return cv2.VideoWriter(
-            gst_str, cv2.CAP_GSTREAMER, 0, fps, (width, height))
-    else:
-        filename = name + '.mp4'  # MP4
-        return cv2.VideoWriter(
-            filename, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
-
-
 def blend_img(img, bg, matte):
     """Blend foreground and background using the 'matte'.
 
@@ -72,40 +51,10 @@ def blend_img(img, bg, matte):
             bg * (1 - matte[..., np.newaxis])).astype(np.uint8)
 
 
-class FpsCalculator():
-    """Helper class for calculating frames-per-second (FPS)."""
-
-    def __init__(self, decay_factor=0.95):
-        self.fps = 0.0
-        self.tic = time.time()
-        self.decay_factor = decay_factor
-
-    def update(self):
-        toc = time.time()
-        curr_fps = 1.0 / (toc - self.tic)
-        self.fps = curr_fps if self.fps == 0.0 else self.fps
-        self.fps = self.fps * self.decay_factor + \
-                   curr_fps * (1 - self.decay_factor)
-        self.tic = toc
-        return self.fps
-
-    def reset(self):
-        self.fps = 0.0
-
-
-class ScreenToggler():
-    """Helper class for toggling between non-fullscreen and fullscreen."""
-
-    def __init__(self):
-        self.full_scrn = False
-
-    def toggle(self):
-        self.full_scrn = not self.full_scrn
-        set_display(WINDOW_NAME, self.full_scrn)
-
-
 class TrtMODNetRunner():
     """TrtMODNetRunner
+
+    TODO: Add a demo mode...
 
     # Arguments
         modnet: TrtMODNet instance
@@ -116,24 +65,26 @@ class TrtMODNetRunner():
 
     def __init__(self, modnet, cam, bggen, writer=None):
         self.modnet = modnet
-        sefl.cam = cam
+        self.cam = cam
         self.bggen = bggen
         self.writer = writer
         open_window(
             WINDOW_NAME, 'TensorRT MODNet Demo', cam.img_width, cam.img_height)
 
     def run(self):
+        """Get img and bg, infer matte, blend and show img, then repeat."""
         fps_calc = FpsCalculator()
         scrn_tog = ScreenToggler()
         while True:
-            if cv2.getWindowProperty(WINDOW_NAME, 0) < 0: break
+            if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:  break
             img, bg = self.cam.read(), self.bggen.read()
-            if img is None: break
+            if img is None:  break
             matte = self.modnet.infer(img)
             matted_img = blend_img(img, bg, matte)
-            matted_img = show_fps(matted_img, fps)
-            cv2.imshow(WINDOW_NAME, matted_img)
             fps = fps_calc.update()
+            matted_img = show_fps(matted_img, fps)
+            if self.writer:  self.writer.write(matted_img)
+            cv2.imshow(WINDOW_NAME, matted_img)
             key = cv2.waitKey(1)
             if key == ord('F') or key == ord('f'):  # Toggle fullscreen
                 scrn_tog.toggle()
@@ -162,6 +113,8 @@ def main():
     runner = TrtMODNetRunner(modnet, cam, bggen, writer)
     runner.run()
 
+    if writer:
+        writer.release()
     cam.release()
 
 
