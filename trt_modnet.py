@@ -5,7 +5,6 @@ TensorRT optimized MODNet engine.
 """
 
 
-import os
 import argparse
 
 import numpy as np
@@ -46,7 +45,9 @@ class BackgroundBlender():
     """BackgroundBlender
 
     # Arguments
-        demo_mode
+        demo_mode: if True, do foreground/background blending in a
+                   special "demo mode" which alternates among the
+                   original, replaced and black backgrounds.
     """
 
     def __init__(self, demo_mode=False):
@@ -67,7 +68,7 @@ class BackgroundBlender():
                 bg * (1 - matte[..., np.newaxis])).astype(np.uint8)
 
     def _mod_for_demo(self, img, bg, matte):
-        """_mod_for_demo
+        """Modify img, bg and matte for "demo mode"
 
         # Demo script (based on "count")
               0~ 59: black background left to right
@@ -102,32 +103,31 @@ class TrtMODNetRunner():
 
     # Arguments
         modnet: TrtMODNet instance
-        cam: Camera object (for reading input images)
+        cam: Camera object (for reading foreground images)
         bggen: background generator (for reading background images)
+        blender: BackgroundBlender object
         writer: VideoWriter object (for saving output video)
-        demo_mode
     """
 
-    def __init__(self, modnet, cam, bggen, writer=None, demo_mode=False):
+    def __init__(self, modnet, cam, bggen, blender, writer=None):
         self.modnet = modnet
         self.cam = cam
         self.bggen = bggen
+        self.blender = blender
         self.writer = writer
-        self.demo_mode = demo_mode
         open_window(
             WINDOW_NAME, 'TensorRT MODNet Demo', cam.img_width, cam.img_height)
 
     def run(self):
         """Get img and bg, infer matte, blend and show img, then repeat."""
-        blender = BackgroundBlender(self.demo_mode)
-        fps_calc = FpsCalculator()
         scrn_tog = ScreenToggler()
+        fps_calc = FpsCalculator()
         while True:
             if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:  break
             img, bg = self.cam.read(), self.bggen.read()
             if img is None:  break
             matte = self.modnet.infer(img)
-            matted_img = blender.blend(img, bg, matte)
+            matted_img = self.blender.blend(img, bg, matte)
             fps = fps_calc.update()
             matted_img = show_fps(matted_img, fps)
             if self.writer:  self.writer.write(matted_img)
@@ -156,8 +156,9 @@ def main():
 
     modnet = TrtMODNet()
     bggen = Background(args.background, cam.img_width, cam.img_height)
+    blender = BackgroundBlender(args.demo_mode)
 
-    runner = TrtMODNetRunner(modnet, cam, bggen, writer, args.demo_mode)
+    runner = TrtMODNetRunner(modnet, cam, bggen, blender, writer)
     runner.run()
 
     if writer:
