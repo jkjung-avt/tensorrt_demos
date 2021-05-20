@@ -2,6 +2,7 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.
 
+* Run an optimized "MODNet" video matting model ~14.9 FPS on Jetson Xavier NX.
 * Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
 * Run an optimized "yolov3-416" object detector at ~4.9 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
@@ -24,6 +25,7 @@ Table of contents
 * [Demo #4: YOLOv3](#yolov3)
 * [Demo #5: YOLOv4](#yolov4)
 * [Demo #6: Using INT8 and DLA core](#int8_and_dla)
+* [Demo #7: MODNet](#modnet)
 
 <a name="prerequisite"></a>
 Prerequisite
@@ -38,6 +40,7 @@ More specifically, the target Jetson system must have TensorRT libraries install
 * Demo #4 and Demo #5: requires TensorRT 6.x+.
 * Demo #6 part 1: INT8 requires TensorRT 6.x+ and only works on GPUs with CUDA compute 6.1+.
 * Demo #6 part 2: DLA core requires TensorRT 7.x+ (is only tested on Jetson Xavier NX).
+* Demo #7: requires TensorRT 7.x+.
 
 You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (JetPack-4.2.2) was present on one of my Jetson Nano DevKits.
 
@@ -235,13 +238,13 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
    * Or if you'd like to learn how to train your own custom object detectors which could be easily converted to TensorRT engines and inferenced with "trt_ssd.py" and "trt_ssd_async.py": [Training a Hand Detector with TensorFlow Object Detection API](https://jkjung-avt.github.io/hand-detection-tutorial/)
 
-<a name="YOLOv3"></a>
+<a name="yolov3"></a>
 Demo #4: YOLOv3
 ---------------
 
 (Merged with Demo #5: YOLOv4...)
 
-<a name="YOLOv4"></a>
+<a name="yolov4"></a>
 Demo #5: YOLOv4
 ---------------
 
@@ -448,7 +451,93 @@ Please make sure you have gone through the steps of [Demo #5](#yolov4) and are a
    * There is no method in TensorRT 7.1 Python API to specifically set DLA core at inference time.  I also [reported this issue](https://forums.developer.nvidia.com/t/no-method-in-tensorrt-python-api-for-setting-dla-core-for-inference/155874) to NVIDIA.  When testing, I simply deserialize the TensorRT engines onto Jetson Xavier NX.  I'm not 100% sure whether the engine is really executed on DLA core 0 or DLA core 1.
    * mAP of the INT8 TensorRT engine of the "yolov4-608" model is not good.  Originally, I thought it was [an issue of TensorRT library's handling of "Concat" nodes](https://forums.developer.nvidia.com/t/concat-in-caffe-parser-is-wrong-when-working-with-int8-calibration/142639/3?u=jkjung13).  But after some more investigation, I saw that was not the case.  Currently, I'm still not sure what the problem is...
 
+<a name="modnet"></a>
+Demo #7: MODNet
+---------------
+
+This demo illustrates the use of TensorRT to optimize an image segmentation model.  More specifically, I build and test a TensorRT engine from the pre-trained MODNet to do real-time image/video "matting".  The PyTorch MODNet model comes from [ZHKKKe/MODNet](https://github.com/ZHKKKe/MODNet).  Note that, as stated by the original auther, this pre-trained model is under [Creative Commons Attribution NonCommercial ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.  Thanks to [ZHKKKe](https://github.com/ZHKKKe) for sharing the model and inference code.
+
+This MODNet model contains [InstanceNorm2d](https://pytorch.org/docs/stable/generated/torch.nn.InstanceNorm2d.html) layers, which are only supported in recent versions of TensorRT.  So far I have only tested the code with TensorRT 7.1 and 7.2.  I don't guarantee the code would work for older versions of TensorRT.
+
+To make the demo simpler to follow, I have already converted the PyTorch MODNet model to ONNX ("modnet/modnet.onnx").  If you'd like to do the PyTorch-to-ONNX conversion by yourself, you could refer to [modnet/README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/modnet/README.md).
+
+Here is the step-by-step guide:
+
+1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/ssd
+   $ ./install_pycuda.sh
+   ```
+
+2. Build TensorRT engine from "modnet/modnet.onnx".
+
+   This step would be easy if you are using **TensorRT 7.2 or later**.  Just use the "modnet/onnx_to_tensorrt.py" script:  (You could optionally use "-v" command-line option to see verbose logs.)
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos/modnet
+   $ python3 onnx_to_tensorrt.py modnet.onnx modnet.engine
+   ```
+
+   When "onnx_to_tensorrt.py" finishes, the "modnet.engine" file should be generated.  And you could go to step #3.
+
+   In case you are using TensorRT 7.1 (JetPack-4.5 or JetPack-4.4), "modnet/onnx_to_tensorrt.py" wouldn't work due to this error which has been fixed in TensorRT 7.2: [UNSUPPORTED_NODE: Assertion failed: !isDynamic(tensorPtr->getDimensions()) && "InstanceNormalization does not support dynamic inputs!"](https://github.com/onnx/onnx-tensorrt/issues/374).  I worked around the problem by building [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt) by myself.  Here's how you could do it too.
+
+   ```
+   $ cd ${HOME}/project/tensorrt_demos/modnet
+   ### check out the "onnx-tensorrt" submodule
+   $ git submodule update --init --recursive
+   ### patch CMakeLists.txt
+   $ sed -i '21s/cmake_minimum_required(VERSION 3.13)/#cmake_minimum_required(VERSION 3.13)/' \
+         onnx-tensorrt/CMakeLists.txt
+   ### build onnx-tensorrt
+   $ mkdir -p onnx-tensorrt/build
+   $ cd onnx-tensorrt/build
+   $ cmake -DCMAKE_CXX_FLAGS=-I/usr/local/cuda/targets/aarch64-linux/include \
+           -DONNX_NAMESPACE=onnx2trt_onnx ..
+   $ make -j4
+   ### finally, we could build the TensorRT engine
+   $ cd ${HOME}/project/tensorrt_demos/modnet
+   $ LD_LIBRARY_PATH=$(pwd)/onnx-tensorrt/build \
+     onnx-tensorrt/build/onnx2trt modnet.onnx -o modnet.engine -v
+   ```
+
+3. Test the TensorRT MODNet engine with "modnet/image.jpg".
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_modnet.py --image modnet/image.jpg
+   ```
+
+   You could see the matted image as below.  Note that I get ~14.9 FPS when running the code on Jetson Xavier NX with JetPack-4.5.
+
+   ![Matted modnet/image.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/image_trt_modnet.png)
+
+4. The "trt_modnet.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.  (For example, The "--usb" option would be useful.)
+
+5. Instead of a boring black background, you could use the "--background" command-line option to specify an alternative background.  The background could be either a still image or a video file.  Furthermore, you could use the "--create_video" command line option to save the matted outputs as a video file.
+
+   For example, I took a [Chou, Tzu-Yu video](https://youtu.be/L6B9BObaIRA) and a [beach video](https://youtu.be/LdsTydS4eww), and created a blended video like this:
+
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_modnet.py --video Tzu-Yu.mp4 \
+                           --background beach.mp4 \
+                           --demo_mode \
+                           --create_video output
+   ```
+
+   The result would be saved as "output.ts" on Jetson Xavier NX (or "output.mp4" on x86_64 PC).
+
+   [![Video Matting Demo \| TensorRT MODNet](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/trt_modnet_youtube.jpg)](https://youtu.be/SIoJAI1bMyc)
+
 Licenses
 --------
 
-I referenced source code of [NVIDIA/TensorRT](https://github.com/NVIDIA/TensorRT) samples to develop most of the demos in this repository.  Those NVIDIA samples are under [Apache License 2.0](https://github.com/NVIDIA/TensorRT/blob/master/LICENSE).
+1. I referenced source code of [NVIDIA/TensorRT](https://github.com/NVIDIA/TensorRT) samples to develop most of the demos in this repository.  Those NVIDIA samples are under [Apache License 2.0](https://github.com/NVIDIA/TensorRT/blob/master/LICENSE).
+2. [GoogLeNet](https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet): "This model is released for unrestricted use."
+3. [MTCNN](https://github.com/PKUZHOU/MTCNN_FaceDetection_TensorRT): license not specified.  Note [the original MTCNN](https://github.com/kpzhang93/MTCNN_face_detection_alignment) is under [MIT License](https://github.com/kpzhang93/MTCNN_face_detection_alignment/blob/master/LICENSE).
+4. [TensorFlow Object Detection Models](https://github.com/tensorflow/models/tree/master/research/object_detection): [Apache License 2.0](https://github.com/tensorflow/models/blob/master/LICENSE).
+5. YOLOv3/YOLOv4 models ([DarkNet](https://github.com/AlexeyAB/darknet)): [YOLO LICENSE](https://github.com/AlexeyAB/darknet/blob/master/LICENSE).
+6. [MODNet](https://github.com/ZHKKKe/MODNet): [Creative Commons Attribution NonCommercial ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+7. For the rest of the code (all developed by jkjung-avt): [MIT License](https://github.com/jkjung-avt/tensorrt_demos/blob/master/LICENSE).

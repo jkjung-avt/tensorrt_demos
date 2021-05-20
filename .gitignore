@@ -5,6 +5,11 @@ pytrt.cpp
 build
 pytrt.*.so
 
+*.jpg
+*.png
+*.mp4
+*.ts
+
 googlenet/*.engine
 googlenet/chobj
 googlenet/dchobj
@@ -31,3 +36,8 @@ yolo/calib_*.bin
 
 plugins/*.o
 plugins/*.so
+
+modnet/venv*
+modnet/*.ckpt
+modnet/*.onnx
+modnet/*.engine

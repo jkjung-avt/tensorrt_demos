@@ -1,7 +1,8 @@
-
 """display.py
 """
 
+
+import time
 
 import cv2
 
@@ -41,3 +42,35 @@ def set_display(window_name, full_scrn):
     else:
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
                               cv2.WINDOW_NORMAL)
+
+
+class FpsCalculator():
+    """Helper class for calculating frames-per-second (FPS)."""
+
+    def __init__(self, decay_factor=0.95):
+        self.fps = 0.0
+        self.tic = time.time()
+        self.decay_factor = decay_factor
+
+    def update(self):
+        toc = time.time()
+        curr_fps = 1.0 / (toc - self.tic)
+        self.fps = curr_fps if self.fps == 0.0 else self.fps
+        self.fps = self.fps * self.decay_factor + \
+                   curr_fps * (1 - self.decay_factor)
+        self.tic = toc
+        return self.fps
+
+    def reset(self):
+        self.fps = 0.0
+
+
+class ScreenToggler():
+    """Helper class for toggling between non-fullscreen and fullscreen."""
+
+    def __init__(self):
+        self.full_scrn = False
+
+    def toggle(self):
+        self.full_scrn = not self.full_scrn
+        set_display(WINDOW_NAME, self.full_scrn)

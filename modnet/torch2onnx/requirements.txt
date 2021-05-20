@@ -1,0 +1,8 @@
+Cython
+numpy
+scikit-build
+opencv-python
+PyImage
+onnx==1.8.1
+onnxruntime==1.6.0
+torch==1.7.1
