@@ -461,7 +461,7 @@ This MODNet model contains [InstanceNorm2d](https://pytorch.org/docs/stable/gene
 
 To make the demo simpler to follow, I have already converted the PyTorch MODNet model to ONNX ("modnet/modnet.onnx").  If you'd like to do the PyTorch-to-ONNX conversion by yourself, you could refer to [modnet/README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/modnet/README.md).
 
-Here is the step-by-step guide:
+Here is the step-by-step guide for the demo:
 
 1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
 
@@ -481,7 +481,7 @@ Here is the step-by-step guide:
 
    When "onnx_to_tensorrt.py" finishes, the "modnet.engine" file should be generated.  And you could go to step #3.
 
-   In case you are using TensorRT 7.1 (JetPack-4.5 or JetPack-4.4), "modnet/onnx_to_tensorrt.py" wouldn't work due to this error which has been fixed in TensorRT 7.2: [UNSUPPORTED_NODE: Assertion failed: !isDynamic(tensorPtr->getDimensions()) && "InstanceNormalization does not support dynamic inputs!"](https://github.com/onnx/onnx-tensorrt/issues/374).  I worked around the problem by building [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt) by myself.  Here's how you could do it too.
+   In case you are using **TensorRT 7.1** (JetPack-4.5 or JetPack-4.4), "modnet/onnx_to_tensorrt.py" wouldn't work due to this error (which has been fixed in TensorRT 7.2): [UNSUPPORTED_NODE: Assertion failed: !isDynamic(tensorPtr->getDimensions()) && "InstanceNormalization does not support dynamic inputs!"](https://github.com/onnx/onnx-tensorrt/issues/374).  I worked around the problem by building [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt) by myself.  Here's how you could do it too.
 
    ```
    $ cd ${HOME}/project/tensorrt_demos/modnet
@@ -511,11 +511,11 @@ Here is the step-by-step guide:
 
    You could see the matted image as below.  Note that I get ~14.9 FPS when running the code on Jetson Xavier NX with JetPack-4.5.
 
-   ![Matted modnet/image.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/image_trt_modnet.png)
+   ![Matted modnet/image.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/image_trt_modnet.jpg)
 
-4. The "trt_modnet.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.  (For example, The "--usb" option would be useful.)
+4. The "trt_modnet.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.  (For example, the "--usb" command-line option would be useful.)
 
-5. Instead of a boring black background, you could use the "--background" command-line option to specify an alternative background.  The background could be either a still image or a video file.  Furthermore, you could use the "--create_video" command line option to save the matted outputs as a video file.
+5. Instead of a boring black background, you could use the "--background" option to specify an alternative background.  The background could be either a still image or a video file.  Furthermore, you could also use the "--create_video" option to save the matted outputs as a video file.
 
    For example, I took a [Chou, Tzu-Yu video](https://youtu.be/L6B9BObaIRA) and a [beach video](https://youtu.be/LdsTydS4eww), and created a blended video like this:
 
@@ -539,5 +539,5 @@ Licenses
 3. [MTCNN](https://github.com/PKUZHOU/MTCNN_FaceDetection_TensorRT): license not specified.  Note [the original MTCNN](https://github.com/kpzhang93/MTCNN_face_detection_alignment) is under [MIT License](https://github.com/kpzhang93/MTCNN_face_detection_alignment/blob/master/LICENSE).
 4. [TensorFlow Object Detection Models](https://github.com/tensorflow/models/tree/master/research/object_detection): [Apache License 2.0](https://github.com/tensorflow/models/blob/master/LICENSE).
 5. YOLOv3/YOLOv4 models ([DarkNet](https://github.com/AlexeyAB/darknet)): [YOLO LICENSE](https://github.com/AlexeyAB/darknet/blob/master/LICENSE).
-6. [MODNet](https://github.com/ZHKKKe/MODNet): [Creative Commons Attribution NonCommercial ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+6. [MODNet](https://github.com/ZHKKKe/MODNet): [Creative Commons Attribution NonCommercial ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
 7. For the rest of the code (all developed by jkjung-avt): [MIT License](https://github.com/jkjung-avt/tensorrt_demos/blob/master/LICENSE).
