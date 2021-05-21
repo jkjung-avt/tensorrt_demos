@@ -2,7 +2,7 @@
 
 Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.
 
-* Run an optimized "MODNet" video matting model ~14.9 FPS on Jetson Xavier NX.
+* Run an optimized "MODNet" video matting model ~21 FPS on Jetson Xavier NX.
 * Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
 * Run an optimized "yolov3-416" object detector at ~4.9 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
@@ -496,10 +496,11 @@ Here is the step-by-step guide for the demo:
    $ cmake -DCMAKE_CXX_FLAGS=-I/usr/local/cuda/targets/aarch64-linux/include \
            -DONNX_NAMESPACE=onnx2trt_onnx ..
    $ make -j4
-   ### finally, we could build the TensorRT engine
+   ### finally, we could build the TensorRT (FP16) engine
    $ cd ${HOME}/project/tensorrt_demos/modnet
    $ LD_LIBRARY_PATH=$(pwd)/onnx-tensorrt/build \
-     onnx-tensorrt/build/onnx2trt modnet.onnx -o modnet.engine -v
+         onnx-tensorrt/build/onnx2trt modnet.onnx -o modnet.engine \
+                                      -d 16 -v
    ```
 
 3. Test the TensorRT MODNet engine with "modnet/image.jpg".
@@ -509,7 +510,7 @@ Here is the step-by-step guide for the demo:
    $ python3 trt_modnet.py --image modnet/image.jpg
    ```
 
-   You could see the matted image as below.  Note that I get ~14.9 FPS when running the code on Jetson Xavier NX with JetPack-4.5.
+   You could see the matted image as below.  Note that I get ~21 FPS when running the code on Jetson Xavier NX with JetPack-4.5.
 
    ![Matted modnet/image.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/image_trt_modnet.jpg)
 
