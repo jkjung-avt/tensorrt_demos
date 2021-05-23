@@ -112,7 +112,11 @@ def get_output_convs(layer_configs):
     for current_layer in layer_configs.keys():
         if previous_layer is not None and current_layer.endswith('yolo'):
             assert previous_layer.endswith('convolutional')
-            output_convs.append(previous_layer)
+            layer_dict = layer_configs[previous_layer]
+            if layer_dict['activation'] == 'logistic':
+                output_convs.append(previous_layer + '_lgx')
+            else:
+                output_convs.append(previous_layer)
         previous_layer = current_layer
     return output_convs
 
