@@ -112,11 +112,13 @@ def get_output_convs(layer_configs):
     for current_layer in layer_configs.keys():
         if previous_layer is not None and current_layer.endswith('yolo'):
             assert previous_layer.endswith('convolutional')
-            layer_dict = layer_configs[previous_layer]
-            if layer_dict['activation'] == 'logistic':
+            activation = layer_configs[previous_layer]['activation']
+            if activation == 'linear':
+                output_convs.append(previous_layer)
+            elif activation == 'logistic':
                 output_convs.append(previous_layer + '_lgx')
             else:
-                output_convs.append(previous_layer)
+                raise TypeError('unexpected activation: %s' % activation)
         previous_layer = current_layer
     return output_convs
 
