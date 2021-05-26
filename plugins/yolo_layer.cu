@@ -427,5 +427,4 @@ namespace nvinfer1
 
     PluginFieldCollection YoloPluginCreator::mFC{};
     std::vector<PluginField> YoloPluginCreator::mPluginAttributes;
-    REGISTER_TENSORRT_PLUGIN(YoloPluginCreator);
 } // namespace nvinfer1

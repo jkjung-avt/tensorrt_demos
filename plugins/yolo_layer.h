@@ -140,6 +140,8 @@ namespace nvinfer1
             static std::vector<nvinfer1::PluginField> mPluginAttributes;
             std::string mNamespace;
     };
+
+    REGISTER_TENSORRT_PLUGIN(YoloPluginCreator);
 };
 
 #endif
