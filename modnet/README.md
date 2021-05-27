@@ -1,4 +1,4 @@
-* How to convert the original PyTorch MODNet model to ONNX
+# How to convert the original PyTorch MODNet model to ONNX
 
 The original pre-trained PyTorch MODNet model comes from [ZHKKKe/MODNet](https://github.com/ZHKKKe/MODNet).  Note that this pre-trained model is under [Creative Commons Attribution NonCommercial ShareAlike 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
