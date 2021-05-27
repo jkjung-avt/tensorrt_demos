@@ -34,4 +34,4 @@ libyolo_layer.so: yolo_layer.o
 	$(CC) -shared -o $@ $< $(LIBS)
 
 yolo_layer.o: yolo_layer.cu yolo_layer.h
-	$(NVCC) -ccbin $(CC) $(INCS) $(NVCCFLAGS) -lnvinfer -lcudart -Xcompiler -fPIC -c -o $@ $<
+	$(NVCC) -ccbin $(CC) $(INCS) $(NVCCFLAGS) -Xcompiler -fPIC -c -o $@ $<
