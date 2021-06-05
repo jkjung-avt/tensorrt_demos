@@ -1,19 +1,15 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize caffe/tensorflow/darknet models with TensorRT and run inferencing on NVIDIA Jetson or x86_64 PC platforms.
+Examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT and do inference on NVIDIA Jetson or x86_64 platforms.  Highlights:
 
-* Run an optimized "MODNet" video matting model ~21 FPS on Jetson Xavier NX.
+* Run an optimized "MODNet" video matting model at ~21 FPS on Jetson Xavier NX.
 * Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
 * Run an optimized "yolov3-416" object detector at ~4.9 FPS on Jetson Nano.
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
-* Run a very accurate optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
+* Run an optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
 * Run an optimized "GoogLeNet" image classifier at "~16 ms per image (inference only)" on Jetson Nano.
-* In addition to Jetson Nano, all demos also work on Jetson TX2, AGX Xavier, Xavier NX ([link](https://github.com/jkjung-avt/tensorrt_demos/issues/19#issue-517897927) and [link](https://github.com/jkjung-avt/tensorrt_demos/issues/30)), and run much faster!
-* All demos work on x86_64 PC with NVIDIA GPU(s) as well.  Some minor tweaks would be needed.  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
-
-**[2020-12-22 update]**  I have updated the code to support [yolov4-csp](https://github.com/AlexeyAB/darknet/blob/master/cfg/yolov4-csp.cfg) and [yolov4x-mish](https://github.com/AlexeyAB/darknet/blob/master/cfg/yolov4x-mish.cfg) models, i.e. supporting "letter_box" and "new_coords" in the cfg files.  If you have built TensorRT yolov4/yolov3 engines with an older version of the code, you'll have to re-compile the plugin and rebuild the engines in order to run "trt_yolo.py" with the latest code.
-
-**[2020-08-18 update]**  I have optimized my "Camera" module code.  As a result, the FPS numbers of the TensorRT yolov3/yolov4 models have been improved.  With this particular update, I've also simplified the command-line arguments and the API of the Camera.  Please refer to step 5 of Demo #1 for details.
+* All demos work on Jetson Nano, TX2, AGX Xavier, and Xavier NX.
+* All demos also work on x86_64 PC with NVIDIA GPU(s).  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
 Table of contents
 -----------------
