@@ -87,21 +87,14 @@ def generate_results(trt_yolo, imgs_dir, jpgs, results_file, non_coco):
 def main():
     args = parse_args()
     check_args(args)
+    if args.category_num <= 0:
+        raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
+    if not os.path.isfile('yolo/%s.trt' % args.model):
+        raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
 
     results_file = 'yolo/results_%s.json' % args.model
 
-    yolo_dim = args.model.split('-')[-1]
-    if 'x' in yolo_dim:
-        dim_split = yolo_dim.split('x')
-        if len(dim_split) != 2:
-            raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
-        w, h = int(dim_split[0]), int(dim_split[1])
-    else:
-        h = w = int(yolo_dim)
-    if h % 32 != 0 or w % 32 != 0:
-        raise SystemExit('ERROR: bad yolo_dim (%s)!' % yolo_dim)
-
-    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
+    trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
     jpgs = [j for j in os.listdir(args.imgs_dir) if j.endswith('.jpg')]
     generate_results(trt_yolo, args.imgs_dir, jpgs, results_file,
