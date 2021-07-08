@@ -90,7 +90,11 @@ namespace nvinfer1
 
             void detachFromContext() NOEXCEPT override {}
 
-            int enqueue(int batchSize, const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
+#if NV_TENSORRT_MAJOR >= 8
+            int32_t enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
+#else
+            int enqueue(int batchSize, const void* const * inputs, void** outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
+#endif
 
         private:
             void forwardGpu(const float* const* inputs, float* output, cudaStream_t stream, int batchSize = 1);
