@@ -50,60 +50,52 @@ namespace nvinfer1
 
             ~YoloLayerPlugin() override = default;
 
-            int getNbOutputs() const NOEXCEPT override
-            {
-                return 1;
-            }
+            IPluginV2IOExt* clone() const NOEXCEPT override;
 
-            Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) NOEXCEPT override;
-
-            int initialize() NOEXCEPT override;
+            int initialize() NOEXCEPT override { return 0; }
 
             void terminate() NOEXCEPT override;
 
-            virtual size_t getWorkspaceSize(int maxBatchSize) const NOEXCEPT override { return 0;}
-
-#if NV_TENSORRT_MAJOR == 8
-            virtual int32_t enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
-#else
-            virtual int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override;
-#endif
+            void destroy() NOEXCEPT override { delete this; }
 
             virtual size_t getSerializationSize() const NOEXCEPT override;
 
             virtual void serialize(void* buffer) const NOEXCEPT override;
 
-            bool supportsFormatCombination(int pos, const PluginTensorDesc* inOut, int nbInputs, int nbOutputs) const NOEXCEPT override {
-                return inOut[pos].format == TensorFormat::kLINEAR && inOut[pos].type == DataType::kFLOAT;
-            }
+            int getNbOutputs() const NOEXCEPT override { return 1; }
 
-            const char* getPluginType() const NOEXCEPT override;
+            Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) NOEXCEPT override;
 
-            const char* getPluginVersion() const NOEXCEPT override;
+            virtual size_t getWorkspaceSize(int maxBatchSize) const NOEXCEPT override { return 0; }
 
-            void destroy() NOEXCEPT override;
+            bool supportsFormatCombination(int pos, const PluginTensorDesc* inOut, int nbInputs, int nbOutputs) const NOEXCEPT override { return inOut[pos].format == TensorFormat::kLINEAR && inOut[pos].type == DataType::kFLOAT; }
 
-            IPluginV2IOExt* clone() const NOEXCEPT override;
+            const char* getPluginType() const NOEXCEPT override { return "YoloLayer_TRT"; }
 
-            void setPluginNamespace(const char* pluginNamespace) NOEXCEPT override;
+            const char* getPluginVersion() const NOEXCEPT override { return "1"; }
 
-            const char* getPluginNamespace() const NOEXCEPT override;
+            void setPluginNamespace(const char* pluginNamespace) NOEXCEPT override { mPluginNamespace = pluginNamespace; }
 
-            DataType getOutputDataType(int index, const DataType* inputTypes, int nbInputs) const NOEXCEPT override;
+            const char* getPluginNamespace() const NOEXCEPT override { return mPluginNamespace; }
 
-            bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const NOEXCEPT override;
+            DataType getOutputDataType(int index, const DataType* inputTypes, int nbInputs) const NOEXCEPT override { return DataType::kFLOAT; }
 
-            bool canBroadcastInputAcrossBatch(int inputIndex) const NOEXCEPT override;
+            bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const NOEXCEPT override { return false; }
 
-            void attachToContext(cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) NOEXCEPT override;
+            bool canBroadcastInputAcrossBatch(int inputIndex) const NOEXCEPT override { return false; }
+
+            void attachToContext(cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) NOEXCEPT override { }
+
+            void configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) NOEXCEPT override { }
+            //using IPluginV2IOExt::configurePlugin;
+
+            void detachFromContext() NOEXCEPT override { }
 
 #if NV_TENSORRT_MAJOR == 8
-            void configurePlugin(PluginTensorDesc const* in, int32_t nbInput, PluginTensorDesc const* out, int32_t nbOutput) NOEXCEPT override;
+            virtual int32_t enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
 #else
-            void configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) override TRTNOEXCEPT;
+            virtual int enqueue(int batchSize, const void* const * inputs, void** outputs, void* workspace, cudaStream_t stream) override;
 #endif
-
-            void detachFromContext() NOEXCEPT override;
 
         private:
             void forwardGpu(const float* const* inputs, float* output, cudaStream_t stream, int batchSize = 1);
@@ -118,11 +110,6 @@ namespace nvinfer1
             int mNewCoords = 0;
 
             const char* mPluginNamespace;
-
-#if NV_TENSORRT_MAJOR < 8
-        protected:
-            using IPluginV2IOExt::configurePlugin;
-#endif
     };
 
     class YoloPluginCreator : public IPluginCreator

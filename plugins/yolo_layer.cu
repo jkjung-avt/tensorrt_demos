@@ -73,8 +73,30 @@ namespace nvinfer1
         assert(d == a + length);
     }
 
+    IPluginV2IOExt* YoloLayerPlugin::clone() const NOEXCEPT
+    {
+        YoloLayerPlugin *p = new YoloLayerPlugin(mYoloWidth, mYoloHeight, mNumAnchors, (float*) mAnchorsHost, mNumClasses, mInputWidth, mInputHeight, mScaleXY, mNewCoords);
+        p->setPluginNamespace(mPluginNamespace);
+        return p;
+    }
+
+    void YoloLayerPlugin::terminate() NOEXCEPT
+    {
+        CHECK(cudaFree(mAnchors));
+    }
+
+    size_t YoloLayerPlugin::getSerializationSize() const NOEXCEPT
+    {
+        return sizeof(mThreadCount) + \
+               sizeof(mYoloWidth) + sizeof(mYoloHeight) + \
+               sizeof(mNumAnchors) + MAX_ANCHORS * 2 * sizeof(float) + \
+               sizeof(mNumClasses) + \
+               sizeof(mInputWidth) + sizeof(mInputHeight) + \
+               sizeof(mScaleXY) + sizeof(mNewCoords);
+    }
+
     void YoloLayerPlugin::serialize(void* buffer) const NOEXCEPT
-   {
+    {
         char* d = static_cast<char*>(buffer), *a = d;
         write(d, mThreadCount);
         write(d, mYoloWidth);
@@ -91,26 +113,6 @@ namespace nvinfer1
         assert(d == a + getSerializationSize());
     }
 
-    size_t YoloLayerPlugin::getSerializationSize() const NOEXCEPT
-    {
-        return sizeof(mThreadCount) + \
-               sizeof(mYoloWidth) + sizeof(mYoloHeight) + \
-               sizeof(mNumAnchors) + MAX_ANCHORS * 2 * sizeof(float) + \
-               sizeof(mNumClasses) + \
-               sizeof(mInputWidth) + sizeof(mInputHeight) + \
-               sizeof(mScaleXY) + sizeof(mNewCoords);
-    }
-
-    int YoloLayerPlugin::initialize() NOEXCEPT
-    {
-        return 0;
-    }
-
-    void YoloLayerPlugin::terminate() NOEXCEPT
-    {
-        CHECK(cudaFree(mAnchors));
-    }
-
     Dims YoloLayerPlugin::getOutputDimensions(int index, const Dims* inputs, int nbInputDims) NOEXCEPT
     {
         assert(index == 0);
@@ -121,75 +123,6 @@ namespace nvinfer1
         // output detection results to the channel dimension
         int totalsize = mYoloWidth * mYoloHeight * mNumAnchors * sizeof(Detection) / sizeof(float);
         return Dims3(totalsize, 1, 1);
-    }
-
-    void YoloLayerPlugin::setPluginNamespace(const char* pluginNamespace) NOEXCEPT
-    {
-        mPluginNamespace = pluginNamespace;
-    }
-
-    const char* YoloLayerPlugin::getPluginNamespace() const NOEXCEPT
-    {
-        return mPluginNamespace;
-    }
-
-    // Return the DataType of the plugin output at the requested index
-    DataType YoloLayerPlugin::getOutputDataType(int index, const DataType* inputTypes, int nbInputs) const NOEXCEPT
-    {
-        return DataType::kFLOAT;
-    }
-
-    // Return true if output tensor is broadcast across a batch.
-    bool YoloLayerPlugin::isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const NOEXCEPT
-    {
-        return false;
-    }
-
-    // Return true if plugin can use input that is broadcast across batch without replication.
-    bool YoloLayerPlugin::canBroadcastInputAcrossBatch(int inputIndex) const NOEXCEPT
-    {
-        return false;
-    }
-
-#if NV_TENSORRT_MAJOR == 8
-    void YoloLayerPlugin::configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) NOEXCEPT
-#else
-    void YoloLayerPlugin::configurePlugin(PluginTensorDesc const* in, int32_t nbInput, PluginTensorDesc const* out, int32_t nbOutput) NOEXCEPT override;
-#endif
-    {
-    }
-
-    // Attach the plugin object to an execution context and grant the plugin the access to some context resource.
-    void YoloLayerPlugin::attachToContext(cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) NOEXCEPT
-    {
-    }
-
-    // Detach the plugin object from its execution context.
-    void YoloLayerPlugin::detachFromContext() NOEXCEPT
-    {
-    }
-
-    const char* YoloLayerPlugin::getPluginType() const NOEXCEPT
-    {
-        return "YoloLayer_TRT";
-    }
-
-    const char* YoloLayerPlugin::getPluginVersion() const NOEXCEPT
-    {
-        return "1";
-    }
-
-    void YoloLayerPlugin::destroy() NOEXCEPT
-    {
-        delete this;
-    }
-
-    // Clone the plugin
-    IPluginV2IOExt* YoloLayerPlugin::clone() const NOEXCEPT
-    {
-        YoloLayerPlugin *p = new YoloLayerPlugin(mYoloWidth, mYoloHeight, mNumAnchors, (float*) mAnchorsHost, mNumClasses, mInputWidth, mInputHeight, mScaleXY, mNewCoords);
-        p->setPluginNamespace(mPluginNamespace);
-        return p;
     }
 
     inline __device__ float sigmoidGPU(float x) { return 1.0f / (1.0f + __expf(-x)); }
