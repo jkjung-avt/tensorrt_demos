@@ -7,11 +7,10 @@
 #include <iostream>
 #include "math_constants.h"
 #include "NvInfer.h"
-#include "NvInferVersion.h"
 
 #define MAX_ANCHORS 6
 
-#if NV_TENSORRT_MAJOR == 8
+#if NV_TENSORRT_MAJOR >= 8
 #define NOEXCEPT noexcept
 #else
 #define NOEXCEPT
@@ -58,15 +57,15 @@ namespace nvinfer1
 
             void destroy() NOEXCEPT override { delete this; }
 
-            virtual size_t getSerializationSize() const NOEXCEPT override;
+            size_t getSerializationSize() const NOEXCEPT override;
 
-            virtual void serialize(void* buffer) const NOEXCEPT override;
+            void serialize(void* buffer) const NOEXCEPT override;
 
             int getNbOutputs() const NOEXCEPT override { return 1; }
 
             Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) NOEXCEPT override;
 
-            virtual size_t getWorkspaceSize(int maxBatchSize) const NOEXCEPT override { return 0; }
+            size_t getWorkspaceSize(int maxBatchSize) const NOEXCEPT override { return 0; }
 
             bool supportsFormatCombination(int pos, const PluginTensorDesc* inOut, int nbInputs, int nbOutputs) const NOEXCEPT override { return inOut[pos].format == TensorFormat::kLINEAR && inOut[pos].type == DataType::kFLOAT; }
 
@@ -84,18 +83,14 @@ namespace nvinfer1
 
             bool canBroadcastInputAcrossBatch(int inputIndex) const NOEXCEPT override { return false; }
 
-            void attachToContext(cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) NOEXCEPT override { }
+            void attachToContext(cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) NOEXCEPT override {}
 
-            void configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) NOEXCEPT override { }
             //using IPluginV2IOExt::configurePlugin;
+            void configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) NOEXCEPT override {}
 
-            void detachFromContext() NOEXCEPT override { }
+            void detachFromContext() NOEXCEPT override {}
 
-#if NV_TENSORRT_MAJOR == 8
-            virtual int32_t enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
-#else
-            virtual int enqueue(int batchSize, const void* const * inputs, void** outputs, void* workspace, cudaStream_t stream) override;
-#endif
+            int enqueue(int batchSize, const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT override;
 
         private:
             void forwardGpu(const float* const* inputs, float* output, cudaStream_t stream, int batchSize = 1);
