@@ -91,7 +91,7 @@ def is_pan_arch(cfg_file_path):
                             if l in ['[yolo]', '[upsample]']]
     yolo_count = len([l for l in yolos_or_upsamples if l == '[yolo]'])
     upsample_count = len(yolos_or_upsamples) - yolo_count
-    assert yolo_count == 2 or yolo_count == 3
+    assert yolo_count in (2, 3, 4)  # at most 4 yolo layers
     assert upsample_count == yolo_count - 1 or upsample_count == 0
     # the model is with PAN if an upsample layer appears before the 1st yolo
     return yolos_or_upsamples[0] == '[upsample]'
@@ -954,9 +954,17 @@ def main():
 
     c = (category_num + 5) * 3
     h, w = get_h_and_w(layer_configs)
-    output_tensor_shapes = [
-        [c, h // 32, w // 32], [c, h // 16, w // 16], [c, h // 8, w // 8]]
-    output_tensor_shapes = output_tensor_shapes[:len(output_tensor_names)]
+    if len(output_tensor_names) == 2:
+        output_tensor_shapes = [
+            [c, h // 32, w // 32], [c, h // 16, w // 16]]
+    elif len(output_tensor_names) == 3:
+        output_tensor_shapes = [
+            [c, h // 32, w // 32], [c, h // 16, w // 16],
+            [c, h // 8, w // 8]]
+    elif len(output_tensor_names) == 4:
+        output_tensor_shapes = [
+            [c, h // 64, w // 64], [c, h // 32, w // 32],
+            [c, h // 16, w // 16], [c, h // 8, w // 8]]
     if is_pan_arch(cfg_file_path):
         output_tensor_shapes.reverse()
     output_tensor_dims = OrderedDict(
