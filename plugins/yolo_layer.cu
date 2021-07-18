@@ -351,7 +351,8 @@ namespace nvinfer1
         assert(yolo_width > 0 && yolo_height > 0);
         assert(anchors[0] > 0.0f && anchors[1] > 0.0f);
         assert(num_classes > 0);
-        assert(input_multiplier == 8 || input_multiplier == 16 || input_multiplier == 32);
+        assert(input_multiplier == 64 || input_multiplier == 32 || \
+               input_multiplier == 16 || input_multiplier == 8);
         assert(scale_x_y >= 1.0);
 
         YoloLayerPlugin* obj = new YoloLayerPlugin(yolo_width, yolo_height, num_anchors, anchors, num_classes, yolo_width * input_multiplier, yolo_height * input_multiplier, scale_x_y, new_coords);

@@ -195,7 +195,7 @@ def allocate_buffers(engine):
     bindings = []
     output_idx = 0
     stream = cuda.Stream()
-    assert 3 <= len(engine) <= 4  # expect 1 input, plus 2 or 3 outpus
+    assert 3 <= len(engine) <= 5  # expect 1 input, plus 2~4 outpus
     for binding in engine:
         binding_dims = engine.get_binding_shape(binding)
         if len(binding_dims) == 4:
