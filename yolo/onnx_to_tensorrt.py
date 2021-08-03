@@ -63,6 +63,12 @@ from plugins import add_yolo_plugins
 MAX_BATCH_SIZE = 1
 
 
+def get_c(layer_configs):
+    """Find input channels of the yolo model from layer configs."""
+    net_config = layer_configs['000_net']
+    return net_config.get('channels', 3)
+
+
 def load_onnx(model_name):
     """Read the ONNX file."""
     onnx_path = '%s.onnx' % model_name
@@ -92,6 +98,7 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
     cfg_file_path = model_name + '.cfg'
     parser = DarkNetParser()
     layer_configs = parser.parse_cfg_file(cfg_file_path)
+    net_c = get_c(layer_configs)
     net_h, net_w = get_h_and_w(layer_configs)
 
     print('Loading the ONNX file...')
@@ -137,10 +144,10 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             config.set_flag(trt.BuilderFlag.FP16)
             profile = builder.create_optimization_profile()
             profile.set_shape(
-                '000_net',                          # input tensor name
-                (MAX_BATCH_SIZE, 3, net_h, net_w),  # min shape
-                (MAX_BATCH_SIZE, 3, net_h, net_w),  # opt shape
-                (MAX_BATCH_SIZE, 3, net_h, net_w))  # max shape
+                '000_net',                              # input tensor name
+                (MAX_BATCH_SIZE, net_c, net_h, net_w),  # min shape
+                (MAX_BATCH_SIZE, net_c, net_h, net_w),  # opt shape
+                (MAX_BATCH_SIZE, net_c, net_h, net_w))  # max shape
             config.add_optimization_profile(profile)
             if do_int8:
                 from calibrator import YOLOEntropyCalibrator

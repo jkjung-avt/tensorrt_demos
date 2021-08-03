@@ -89,15 +89,15 @@ def add_yolo_plugins(network, model_name, logger):
     h, w = get_h_and_w(layer_configs)
     if len(output_tensor_names) == 2:
         yolo_whs = [
-            [h // 32, w // 32], [h // 16, w // 16]]
+            [w // 32, h // 32], [w // 16, h // 16]]
     elif len(output_tensor_names) == 3:
         yolo_whs = [
-            [h // 32, w // 32], [h // 16, w // 16],
-            [h // 8, w // 8]]
+            [w // 32, h // 32], [w // 16, h // 16],
+            [w //  8, h //  8]]
     elif len(output_tensor_names) == 4:
         yolo_whs = [
-            [h // 64, w // 64], [h // 32, w // 32],
-            [h // 16, w // 16], [h // 8, w // 8]]
+            [w // 64, h // 64], [w // 32, h // 32],
+            [w // 16, h // 16], [w //  8, h //  8]]
     if is_pan_arch(cfg_file_path):
         yolo_whs.reverse()
     anchors = get_anchors(cfg_file_path)
