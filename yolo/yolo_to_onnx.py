@@ -740,6 +740,29 @@ class GraphBuilderONNX(object):
 
             inputs = [layer_name_mish]
             layer_name_output = layer_name_mish
+        elif layer_dict['activation'] == 'swish':
+            layer_name_sigmoid = layer_name + '_sigmoid'
+            layer_name_swish = layer_name + '_swish'
+
+            sigmoid_node = helper.make_node(
+                'Sigmoid',
+                inputs=inputs,
+                outputs=[layer_name_sigmoid],
+                name=layer_name_sigmoid
+            )
+            self._nodes.append(sigmoid_node)
+
+            inputs.append(layer_name_sigmoid)
+            swish_node = helper.make_node(
+                'Mul',
+                inputs=inputs,
+                outputs=[layer_name_swish],
+                name=layer_name_swish
+            )
+            self._nodes.append(swish_node)
+
+            inputs = [layer_name_swish]
+            layer_name_output = layer_name_swish
         elif layer_dict['activation'] == 'logistic':
             layer_name_lgx = layer_name + '_lgx'
 
