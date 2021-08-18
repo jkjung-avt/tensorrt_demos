@@ -61,6 +61,8 @@ from plugins import add_yolo_plugins
 
 
 MAX_BATCH_SIZE = 1
+OPT_BATCH_SIZE = 1
+MIN_BATCH_SIZE = 1
 
 
 def get_c(layer_configs):
@@ -117,7 +119,9 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             for error in range(parser.num_errors):
                 print(parser.get_error(error))
             return None
-        network = set_net_batch(network, MAX_BATCH_SIZE)
+
+        # onnx input must be dynamic in batch size dimension
+        network = set_net_batch(network, -1)
 
         print('Adding yolo_layer plugins...')
         network = add_yolo_plugins(network, model_name, TRT_LOGGER)
@@ -145,8 +149,8 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             profile = builder.create_optimization_profile()
             profile.set_shape(
                 '000_net',                              # input tensor name
-                (MAX_BATCH_SIZE, net_c, net_h, net_w),  # min shape
-                (MAX_BATCH_SIZE, net_c, net_h, net_w),  # opt shape
+                (MIN_BATCH_SIZE, net_c, net_h, net_w),  # min shape
+                (OPT_BATCH_SIZE, net_c, net_h, net_w),  # opt shape
                 (MAX_BATCH_SIZE, net_c, net_h, net_w))  # max shape
             config.add_optimization_profile(profile)
             if do_int8:

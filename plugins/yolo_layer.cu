@@ -73,7 +73,7 @@ namespace nvinfer1
         assert(d == a + length);
     }
 
-    IPluginV2IOExt* YoloLayerPlugin::clone() const NOEXCEPT
+    IPluginV2DynamicExt* YoloLayerPlugin::clone() const NOEXCEPT
     {
         YoloLayerPlugin *p = new YoloLayerPlugin(mYoloWidth, mYoloHeight, mNumAnchors, (float*) mAnchorsHost, mNumClasses, mInputWidth, mInputHeight, mScaleXY, mNewCoords);
         p->setPluginNamespace(mPluginNamespace);
@@ -113,16 +113,23 @@ namespace nvinfer1
         assert(d == a + getSerializationSize());
     }
 
-    Dims YoloLayerPlugin::getOutputDimensions(int index, const Dims* inputs, int nbInputDims) NOEXCEPT
+    DimsExprs YoloLayerPlugin::getOutputDimensions(int32_t outputIndex, const DimsExprs *inputs, int32_t nbInputs, IExprBuilder &exprBuilder) NOEXCEPT
     {
-        assert(index == 0);
-        assert(nbInputDims == 1);
-        assert(inputs[0].d[0] == (mNumClasses + 5) * mNumAnchors);
-        assert(inputs[0].d[1] == mYoloHeight);
-        assert(inputs[0].d[2] == mYoloWidth);
+        assert(outputIndex == 0);
+        assert(nbInputs == 1);
+        assert(inputs[0].d[1]->isConstant() && inputs[0].d[1]->getConstantValue() == (mNumClasses + 5) * mNumAnchors);
+        assert(inputs[0].d[2]->isConstant() && inputs[0].d[2]->getConstantValue() == mYoloHeight);
+        assert(inputs[0].d[3]->isConstant() && inputs[0].d[3]->getConstantValue() == mYoloWidth);
+
+        DimsExprs output(inputs[0]);
+
         // output detection results to the channel dimension
         int totalsize = mYoloWidth * mYoloHeight * mNumAnchors * sizeof(Detection) / sizeof(float);
-        return Dims3(totalsize, 1, 1);
+
+        output.d[1] = exprBuilder.constant(totalsize);
+        output.d[2] = exprBuilder.constant(1);
+        output.d[3] = exprBuilder.constant(1);
+        return output;
     }
 
     inline __device__ float sigmoidGPU(float x) { return 1.0f / (1.0f + __expf(-x)); }
@@ -260,10 +267,10 @@ namespace nvinfer1
 #if NV_TENSORRT_MAJOR == 8
     int32_t YoloLayerPlugin::enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT
 #else
-    int YoloLayerPlugin::enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream)
+    int YoloLayerPlugin::enqueue(const PluginTensorDesc *inputDesc, const PluginTensorDesc *outputDesc, const void *const *inputs, void *const *outputs, void *workspace, cudaStream_t stream)
 #endif
     {
-        forwardGpu((const float* const*)inputs, (float*)outputs[0], stream, batchSize);
+        forwardGpu((const float* const*)inputs, (float*)outputs[0], stream, inputDesc->dims.d[0]);
         return 0;
     }
 
@@ -290,7 +297,7 @@ namespace nvinfer1
         return &mFC;
     }
 
-    IPluginV2IOExt* YoloPluginCreator::createPlugin(const char* name, const PluginFieldCollection* fc) NOEXCEPT
+    IPluginV2DynamicExt* YoloPluginCreator::createPlugin(const char* name, const PluginFieldCollection* fc) NOEXCEPT
     {
         assert(!strcmp(name, getPluginName()));
         const PluginField* fields = fc->fields;
@@ -360,7 +367,7 @@ namespace nvinfer1
         return obj;
     }
 
-    IPluginV2IOExt* YoloPluginCreator::deserializePlugin(const char* name, const void* serialData, size_t serialLength) NOEXCEPT
+    IPluginV2DynamicExt* YoloPluginCreator::deserializePlugin(const char* name, const void* serialData, size_t serialLength) NOEXCEPT
     {
         YoloLayerPlugin* obj = new YoloLayerPlugin(serialData, serialLength);
         obj->setPluginNamespace(mNamespace.c_str());
