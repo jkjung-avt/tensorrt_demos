@@ -57,7 +57,7 @@ import argparse
 import tensorrt as trt
 
 from yolo_to_onnx import DarkNetParser, get_h_and_w
-from plugins import add_yolo_plugins
+from plugins import add_yolo_plugins, add_concat
 
 
 MAX_BATCH_SIZE = 1
@@ -119,21 +119,16 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             return None
         network = set_net_batch(network, MAX_BATCH_SIZE)
 
-        print('Adding yolo_layer plugins...')
+        print('Adding yolo_layer plugins.')
         network = add_yolo_plugins(network, model_name, TRT_LOGGER)
 
-        print('Adding named concatenation output layer')
-        old_tensors = [network.get_output(i) for i in range(network.num_outputs)]
-        new_output_tensor = network.add_concatenation(old_tensors).get_output(0)
-        for old_tensor in old_tensors:
-            network.unmark_output(old_tensor)
-        new_output_tensor.name = "detections"
-        network.mark_output(new_output_tensor)
+        print('Adding a concatenated output as "detections".')
+        network = add_concat(network, model_name, TRT_LOGGER)
 
-        print('Naming input layer')
-        network.get_input(0).name = "input"
+        print('Naming the input tensort as "input".')
+        network.get_input(0).name = 'input'
 
-        print('Building an engine.  This would take a while...')
+        print('Building the TensorRT engine.  This would take a while...')
         print('(Use "--verbose" or "-v" to enable verbose logging.)')
         if trt.__version__[0] < '7':  # older API: build_cuda_engine()
             if dla_core >= 0:

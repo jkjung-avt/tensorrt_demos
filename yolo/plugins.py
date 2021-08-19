@@ -98,6 +98,8 @@ def add_yolo_plugins(network, model_name, logger):
         yolo_whs = [
             [w // 64, h // 64], [w // 32, h // 32],
             [w // 16, h // 16], [w //  8, h //  8]]
+    else:
+        raise TypeError('bad number of outputs: %d' % len(output_tensor_names))
     if is_pan_arch(cfg_file_path):
         yolo_whs.reverse()
     anchors = get_anchors(cfg_file_path)
@@ -141,4 +143,17 @@ def add_yolo_plugins(network, model_name, logger):
     for old_tensor in old_tensors:
         network.unmark_output(old_tensor)
 
+    return network
+
+
+def add_concat(network, model_name, logger):
+    """Add a final concatenation output into a TensorRT network."""
+    if network.num_outputs < 2 or network.num_outputs > 4:
+        raise TypeError('bad number of yolo layers: %d' % network.num_outputs)
+    yolo_tensors = [network.get_output(i) for i in range(network.num_outputs)]
+    concat_tensor = network.add_concatenation(yolo_tensors).get_output(0)
+    for yolo_tensor in yolo_tensors:
+        network.unmark_output(yolo_tensor)
+    concat_tensor.name = 'detections'
+    network.mark_output(concat_tensor)
     return network
