@@ -122,6 +122,17 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
         print('Adding yolo_layer plugins...')
         network = add_yolo_plugins(network, model_name, TRT_LOGGER)
 
+        print('Adding named concatenation output layer')
+        old_tensors = [network.get_output(i) for i in range(network.num_outputs)]
+        new_output_tensor = network.add_concatenation(old_tensors).get_output(0)
+        for old_tensor in old_tensors:
+            network.unmark_output(old_tensor)
+        new_output_tensor.name = "detections"
+        network.mark_output(new_output_tensor)
+
+        print('Naming input layer')
+        network.get_input(0).name = "input"
+
         print('Building an engine.  This would take a while...')
         print('(Use "--verbose" or "-v" to enable verbose logging.)')
         if trt.__version__[0] < '7':  # older API: build_cuda_engine()
@@ -144,7 +155,7 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             config.set_flag(trt.BuilderFlag.FP16)
             profile = builder.create_optimization_profile()
             profile.set_shape(
-                '000_net',                              # input tensor name
+                'input',                                # input tensor name
                 (MAX_BATCH_SIZE, net_c, net_h, net_w),  # min shape
                 (MAX_BATCH_SIZE, net_c, net_h, net_w),  # opt shape
                 (MAX_BATCH_SIZE, net_c, net_h, net_w))  # max shape
