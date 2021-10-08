@@ -19,6 +19,12 @@
 
 using namespace std;
 
+#if NV_TENSORRT_MAJOR >= 8
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
+
 #define CHECK(status)                             \
     do                                            \
     {                                             \
@@ -45,11 +51,11 @@ class Logger : public nvinfer1::ILogger
 {
 public:
 
-    Logger(): Logger(Severity::kWARNING) {}
+    //Logger(): Logger(Severity::kWARNING) {}
 
     Logger(Severity severity): reportableSeverity(severity) {}
 
-    void log(Severity severity, const char* msg) override
+    void log(Severity severity, const char* msg) NOEXCEPT override
     {
         // suppress messages with severity enum value greater than the reportable
         if (severity > reportableSeverity) return;
