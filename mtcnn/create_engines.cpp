@@ -30,26 +30,27 @@
 #include "NvCaffeParser.h"
 #include "common.h"
 
-static Logger gLogger;
 using namespace nvinfer1;
 using namespace nvcaffeparser1;
 
+//static Logger gLogger(ILogger::Severity::kINFO);
+static Logger gLogger(ILogger::Severity::kWARNING);
 
 class IHostMemoryFromFile : public IHostMemory
 {
     public:
         IHostMemoryFromFile(std::string filename);
-#if NV_TENSORRT_MAJOR <= 5
-        void* data() const { return mem; }
-        std::size_t size() const { return s; }
-        DataType type () const { return DataType::kFLOAT; } // not used
-        void destroy() { free(mem); }
-#else  // NV_TENSORRT_MAJOR
+#if NV_TENSORRT_MAJOR >= 6
         void* data() const noexcept { return mem; }
         std::size_t size() const noexcept { return s; }
         DataType type () const noexcept { return DataType::kFLOAT; } // not used
         void destroy() noexcept { free(mem); }
-#endif // NV_TENSORRT_MAJOR
+#else   // NV_TENSORRT_MAJOR < 6
+        void* data() const { return mem; }
+        std::size_t size() const { return s; }
+        DataType type () const { return DataType::kFLOAT; } // not used
+        void destroy() { free(mem); }
+#endif  // NV_TENSORRT_MAJOR
     private:
         void *mem{nullptr};
         std::size_t s;
@@ -78,7 +79,11 @@ void caffeToTRTModel(const std::string& deployFile,             // name for caff
 {
     // create API root class - must span the lifetime of the engine usage
     IBuilder* builder = createInferBuilder(gLogger);
+#if NV_TENSORRT_MAJOR >= 7
+    INetworkDefinition* network = builder->createNetworkV2(0);  // no kEXPLICIT_BATCH
+#else   // NV_TENSORRT_MAJOR < 7
     INetworkDefinition* network = builder->createNetwork();
+#endif
 
     // parse the caffe model to populate the network, then set the outputs
     ICaffeParser* parser = createCaffeParser();
@@ -92,27 +97,42 @@ void caffeToTRTModel(const std::string& deployFile,             // name for caff
                       locateFile(modelFile).c_str(),   // caffe model file
                       *network,                        // network definition that the parser will populate
                       modelDataType);
-
     assert(blobNameToTensor != nullptr);
+
     // the caffe file has no notion of outputs, so we need to manually say which tensors the engine should generate
     for (auto& s : outputs)
         network->markOutput(*blobNameToTensor->find(s.c_str()));
 
+#if NV_TENSORRT_MAJOR >= 7
+    auto config = builder->createBuilderConfig();
+    assert(config != nullptr);
+
+    builder->setMaxBatchSize(maxBatchSize);
+    config->setMaxWorkspaceSize(64_MB);
+    if (useFp16) {
+        config->setFlag(BuilderFlag::kFP16);
+        cout << "Building TensorRT engine in FP16 mode..." << endl;
+    } else {
+        cout << "Building TensorRT engine in FP32 mode..." << endl;
+    }
+    ICudaEngine* engine = builder->buildEngineWithConfig(*network, *config);
+    config->destroy();
+#else   // NV_TENSORRT_MAJOR < 7
     // Build the engine
     builder->setMaxBatchSize(maxBatchSize);
-    builder->setMaxWorkspaceSize(64 << 20);
+    builder->setMaxWorkspaceSize(64_MB);
 
     // set up the network for paired-fp16 format if available
     if (useFp16) {
-#if NV_TENSORRT_MAJOR == 3
-        builder->setHalf2Mode(true);
-#else   // NV_TENSORRT_MAJOR >= 4
+#if NV_TENSORRT_MAJOR >= 4
         builder->setFp16Mode(true);
-#endif  // NV_TENSORRT_MAJOR
+#else   // NV_TENSORRT_MAJOR < 4
+        builder->setHalf2Mode(true);
+#endif
     }
-
     ICudaEngine* engine = builder->buildCudaEngine(*network);
-    assert(engine);
+#endif  // NV_TENSORRT_MAJOR >= 7
+    assert(engine != nullptr);
 
     // we don't need the network any more, and we can destroy the parser
     parser->destroy();
@@ -129,11 +149,11 @@ void giestream_to_file(IHostMemory *trtModelStream, const std::string filename)
     assert(trtModelStream != nullptr);
     std::ofstream outfile(filename, std::ofstream::binary);
     assert(!outfile.fail());
-	outfile.write(reinterpret_cast<char*>(trtModelStream->data()), trtModelStream->size());
+    outfile.write(reinterpret_cast<char*>(trtModelStream->data()), trtModelStream->size());
     outfile.close();
 }
 
-void file_to_giestream(const std::string filename, IHostMemory *&trtModelStream)
+void file_to_giestream(const std::string filename, IHostMemoryFromFile *&trtModelStream)
 {
     trtModelStream = new IHostMemoryFromFile(filename);
 }
@@ -142,7 +162,7 @@ void verify_engine(std::string det_name, int num_bindings)
 {
     std::stringstream ss;
     ss << det_name << ".engine";
-    IHostMemory *trtModelStream{nullptr};
+    IHostMemoryFromFile *trtModelStream{nullptr};
     file_to_giestream(ss.str(), trtModelStream);
 
     // create an engine
@@ -158,17 +178,7 @@ void verify_engine(std::string det_name, int num_bindings)
     std::cout << "Bindings for " << det_name << " after deserializing:"
               << std::endl;
     for (int bi = 0; bi < num_bindings; bi++) {
-#if NV_TENSORRT_MAJOR == 3
-        DimsCHW dim = static_cast<DimsCHW&&>(engine->getBindingDimensions(bi));
-        if (engine->bindingIsInput(bi) == true) {
-            std::cout << "  Input  ";
-        } else {
-            std::cout << "  Output ";
-        }
-        std::cout << bi << ": " << engine->getBindingName(bi) << ", "
-                  << dim.c() << "x" << dim.h() << "x" << dim.w()
-                  << std::endl;
-#else   // NV_TENSORRT_MAJOR >= 4
+#if NV_TENSORRT_MAJOR >= 4
         Dims3 dim = static_cast<Dims3&&>(engine->getBindingDimensions(bi));
         if (engine->bindingIsInput(bi) == true) {
             std::cout << "  Input  ";
@@ -177,6 +187,16 @@ void verify_engine(std::string det_name, int num_bindings)
         }
         std::cout << bi << ": " << engine->getBindingName(bi) << ", "
                   << dim.d[0] << "x" << dim.d[1] << "x" << dim.d[2]
+                  << std::endl;
+#else   // NV_TENSORRT_MAJOR < 4
+        DimsCHW dim = static_cast<DimsCHW&&>(engine->getBindingDimensions(bi));
+        if (engine->bindingIsInput(bi) == true) {
+            std::cout << "  Input  ";
+        } else {
+            std::cout << "  Output ";
+        }
+        std::cout << bi << ": " << engine->getBindingName(bi) << ", "
+                  << dim.c() << "x" << dim.h() << "x" << dim.w()
                   << std::endl;
 #endif  // NV_TENSORRT_MAJOR
     }

@@ -257,11 +257,11 @@ namespace nvinfer1
         }
     }
 
-#if NV_TENSORRT_MAJOR == 8
+#if NV_TENSORRT_MAJOR >= 8
     int32_t YoloLayerPlugin::enqueue(int32_t batchSize, void const* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) NOEXCEPT
-#else
+#else   // NV_TENSORRT_MAJOR < 8
     int YoloLayerPlugin::enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream)
-#endif
+#endif  // NV_TENSORRT_MAJOR
     {
         forwardGpu((const float* const*)inputs, (float*)outputs[0], stream, batchSize);
         return 0;
