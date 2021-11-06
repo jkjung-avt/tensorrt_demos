@@ -648,8 +648,7 @@ class GraphBuilderONNX(object):
         stride = layer_dict['stride']
         filters = layer_dict['filters']
         batch_normalize = False
-        if 'batch_normalize' in layer_dict.keys(
-        ) and layer_dict['batch_normalize'] == 1:
+        if layer_dict.get('batch_normalize', 0) > 0:
             batch_normalize = True
 
         kernel_shape = [kernel_size, kernel_size]
