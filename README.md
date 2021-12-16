@@ -51,12 +51,11 @@ Furthermore, all demo programs in this repository require "cv2" (OpenCV) module 
 
 If you plan to run Demo #3 (SSD), you'd also need to have "tensorflow-1.x" installed.  You could probably use the [official tensorflow wheels provided by NVIDIA](https://docs.nvidia.com/deeplearning/frameworks/pdf/Install-TensorFlow-Jetson-Platform.pdf), or refer to [Building TensorFlow 1.12.2 on Jetson Nano](https://jkjung-avt.github.io/build-tensorflow-1.12.2/) for how to install tensorflow-1.12.2 on the Jetson system.
 
-Or if you plan to run Demo #4 and Demo #5, you'd need to have "protobuf" installed.  I recommend installing "protobuf-3.8.0" using my [install_protobuf-3.8.0.sh](https://github.com/jkjung-avt/jetson_nano/blob/master/install_protobuf-3.8.0.sh) script.  This script would take a couple of hours on a Jetson system.  Alternatively, pip3 install a recent version of "protobuf" should also work (but might run a little bit slowlier).
+Or if you plan to run Demo #4 and Demo #5, you'd need to have "protobuf" installed.  I recommend installing "protobuf-3.8.0" using my [install_protobuf-3.8.0.sh](https://github.com/jkjung-avt/jetson_nano/blob/master/install_protobuf-3.8.0.sh) script.  This script would take a couple of hours to finish on a Jetson system.  Alternatively, doing `pip3 install` with a recent version of "protobuf" should also work (but might run a little bit slowlier).
 
-I use Python 3.6 as my primary test environment.  I think other versions of python3 would likely just work without any problem.
+In case you are setting up a Jetson Nano, TX2 or Xavier NX from scratch to run these demos, you could refer to the following blog posts.
 
-In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
-
+* [JetPack-4.6](https://jkjung-avt.github.io/jetpack-4.6/)
 * [JetPack-4.5](https://jkjung-avt.github.io/jetpack-4.5/)
 * [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/)
 * [JetPack-4.4 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.4/)
@@ -252,7 +251,7 @@ I developed my "yolo_layer" plugin by referencing similar plugin code by [wang-x
 
 Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", follow these steps:
 
-1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
+1. Install "pycuda".
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos/yolo
@@ -459,7 +458,7 @@ To make the demo simpler to follow, I have already converted the PyTorch MODNet 
 
 Here is the step-by-step guide for the demo:
 
-1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
+1. Install "pycuda" in case you haven't done so before.
 
    ```shell
    $ cd ${HOME}/project/tensorrt_demos/modnet
@@ -471,7 +470,6 @@ Here is the step-by-step guide for the demo:
    This step would be easy if you are using **TensorRT 7.2 or later**.  Just use the "modnet/onnx_to_tensorrt.py" script:  (You could optionally use "-v" command-line option to see verbose logs.)
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/modnet
    $ python3 onnx_to_tensorrt.py modnet.onnx modnet.engine
    ```
 
