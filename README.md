@@ -255,7 +255,7 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/ssd
+   $ cd ${HOME}/project/tensorrt_demos/yolo
    $ ./install_pycuda.sh
    ```
 
@@ -462,7 +462,7 @@ Here is the step-by-step guide for the demo:
 1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
 
    ```shell
-   $ cd ${HOME}/project/tensorrt_demos/ssd
+   $ cd ${HOME}/project/tensorrt_demos/modnet
    $ ./install_pycuda.sh
    ```
 
