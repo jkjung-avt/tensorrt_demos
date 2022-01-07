@@ -33,6 +33,9 @@ def parse_args():
         '-c', '--category_num', type=int, default=80,
         help='number of object categories [80]')
     parser.add_argument(
+        '-t', '--conf_thresh', type=float, default=0.3,
+        help='set the detection confidence threshold')
+    parser.add_argument(
         '-m', '--model', type=str, required=True,
         help=('[yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|'
               'yolov4-csp|yolov4x-mish]-[{dimension}], where '
@@ -98,7 +101,7 @@ def main():
     open_window(
         WINDOW_NAME, 'Camera TensorRT YOLO Demo',
         cam.img_width, cam.img_height)
-    loop_and_detect(cam, trt_yolo, conf_th=0.3, vis=vis)
+    loop_and_detect(cam, trt_yolo, args.conf_thresh, vis=vis)
 
     cam.release()
     cv2.destroyAllWindows()
