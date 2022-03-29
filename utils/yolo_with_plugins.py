@@ -174,6 +174,10 @@ class HostDeviceMem(object):
     def __repr__(self):
         return self.__str__()
 
+    def __del__(self):
+        del self.device
+        del self.host        
+
 
 def get_input_shape(engine):
     """Get input shape of the TensorRT YOLO engine."""
