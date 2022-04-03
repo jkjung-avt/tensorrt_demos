@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument(
         '-m', '--model', type=str, required=True,
         help=('[yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|'
-              'yolov4-csp|yolov4x-mish]-[{dimension}], where '
+              'yolov4-csp|yolov4x-mish|yolov4-p5]-[{dimension}], where '
               '{dimension} could be either a single number (e.g. '
               '288, 416, 608) or 2 numbers, WxH (e.g. 416x256)'))
     parser.add_argument(
