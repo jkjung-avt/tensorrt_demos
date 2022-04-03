@@ -30,6 +30,10 @@ wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/y
 wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4x-mish.cfg -q --show-progress --no-clobber
 wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4x-mish.weights -q --show-progress --no-clobber
 
+# yolov4-p5
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-p5.cfg -q --show-progress --no-clobber
+wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4-p5.weights -q --show-progress --no-clobber
+
 echo
 echo "Creating yolov3-tiny-288.cfg and yolov3-tiny-288.weights"
 cat yolov3-tiny.cfg | sed -e '8s/width=416/width=288/' | sed -e '9s/height=416/height=288/' > yolov3-tiny-288.cfg
@@ -93,6 +97,12 @@ echo "Creating yolov4x-mish-640.cfg and yolov4x-mish-640.weights"
 cat yolov4x-mish.cfg | sed -e '6s/batch=64/batch=1/' > yolov4x-mish-640.cfg
 ln -sf yolov4x-mish.weights yolov4x-mish-640.weights
 
+echo "Creating yolov4-p5-448.cfg and yolov4-p5-448.weights"
+cat yolov4-p5.cfg | sed -e '6s/batch=64/batch=1/' | sed -e '8s/width=896/width=448/' | sed -e '9s/height=896/height=448/' > yolov4-p5-448.cfg
+ln -sf yolov4-p5.weights yolov4-p5-448.weights
+echo "Creating yolov4-p5-896.cfg and yolov4-p5-896.weights"
+cat yolov4-p5.cfg | sed -e '6s/batch=64/batch=1/' > yolov4-p5-896.cfg
+ln -sf yolov4-p5.weights yolov4-p5-896.weights
+
 echo
 echo "Done."
-

@@ -52,6 +52,7 @@
 import os
 import sys
 import argparse
+import re
 from collections import OrderedDict
 
 import numpy as np
@@ -71,7 +72,7 @@ def parse_args():
     parser.add_argument(
         '-m', '--model', type=str, required=True,
         help=('[yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|'
-              'yolov4-csp|yolov4x-mish]-[{dimension}], where '
+              'yolov4-csp|yolov4x-mish|yolov4-p5]-[{dimension}], where '
               '{dimension} could be either a single number (e.g. '
               '288, 416, 608) or 2 numbers, WxH (e.g. 416x256)'))
     args = parser.parse_args()
@@ -136,6 +137,24 @@ def get_h_and_w(layer_configs):
     """Find input height and width of the yolo model from layer configs."""
     net_config = layer_configs['000_net']
     return net_config['height'], net_config['width']
+
+
+def get_anchor_num(cfg_file_path):
+    """Find number of anchors (masks) of the yolo model."""
+
+    # Read configuration file
+    with open(cfg_file_path, 'r') as f:
+        cfg = f.read()
+
+    # Find number of anchors from `mask` field, e.g. mask=0,1,2,3
+    pattern = r'mask\s?=(.+)'
+    matches = re.findall(pattern, cfg)
+    num_anchors = [len(match.strip().split(',')) for match in matches]
+
+    assert len(num_anchors) > 0, 'Found no `mask` fields in config'
+    assert len(set(num_anchors)) == 1, 'Found different num anchors'
+
+    return num_anchors[0]
 
 
 class DarkNetParser(object):
@@ -974,7 +993,7 @@ def main():
     output_tensor_names = get_output_convs(layer_configs)
     # e.g. ['036_convolutional', '044_convolutional', '052_convolutional']
 
-    c = (category_num + 5) * 3
+    c = (category_num + 5) * get_anchor_num(cfg_file_path)
     h, w = get_h_and_w(layer_configs)
     if len(output_tensor_names) == 2:
         output_tensor_shapes = [
