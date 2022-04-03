@@ -52,7 +52,6 @@
 import os
 import sys
 import argparse
-import re
 from collections import OrderedDict
 
 import numpy as np
@@ -139,17 +138,32 @@ def get_h_and_w(layer_configs):
     return net_config['height'], net_config['width']
 
 
+def get_anchors(cfg_file_path):
+    """Get anchors of all yolo layers from the cfg file."""
+    with open(cfg_file_path, 'r') as f:
+        cfg_lines = f.readlines()
+    yolo_lines = [l.strip() for l in cfg_lines if l.startswith('[yolo]')]
+    mask_lines = [l.strip() for l in cfg_lines if l.startswith('mask')]
+    anch_lines = [l.strip() for l in cfg_lines if l.startswith('anchors')]
+    assert len(mask_lines) == len(yolo_lines)
+    assert len(anch_lines) == len(yolo_lines)
+    anchor_list = eval('[%s]' % anch_lines[0].split('=')[-1])
+    mask_strs = [l.split('=')[-1] for l in mask_lines]
+    masks = [eval('[%s]' % s)  for s in mask_strs]
+    anchors = []
+    for mask in masks:
+        curr_anchors = []
+        for m in mask:
+            curr_anchors.append(anchor_list[m * 2])
+            curr_anchors.append(anchor_list[m * 2 + 1])
+        anchors.append(curr_anchors)
+    return anchors
+
+
 def get_anchor_num(cfg_file_path):
     """Find number of anchors (masks) of the yolo model."""
-
-    # Read configuration file
-    with open(cfg_file_path, 'r') as f:
-        cfg = f.read()
-
-    # Find number of anchors from `mask` field, e.g. mask=0,1,2,3
-    pattern = r'mask\s?=(.+)'
-    matches = re.findall(pattern, cfg)
-    num_anchors = [len(match.strip().split(',')) for match in matches]
+    anchors = get_anchors(cfg_file_path)
+    num_anchors = [len(a) // 2 for a in anchors]
 
     assert len(num_anchors) > 0, 'Found no `mask` fields in config'
     assert len(set(num_anchors)) == 1, 'Found different num anchors'

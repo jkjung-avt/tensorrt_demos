@@ -10,7 +10,7 @@ import numpy as np
 import tensorrt as trt
 
 from yolo_to_onnx import (is_pan_arch, DarkNetParser, get_category_num,
-                          get_h_and_w, get_output_convs)
+                          get_h_and_w, get_output_convs, get_anchors)
 
 
 try:
@@ -19,28 +19,6 @@ except OSError as e:
     raise SystemExit('ERROR: failed to load ../plugins/libyolo_layer.so.  '
                      'Did you forget to do a "make" in the "../plugins/" '
                      'subdirectory?') from e
-
-
-def get_anchors(cfg_file_path):
-    """Get anchors of all yolo layers from the cfg file."""
-    with open(cfg_file_path, 'r') as f:
-        cfg_lines = f.readlines()
-    yolo_lines = [l.strip() for l in cfg_lines if l.startswith('[yolo]')]
-    mask_lines = [l.strip() for l in cfg_lines if l.startswith('mask')]
-    anch_lines = [l.strip() for l in cfg_lines if l.startswith('anchors')]
-    assert len(mask_lines) == len(yolo_lines)
-    assert len(anch_lines) == len(yolo_lines)
-    anchor_list = eval('[%s]' % anch_lines[0].split('=')[-1])
-    mask_strs = [l.split('=')[-1] for l in mask_lines]
-    masks = [eval('[%s]' % s)  for s in mask_strs]
-    anchors = []
-    for mask in masks:
-        curr_anchors = []
-        for m in mask:
-            curr_anchors.append(anchor_list[m * 2])
-            curr_anchors.append(anchor_list[m * 2 + 1])
-        anchors.append(curr_anchors)
-    return anchors
 
 
 def get_scales(cfg_file_path):
