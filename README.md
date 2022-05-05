@@ -258,10 +258,10 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    $ ./install_pycuda.sh
    ```
 
-2. Install **version "1.4.1" (not the latest version)** of python3 **"onnx"** module.  Note that the "onnx" module would depend on "protobuf" as stated in the [Prerequisite](#prerequisite) section.  Reference: [information provided by NVIDIA](https://devtalk.nvidia.com/default/topic/1052153/jetson-nano/tensorrt-backend-for-onnx-on-jetson-nano/post/5347666/#5347666).
+2. Install **version "1.9.0"** of python3 **"onnx"** module.  Note that the "onnx" module would depend on "protobuf" as stated in the [Prerequisite](#prerequisite) section.
 
    ```shell
-   $ sudo pip3 install onnx==1.4.1
+   $ sudo pip3 install onnx==1.9.0
    ```
 
 3. Go to the "plugins/" subdirectory and build the "yolo_layer" plugin.  When done, a "libyolo_layer.so" would be generated.
