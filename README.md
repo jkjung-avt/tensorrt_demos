@@ -1,27 +1,11 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT and do inference on NVIDIA Jetson or x86_64 platforms.  Highlights:
 
-* Run an optimized "MODNet" video matting model at ~21 FPS on Jetson Xavier NX.
-* Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
-* Run an optimized "yolov3-416" object detector at ~4.9 FPS on Jetson Nano.
-* Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
-* Run an optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
-* Run an optimized "GoogLeNet" image classifier at "~16 ms per image (inference only)" on Jetson Nano.
-* All demos work on Jetson Nano, TX2, AGX Xavier, and Xavier NX.
-* All demos also work on x86_64 PC with NVIDIA GPU(s).  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
 Table of contents
 -----------------
+### installation for yolov3 & yolov4 
 
-* [Prerequisite](#prerequisite)
-* [Demo #1: GoogLeNet](#googlenet)
-* [Demo #2: MTCNN](#mtcnn)
-* [Demo #3: SSD](#ssd)
-* [Demo #4: YOLOv3](#yolov3)
-* [Demo #5: YOLOv4](#yolov4)
-* [Demo #6: Using INT8 and DLA core](#int8_and_dla)
-* [Demo #7: MODNet](#modnet)
 
 <a name="prerequisite"></a>
 Prerequisite
@@ -30,13 +14,10 @@ Prerequisite
 The code in this repository was tested on Jetson Nano, TX2, and Xavier NX DevKits.  In order to run the demos below, first make sure you have the proper version of image (JetPack) installed on the target Jetson system.  For example, [Setting up Jetson Nano: The Basics](https://jkjung-avt.github.io/setting-up-nano/) and [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/).
 
 More specifically, the target Jetson system must have TensorRT libraries installed.
+* For yolov3 & yolov4 it requires TensorRT 6.x+.
+* Demo #1 part 1: INT8 requires TensorRT 6.x+ and only works on GPUs with CUDA compute 6.1+.
+* Demo #2 part 2: DLA core requires TensorRT 7.x+ (is only tested on Jetson Xavier NX).
 
-* Demo #1 and Demo #2: works for TensorRT 3.x+,
-* Demo #3: requires TensoRT 5.x+,
-* Demo #4 and Demo #5: requires TensorRT 6.x+.
-* Demo #6 part 1: INT8 requires TensorRT 6.x+ and only works on GPUs with CUDA compute 6.1+.
-* Demo #6 part 2: DLA core requires TensorRT 7.x+ (is only tested on Jetson Xavier NX).
-* Demo #7: requires TensorRT 7.x+.
 
 You could check which version of TensorRT has been installed on your Jetson system by looking at file names of the libraries.  For example, TensorRT v5.1.6 (JetPack-4.2.2) was present on one of my Jetson Nano DevKits.
 
@@ -49,206 +30,18 @@ $ ls /usr/lib/aarch64-linux-gnu/libnvinfer.so*
 
 Furthermore, all demo programs in this repository require "cv2" (OpenCV) module for python3.  You could use the "cv2" module which came in the JetPack.  Or, if you'd prefer building your own, refer to [Installing OpenCV 3.4.6 on Jetson Nano](https://jkjung-avt.github.io/opencv-on-nano/) for how to build from source and install opencv-3.4.6 on your Jetson system.
 
-If you plan to run Demo #3 (SSD), you'd also need to have "tensorflow-1.x" installed.  You could probably use the [official tensorflow wheels provided by NVIDIA](https://docs.nvidia.com/deeplearning/frameworks/pdf/Install-TensorFlow-Jetson-Platform.pdf), or refer to [Building TensorFlow 1.12.2 on Jetson Nano](https://jkjung-avt.github.io/build-tensorflow-1.12.2/) for how to install tensorflow-1.12.2 on the Jetson system.
-
-Or if you plan to run Demo #4 and Demo #5, you'd need to have "protobuf" installed.  I recommend installing "protobuf-3.8.0" using my [install_protobuf-3.8.0.sh](https://github.com/jkjung-avt/jetson_nano/blob/master/install_protobuf-3.8.0.sh) script.  This script would take a couple of hours on a Jetson system.  Alternatively, pip3 install a recent version of "protobuf" should also work (but might run a little bit slowlier).
-
-I use Python 3.6 as my primary test environment.  I think other versions of python3 would likely just work without any problem.
-
-In case you are setting up a Jetson Nano or Jetson Xavier NX from scratch to run these demos, you could refer to the following blog posts.  They contain the exact steps I applied when I did the testing of JetPack-4.3 and JetPack-4.4.
-
-* [JetPack-4.5](https://jkjung-avt.github.io/jetpack-4.5/)
-* [Setting up Jetson Xavier NX](https://jkjung-avt.github.io/setting-up-xavier-nx/)
-* [JetPack-4.4 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.4/)
-* [JetPack-4.3 for Jetson Nano](https://jkjung-avt.github.io/jetpack-4.3/)
-
-<a name="googlenet"></a>
-Demo #1: GoogLeNet
-------------------
-
-This demo illustrates how to convert a prototxt file and a caffemodel file into a TensorRT engine file, and to classify images with the optimized TensorRT engine.
-
-Step-by-step:
-
-1. Clone this repository.
-
-   ```shell
-   $ cd ${HOME}/project
-   $ git clone https://github.com/jkjung-avt/tensorrt_demos.git
-   $ cd tensorrt_demos
-   ```
-
-2. Build the TensorRT engine from the pre-trained googlenet (ILSVRC2012) model.  Note that I downloaded the pre-trained model files from [BVLC caffe](https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet) and have put a copy of all necessary files in this repository.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos/googlenet
-   $ make
-   $ ./create_engine
-   ```
-
-3. Build the Cython code. Install Cython if not previously installed.
-
-   ```shell
-   $ sudo pip3 install Cython
-   $ cd ${HOME}/project/tensorrt_demos
-   $ make
-   ```
-
-4. Run the "trt_googlenet.py" demo program.  For example, run the demo using a USB webcam (/dev/video0) as the input.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_googlenet.py --usb 0 --width 1280 --height 720
-   ```
-
-   Here's a screenshot of the demo (JetPack-4.2.2, i.e. TensorRT 5).
-
-   ![A picture of a golden retriever](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/golden_retriever.png)
-
-5. The demo program supports 5 different image/video inputs.  You could do `python3 trt_googlenet.py --help` to read the help messages.  Or more specifically, the following inputs could be specified:
-
-   * `--image test_image.jpg`: an image file, e.g. jpg or png.
-   * `--video test_video.mp4`: a video file, e.g. mp4 or ts.  An optional `--video_looping` flag could be enabled if needed.
-   * `--usb 0`: USB webcam (/dev/video0).
-   * `--rtsp rtsp://admin:123456@192.168.1.1/live.sdp`: RTSP source, e.g. an IP cam.  An optional `--rtsp_latency` argument could be used to adjust the latency setting in this case.
-   * `--onboard 0`: Jetson onboard camera.
-
-   In additional, you could use `--width` and `--height` to specify the desired input image size, and use `--do_resize` to force resizing of image/video file source.
-
-   The `--usb`, `--rtsp` and `--onboard` video sources usually produce image frames at 30 FPS.  If the TensorRT engine inference code runs faster than that (which happens easily on a x86_64 PC with a good GPU), one particular image could be inferenced multiple times before the next image frame becomes available.  This causes problem in the object detector demos, since the original image could have been altered (bounding boxes drawn) and the altered image is taken for inference again.  To cope with this problem, use the optional `--copy_frame` flag to force copying/cloning image frames internally.
-
-6. Check out my blog post for implementation details:
-
-   * [Running TensorRT Optimized GoogLeNet on Jetson Nano](https://jkjung-avt.github.io/tensorrt-googlenet/)
-
-<a name="mtcnn"></a>
-Demo #2: MTCNN
---------------
-
-This demo builds upon the previous one.  It converts 3 sets of prototxt and caffemodel files into 3 TensorRT engines, namely the PNet, RNet and ONet.  Then it combines the 3 engine files to implement MTCNN, a very good face detector.
-
-Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", follow these steps:
-
-1. Build the TensorRT engines from the pre-trained MTCNN model.  (Refer to [mtcnn/README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/mtcnn/README.md) for more information about the prototxt and caffemodel files.)
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos/mtcnn
-   $ make
-   $ ./create_engines
-   ```
-
-2. Build the Cython code if it has not been done yet.  Refer to step 3 in Demo #1.
-
-3. Run the "trt_mtcnn.py" demo program.  For example, I grabbed from the internet a poster of The Avengers for testing.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_mtcnn.py --image ${HOME}/Pictures/avengers.jpg
-   ```
-
-   Here's the result (JetPack-4.2.2, i.e. TensorRT 5).
-
-   ![Avengers faces detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/avengers.png)
-
-4. The "trt_mtcnn.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 for details.
-
-5. Check out my related blog posts:
-
-   * [TensorRT MTCNN Face Detector](https://jkjung-avt.github.io/tensorrt-mtcnn/)
-   * [Optimizing TensorRT MTCNN](https://jkjung-avt.github.io/optimize-mtcnn/)
-
-<a name="ssd"></a>
-Demo #3: SSD
-------------
-
-This demo shows how to convert pre-trained tensorflow Single-Shot Multibox Detector (SSD) models through UFF to TensorRT engines, and to do real-time object detection with the TensorRT engines.
-
-NOTE: This particular demo requires TensorRT "Python API", which is only available in TensorRT 5.x+ on the Jetson systems.  In other words, this demo only works on Jetson systems properly set up with JetPack-4.2+, but **not** JetPack-3.x or earlier versions.
-
-Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", follow these steps:
-
-1. Install requirements (pycuda, etc.) and build TensorRT engines from the pre-trained SSD models.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos/ssd
-   $ ./install.sh
-   $ ./build_engines.sh
-   ```
-
-   NOTE: On my Jetson Nano DevKit with TensorRT 5.1.6, the version number of UFF converter was "0.6.3".  When I ran "build_engine.py", the UFF library actually printed out: `UFF has been tested with tensorflow 1.12.0. Other versions are not guaranteed to work.`  So I would strongly suggest you to use **tensorflow 1.12.x** (or whatever matching version for the UFF library installed on your system) when converting pb to uff.
-
-2. Run the "trt_ssd.py" demo program.  The demo supports 4 models: "ssd_mobilenet_v1_coco", "ssd_mobilenet_v1_egohands", "ssd_mobilenet_v2_coco", or "ssd_mobilenet_v2_egohands".  For example, I tested the "ssd_mobilenet_v1_coco" model with the "huskies" picture.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_ssd.py --image ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg \
-                        --model ssd_mobilenet_v1_coco
-   ```
-
-   Here's the result (JetPack-4.2.2, i.e. TensorRT 5).  Frame rate was good (over 20 FPS).
-
-   ![Huskies detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/huskies.png)
-
-   NOTE: When running this demo with TensorRT 6 (JetPack-4.3) on the Jetson Nano, I encountered the following error message which could probably be ignored for now.  Quote from [NVIDIA's NVES_R](https://devtalk.nvidia.com/default/topic/1065233/tensorrt/-tensorrt-error-could-not-register-plugin-creator-flattenconcat_trt-in-namespace-/post/5394191/#5394191): `This is a known issue and will be fixed in a future version.`
-
-   ```
-   [TensorRT] ERROR: Could not register plugin creator: FlattenConcat_TRT in namespace
-   ```
-
-   I also tested the "ssd_mobilenet_v1_egohands" (hand detector) model with a video clip from YouTube, and got the following result.  Again, frame rate was pretty good.  But the detection didn't seem very accurate though :-(
-
-   ```shell
-   $ python3 trt_ssd.py --video ${HOME}/Videos/Nonverbal_Communication.mp4 \
-                        --model ssd_mobilenet_v1_egohands
-   ```
-
-   (Click on the image below to see the whole video clip...)
-
-   [![Hands detected](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/hands.png)](https://youtu.be/3ieN5BBdDF0)
-
-3. The "trt_ssd.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.
-
-4. Referring to this comment, ["#TODO enable video pipeline"](https://github.com/AastaNV/TRT_object_detection/blob/master/main.py#L78), in the original TRT_object_detection code, I did implement an "async" version of ssd detection code to do just that.  When I tested "ssd_mobilenet_v1_coco" on the same huskies image with the async demo program on the Jetson Nano DevKit, frame rate improved 3~4 FPS.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_ssd_async.py --image ${HOME}/project/tf_trt_models/examples/detection/data/huskies.jpg \
-                              --model ssd_mobilenet_v1_coco
-   ```
-
-5. To verify accuracy (mAP) of the optimized TensorRT engines and make sure they do not degrade too much (due to reduced floating-point precision of "FP16") from the original TensorFlow frozen inference graphs, you could prepare validation data and run "eval_ssd.py".  Refer to [README_mAP.md](README_mAP.md) for details.
-
-   I compared mAP of the TensorRT engine and the original tensorflow model for both "ssd_mobilenet_v1_coco" and "ssd_mobilenet_v2_coco" using COCO "val2017" data.  The results were good.  In both cases, mAP of the optimized TensorRT engine matched the original tensorflow model.  The FPS (frames per second) numbers in the table were measured using "trt_ssd_async.py" on my Jetson Nano DevKit with JetPack-4.3.
-
-   | TensorRT engine         | mAP @<br>IoU=0.5:0.95 |  mAP @<br>IoU=0.5  | FPS on Nano |
-   |:------------------------|:---------------------:|:------------------:|:-----------:|
-   | mobilenet_v1 TF         |          0.232        |        0.351       |      --     |
-   | mobilenet_v1 TRT (FP16) |          0.232        |        0.351       |     27.7    |
-   | mobilenet_v2 TF         |          0.248        |        0.375       |      --     |
-   | mobilenet_v2 TRT (FP16) |          0.248        |        0.375       |     22.7    |
-
-6. Check out my blog posts for implementation details:
-
-   * [TensorRT UFF SSD](https://jkjung-avt.github.io/tensorrt-ssd/)
-   * [Speeding Up TensorRT UFF SSD](https://jkjung-avt.github.io/speed-up-trt-ssd/)
-   * [Verifying mAP of TensorRT Optimized SSD and YOLOv3 Models](https://jkjung-avt.github.io/trt-detection-map/)
-   * Or if you'd like to learn how to train your own custom object detectors which could be easily converted to TensorRT engines and inferenced with "trt_ssd.py" and "trt_ssd_async.py": [Training a Hand Detector with TensorFlow Object Detection API](https://jkjung-avt.github.io/hand-detection-tutorial/)
 
 <a name="yolov3"></a>
-Demo #4: YOLOv3
+Demo #: YOLOv3
 ---------------
 
-(Merged with Demo #5: YOLOv4...)
+(Merged with Demo #: YOLOv4...)
 
 <a name="yolov4"></a>
-Demo #5: YOLOv4
+Demo #2: YOLOv4
 ---------------
 
-Along the same line as Demo #3, these 2 demos showcase how to convert pre-trained yolov3 and yolov4 models through ONNX to TensorRT engines.  The code for these 2 demos has gone through some significant changes.  More specifically, I have recently updated the implementation with a "yolo_layer" plugin to speed up inference time of the yolov3/yolov4 models.
 
-My current "yolo_layer" plugin implementation is based on TensorRT's [IPluginV2IOExt](https://docs.nvidia.com/deeplearning/tensorrt/api/c_api/classnvinfer1_1_1_i_plugin_v2_i_o_ext.html).  It only works for **TensorRT 6+**.  I'm thinking about updating the code to support TensorRT 5 if I have time late on.
-
-I developed my "yolo_layer" plugin by referencing similar plugin code by [wang-xinyu](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov4) and [dongfangduoshou123](https://github.com/dongfangduoshou123/YoloV3-TensorRT/blob/master/seralizeEngineFromPythonAPI.py).  So big thanks to both of them.
 
 Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", follow these steps:
 
@@ -447,86 +240,6 @@ Please make sure you have gone through the steps of [Demo #5](#yolov4) and are a
    * There is no method in TensorRT 7.1 Python API to specifically set DLA core at inference time.  I also [reported this issue](https://forums.developer.nvidia.com/t/no-method-in-tensorrt-python-api-for-setting-dla-core-for-inference/155874) to NVIDIA.  When testing, I simply deserialize the TensorRT engines onto Jetson Xavier NX.  I'm not 100% sure whether the engine is really executed on DLA core 0 or DLA core 1.
    * mAP of the INT8 TensorRT engine of the "yolov4-608" model is not good.  Originally, I thought it was [an issue of TensorRT library's handling of "Concat" nodes](https://forums.developer.nvidia.com/t/concat-in-caffe-parser-is-wrong-when-working-with-int8-calibration/142639/3?u=jkjung13).  But after some more investigation, I saw that was not the case.  Currently, I'm still not sure what the problem is...
 
-<a name="modnet"></a>
-Demo #7: MODNet
----------------
-
-This demo illustrates the use of TensorRT to optimize an image segmentation model.  More specifically, I build and test a TensorRT engine from the pre-trained MODNet to do real-time image/video "matting".  The PyTorch MODNet model comes from [ZHKKKe/MODNet](https://github.com/ZHKKKe/MODNet).  Note that, as stated by the original auther, this pre-trained model is under [Creative Commons Attribution NonCommercial ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.  Thanks to [ZHKKKe](https://github.com/ZHKKKe) for sharing the model and inference code.
-
-This MODNet model contains [InstanceNorm2d](https://pytorch.org/docs/stable/generated/torch.nn.InstanceNorm2d.html) layers, which are only supported in recent versions of TensorRT.  So far I have only tested the code with TensorRT 7.1 and 7.2.  I don't guarantee the code would work for older versions of TensorRT.
-
-To make the demo simpler to follow, I have already converted the PyTorch MODNet model to ONNX ("modnet/modnet.onnx").  If you'd like to do the PyTorch-to-ONNX conversion by yourself, you could refer to [modnet/README.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/modnet/README.md).
-
-Here is the step-by-step guide for the demo:
-
-1. Install "pycuda" in case you haven't done so in Demo #3.  Note that the installation script resides in the "ssd" folder.
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos/ssd
-   $ ./install_pycuda.sh
-   ```
-
-2. Build TensorRT engine from "modnet/modnet.onnx".
-
-   This step would be easy if you are using **TensorRT 7.2 or later**.  Just use the "modnet/onnx_to_tensorrt.py" script:  (You could optionally use "-v" command-line option to see verbose logs.)
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos/modnet
-   $ python3 onnx_to_tensorrt.py modnet.onnx modnet.engine
-   ```
-
-   When "onnx_to_tensorrt.py" finishes, the "modnet.engine" file should be generated.  And you could go to step #3.
-
-   In case you are using **TensorRT 7.1** (JetPack-4.5 or JetPack-4.4), "modnet/onnx_to_tensorrt.py" wouldn't work due to this error (which has been fixed in TensorRT 7.2): [UNSUPPORTED_NODE: Assertion failed: !isDynamic(tensorPtr->getDimensions()) && "InstanceNormalization does not support dynamic inputs!"](https://github.com/onnx/onnx-tensorrt/issues/374).  I worked around the problem by building [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt) by myself.  Here's how you could do it too.
-
-   ```
-   $ cd ${HOME}/project/tensorrt_demos/modnet
-   ### check out the "onnx-tensorrt" submodule
-   $ git submodule update --init --recursive
-   ### patch CMakeLists.txt
-   $ sed -i '21s/cmake_minimum_required(VERSION 3.13)/#cmake_minimum_required(VERSION 3.13)/' \
-         onnx-tensorrt/CMakeLists.txt
-   ### build onnx-tensorrt
-   $ mkdir -p onnx-tensorrt/build
-   $ cd onnx-tensorrt/build
-   $ cmake -DCMAKE_CXX_FLAGS=-I/usr/local/cuda/targets/aarch64-linux/include \
-           -DONNX_NAMESPACE=onnx2trt_onnx ..
-   $ make -j4
-   ### finally, we could build the TensorRT (FP16) engine
-   $ cd ${HOME}/project/tensorrt_demos/modnet
-   $ LD_LIBRARY_PATH=$(pwd)/onnx-tensorrt/build \
-         onnx-tensorrt/build/onnx2trt modnet.onnx -o modnet.engine \
-                                      -d 16 -v
-   ```
-
-3. Test the TensorRT MODNet engine with "modnet/image.jpg".
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_modnet.py --image modnet/image.jpg
-   ```
-
-   You could see the matted image as below.  Note that I get ~21 FPS when running the code on Jetson Xavier NX with JetPack-4.5.
-
-   ![Matted modnet/image.jpg](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/image_trt_modnet.jpg)
-
-4. The "trt_modnet.py" demo program could also take various image inputs.  Refer to step 5 in Demo #1 again.  (For example, the "--usb" command-line option would be useful.)
-
-5. Instead of a boring black background, you could use the "--background" option to specify an alternative background.  The background could be either a still image or a video file.  Furthermore, you could also use the "--create_video" option to save the matted outputs as a video file.
-
-   For example, I took a [Chou, Tzu-Yu video](https://youtu.be/L6B9BObaIRA) and a [beach video](https://youtu.be/LdsTydS4eww), and created a blended video like this:
-
-   ```shell
-   $ cd ${HOME}/project/tensorrt_demos
-   $ python3 trt_modnet.py --video Tzu-Yu.mp4 \
-                           --background beach.mp4 \
-                           --demo_mode \
-                           --create_video output
-   ```
-
-   The result would be saved as "output.ts" on Jetson Xavier NX (or "output.mp4" on x86_64 PC).
-
-   [![Video Matting Demo \| TensorRT MODNet](https://raw.githubusercontent.com/jkjung-avt/tensorrt_demos/master/doc/trt_modnet_youtube.jpg)](https://youtu.be/SIoJAI1bMyc)
 
 Licenses
 --------
