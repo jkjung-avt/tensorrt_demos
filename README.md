@@ -1,8 +1,4 @@
 # tensorrt_demos
-
-
-
-Table of contents
 -----------------
 ### installation for yolov3 & yolov4 
 
