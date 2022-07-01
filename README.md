@@ -78,6 +78,18 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
 
    In case "onnx_to_tensorrt.py" fails (process "Killed" by Linux kernel), it could likely be that the Jetson platform runs out of memory during conversion of the TensorRT engine.  This problem might be solved by adding a larger swap file to the system.  Reference: [Process killed in onnx_to_tensorrt.py Demo#5](https://github.com/jkjung-avt/tensorrt_demos/issues/344).
 
+## inference
+#### add path of required arguments inside .py file
+### using simple python.py file    
+   ```shell
+   $ cd ${HOME}/project/tensorrt_demos
+   $ python3 trt_ad_yolo_image.py
+   $ python3 trt_ad_yolo_video.py 
+           
+   ```
+
+
+### using argument 
 5. Test the TensorRT "yolov4-416" engine with the "dog.jpg" image.
 
    ```shell
@@ -86,7 +98,8 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    $ python3 trt_yolo.py --image ${HOME}/Pictures/dog.jpg \
                          -m yolov4-416
    ```
-
+   
+   
    This is a screenshot of the demo against JetPack-4.4, i.e. TensorRT 7.
 
    !["yolov4-416" detection result on dog.jpg](doc/dog_trt_yolov4_416.jpg)
@@ -96,6 +109,9 @@ Assuming this repository has been cloned at "${HOME}/project/tensorrt_demos", fo
    For example, I tested my own custom trained ["yolov4-crowdhuman-416x416"](https://github.com/jkjung-avt/yolov4_crowdhuman) TensorRT engine with the "Avengers: Infinity War" movie trailer:
 
    [![Testing with the Avengers: Infinity War trailer](https://raw.githubusercontent.com/jkjung-avt/yolov4_crowdhuman/master/doc/infinity_war.jpg)](https://youtu.be/7Qr_Fq18FgM)
+
+
+
 
 7. (Optional) Test other models than "yolov4-416".
 
