@@ -1,6 +1,8 @@
 # tensorrt_demos
 
-Examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT and do inference on NVIDIA Jetson or x86_64 platforms.  Highlights:
+Examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT.
+
+Highlights:
 
 * Run an optimized "MODNet" video matting model at ~21 FPS on Jetson Xavier NX.
 * Run an optimized "yolov4-416" object detector at ~4.6 FPS on Jetson Nano.
@@ -8,8 +10,13 @@ Examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models w
 * Run an optimized "ssd_mobilenet_v1_coco" object detector ("trt_ssd_async.py") at 27~28 FPS on Jetson Nano.
 * Run an optimized "MTCNN" face detector at 6~11 FPS on Jetson Nano.
 * Run an optimized "GoogLeNet" image classifier at "~16 ms per image (inference only)" on Jetson Nano.
-* All demos work on Jetson Nano, TX2, AGX Xavier, and Xavier NX.
-* All demos also work on x86_64 PC with NVIDIA GPU(s).  Please refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
+
+Supported hardware:
+
+* NVIDIA Jetson
+   - All NVIDIA Jetson Developer Kits, e.g. [Jetson AGX Orin DevKit](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/#advanced-features), [Jetson AGX Xavier DevKit](https://developer.nvidia.com/embedded/jetson-agx-xavier-developer-kit), [Jetson Xavier NX DevKit](https://developer.nvidia.com/embedded/jetson-xavier-nx-devkit), Jetson TX2 DevKit, [Jetson Nano DevKit](https://developer.nvidia.com/embedded/jetson-nano-developer-kit).
+   - Seeed [reComputer J1010](https://www.seeedstudio.com/Jetson-10-1-A0-p-5336.html) with Jetson Nano and [reComputer J2021](https://www.seeedstudio.com/reComputer-J2021-p-5438.html) with Jetson Xavier NX, which are built with NVIDIA Jetson production module and pre-installed with NVIDIA [JetPack SDK](https://developer.nvidia.com/embedded/jetpack).
+* x86_64 PC with modern NVIDIA GPU(s).  Refer to [README_x86.md](https://github.com/jkjung-avt/tensorrt_demos/blob/master/README_x86.md) for more information.
 
 Table of contents
 -----------------
