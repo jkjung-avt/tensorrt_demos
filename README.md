@@ -1,10 +1,6 @@
 # tensorrt_demos
 ### Sponsor
 
-Thank you to [Roboflow](https://roboflow.com/?ref=tensorrt_demos) for supporting our work.  Over 500,000 developers and machine learning engineers use Roboflow to build and deploy computer vision models. 
-
----
-
 This repo is a collection of examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT.
 
 Highlights:
