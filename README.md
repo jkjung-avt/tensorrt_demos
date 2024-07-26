@@ -1,5 +1,4 @@
 # tensorrt_demos
-### Sponsor
 
 This repo is a collection of examples demonstrating how to optimize Caffe/TensorFlow/DarkNet/PyTorch models with TensorRT.
 
