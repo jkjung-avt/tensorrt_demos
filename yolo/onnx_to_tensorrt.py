@@ -143,9 +143,8 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
                     'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
             engine = builder.build_cuda_engine(network)
         else:  # new API: build_engine() with builder config
-            builder.max_batch_size = MAX_BATCH_SIZE
             config = builder.create_builder_config()
-            config.max_workspace_size = 1 << 30
+            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
             config.set_flag(trt.BuilderFlag.GPU_FALLBACK)
             config.set_flag(trt.BuilderFlag.FP16)
             profile = builder.create_optimization_profile()
@@ -167,7 +166,9 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
                 config.DLA_core = dla_core
                 config.set_flag(trt.BuilderFlag.STRICT_TYPES)
                 print('Using DLA core %d.' % dla_core)
-            engine = builder.build_engine(network, config)
+            serialized_engine = builder.build_serialized_network(network, config)
+            engine = trt.Runtime(TRT_LOGGER).deserialize_cuda_engine(serialized_engine)
+
 
         if engine is not None:
             print('Completed creating engine.')
