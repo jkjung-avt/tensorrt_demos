@@ -148,6 +148,7 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
             config.max_workspace_size = 1 << 30
             config.set_flag(trt.BuilderFlag.GPU_FALLBACK)
             config.set_flag(trt.BuilderFlag.FP16)
+            profile = builder.create_optimization_profile()
             profile.set_shape(
                 'input',                                # input tensor name
                 (MAX_BATCH_SIZE, net_c, net_h, net_w),  # min shape
