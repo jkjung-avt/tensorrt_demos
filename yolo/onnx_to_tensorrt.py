@@ -143,11 +143,11 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
                     'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
             engine = builder.build_cuda_engine(network)
         else:  # new API: build_engine() with builder config
+            builder.max_batch_size = MAX_BATCH_SIZE
             config = builder.create_builder_config()
-            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
+            config.max_workspace_size = 1 << 30
             config.set_flag(trt.BuilderFlag.GPU_FALLBACK)
             config.set_flag(trt.BuilderFlag.FP16)
-            profile = builder.create_optimization_profile()
             profile.set_shape(
                 'input',                                # input tensor name
                 (MAX_BATCH_SIZE, net_c, net_h, net_w),  # min shape
