@@ -510,7 +510,7 @@ class WeightLoader(object):
                 param_shape = [channels_out, channels_in, filter_h, filter_w]
             elif suffix == 'bias':
                 param_shape = [channels_out]
-        param_size = np.product(np.array(param_shape))
+        param_size = np.prod(np.array(param_shape))
         param_data = np.ndarray(
             shape=param_shape,
             dtype='float32',
