@@ -106,8 +106,11 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
     if onnx_data is None:
         return None
 
+    print(f'Found TRT: {trt.__version__}')
+    trt_major_version = int(trt.__version__.split(".")[0])
+
     TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE) if verbose else trt.Logger()
-    EXPLICIT_BATCH = [] if trt.__version__[0] < '7' else \
+    EXPLICIT_BATCH = [] if trt_major_version < 7 else \
         [1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)]
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network(*EXPLICIT_BATCH) as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
         if do_int8 and not builder.platform_has_fast_int8:
@@ -130,7 +133,7 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
 
         print('Building the TensorRT engine.  This would take a while...')
         print('(Use "--verbose" or "-v" to enable verbose logging.)')
-        if trt.__version__[0] < '7':  # older API: build_cuda_engine()
+        if trt_major_version < 7:  # older API: build_cuda_engine()
             if dla_core >= 0:
                 raise RuntimeError('DLA core not supported by old API')
             builder.max_batch_size = MAX_BATCH_SIZE
@@ -142,7 +145,36 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
                 builder.int8_calibrator = YOLOEntropyCalibrator(
                     'calib_images', (net_h, net_w), 'calib_%s.bin' % model_name)
             engine = builder.build_cuda_engine(network)
-        else:  # new API: build_engine() with builder config
+        elif trt_major_version >= 10:  # new API: build_engine() with builder config
+            config = builder.create_builder_config()
+            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)  # 1 GiB
+            config.set_flag(trt.BuilderFlag.FP16)
+            input_tensor = network.get_input(0)
+            in_name = input_tensor.name
+            min_shape = (1,        net_c, net_h, net_w)
+            opt_shape = (MAX_BATCH_SIZE, net_c, net_h, net_w)
+            max_shape = (MAX_BATCH_SIZE, net_c, net_h, net_w)
+
+            profile = builder.create_optimization_profile()
+            profile.set_shape(in_name, min_shape, opt_shape, max_shape)
+            config.add_optimization_profile(profile)
+            if do_int8:
+                from calibrator import YOLOEntropyCalibrator
+                config.set_flag(trt.BuilderFlag.INT8)
+                config.int8_calibrator = YOLOEntropyCalibrator(
+                    'calib_images', (net_h, net_w),
+                    f'calib_{model_name}.bin'
+                )
+                config.set_calibration_profile(profile)
+            # DLA (если есть)
+            if dla_core >= 0:
+                config.default_device_type = trt.DeviceType.DLA
+                config.DLA_core = dla_core
+                config.set_flag(trt.BuilderFlag.STRICT_TYPES)
+                print(f'Using DLA core {dla_core}.')
+            serialized_engine = builder.build_serialized_network(network, config)
+            engine = trt.Runtime(TRT_LOGGER).deserialize_cuda_engine(serialized_engine)
+        else:
             builder.max_batch_size = MAX_BATCH_SIZE
             config = builder.create_builder_config()
             config.max_workspace_size = 1 << 30
@@ -167,7 +199,9 @@ def build_engine(model_name, do_int8, dla_core, verbose=False):
                 config.DLA_core = dla_core
                 config.set_flag(trt.BuilderFlag.STRICT_TYPES)
                 print('Using DLA core %d.' % dla_core)
-            engine = builder.build_engine(network, config)
+            serialized_engine = builder.build_serialized_network(network, config)
+            engine = trt.Runtime(TRT_LOGGER).deserialize_cuda_engine(serialized_engine)
+
 
         if engine is not None:
             print('Completed creating engine.')
